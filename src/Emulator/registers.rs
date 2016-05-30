@@ -1,3 +1,5 @@
+use std::mem;
+
 /** Gameboy's 8-bit registers
 		In order, A F B C D E H L **/
 #[derive(Debug)]
@@ -34,6 +36,18 @@ impl Registers {
 	pub fn l(&mut self) -> &mut u8 {
 		&mut self.mem[7]
 	}
+	pub fn af(&mut self) -> *mut u16 {
+		&mut self.mem[..2] as *mut _ as *mut u16
+	}
+	pub fn bc(&mut self) -> *mut u16 {
+		&mut self.mem[2..4] as *mut _ as *mut u16
+	}
+	pub fn de(&mut self) -> *mut u16 {
+		&mut self.mem[4..6] as *mut _ as *mut u16
+	}
+	pub fn hl(&mut self) -> *mut u16 {
+		&mut self.mem[6..] as *mut _ as *mut u16
+	}
 }
 
 #[cfg(test)]
@@ -46,5 +60,14 @@ mod test {
 		assert_eq!(*reg.a(), 0);
 		*reg.a() = 5;
 		assert_eq!(*reg.a(), 5);
+	}
+
+	#[test]
+	fn test_joint_reg() {
+		let mut reg = Registers::new();
+		assert_eq!(*reg.a(), 0);
+		unsafe{*reg.af() = 256;}
+		assert_eq!(*reg.a(), 0);
+		assert_eq!(*reg.f(), 1);
 	}
 }
