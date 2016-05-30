@@ -2,13 +2,15 @@
 		In order, A F B C D E H L **/
 #[derive(Debug, Default)]
 pub struct Registers {
-	mem: [u8; 8]
+	mem: [u8; 8],
+	pc:  u16,
+	sp:  u16
 }
 
 #[allow(dead_code)]
 impl Registers {
 	pub fn new() -> Registers {
-	    Registers{mem: [0; 8]}
+	    Registers{mem: [0; 8], pc: 0, sp: 0}
 	}
 	pub fn a(&mut self) -> &mut u8 {
 		&mut self.mem[0]

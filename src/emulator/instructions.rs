@@ -26,10 +26,24 @@ impl Instruction {
 	}
 }
 
-pub const INSTRUCTIONS: [Instruction; 3] = [
-	new_instruction!("NOP", 0, Some(&|_| ())),
+pub const INSTRUCTIONS: [Instruction; 17] = [
+	new_instruction!("NOP", 0, Some(&|_| ())),		//0x00
 	new_instruction!("LD BC, 0x%04X", 2, None),
 	new_instruction!("LD (BC), A", 0, None),
+	new_instruction!("INC BC", 0, None),
+	new_instruction!("INC B", 0, None),
+	new_instruction!("DEC B", 0, None),
+	new_instruction!("LD B", 1, None),
+	new_instruction!("RLCA", 0, None),
+	new_instruction!("LD (a16),SP", 2, None),		//0x08
+	new_instruction!("ADD HL,BC", 0, None),
+	new_instruction!("LD A,(BC)", 0, None),
+	new_instruction!("DEC BC", 0, None),
+	new_instruction!("INC C", 0, None),
+	new_instruction!("DEC C", 0, None),
+	new_instruction!("LD C", 1, None),
+	new_instruction!("RRCA", 0, None),
+	new_instruction!("STOP 0", 1, None),			//0x10
 ];
 
 #[cfg(test)]

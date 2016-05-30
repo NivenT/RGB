@@ -7,3 +7,4 @@ authors = ["NivenT <nachenjang@gmail.com>"]
 glium_sdl2 = "*"
 sdl2 = "*"
 glium = "*"
+tini = "*"
