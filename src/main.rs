@@ -4,7 +4,7 @@ extern crate glium;
 extern crate glium_sdl2;
 extern crate sdl2;
 
-mod Emulator;
+mod emulator;
 
 use sdl2::event::Event;
 use glium_sdl2::DisplayBuild;
@@ -23,7 +23,7 @@ fn main() {
     while running {
 		for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } => {
+                Event::Quit{..} => {
                     running = false;
                 },
                 _ => ()

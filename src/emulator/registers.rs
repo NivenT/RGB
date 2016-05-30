@@ -1,8 +1,6 @@
-use std::mem;
-
 /** Gameboy's 8-bit registers
 		In order, A F B C D E H L **/
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Registers {
 	mem: [u8; 8]
 }
