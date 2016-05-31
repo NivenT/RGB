@@ -13,28 +13,28 @@ impl Registers {
 	    Registers{mem: [0; 8], pc: 0, sp: 0}
 	}
 	pub fn a(&mut self) -> &mut u8 {
-		&mut self.mem[0]
-	}
-	pub fn f(&mut self) -> &mut u8 {
 		&mut self.mem[1]
 	}
-	pub fn b(&mut self) -> &mut u8 {
-		&mut self.mem[2]
+	pub fn f(&mut self) -> &mut u8 {
+		&mut self.mem[0]
 	}
-	pub fn c(&mut self) -> &mut u8 {
+	pub fn b(&mut self) -> &mut u8 {
 		&mut self.mem[3]
 	}
-	pub fn d(&mut self) -> &mut u8 {
-		&mut self.mem[4]
+	pub fn c(&mut self) -> &mut u8 {
+		&mut self.mem[2]
 	}
-	pub fn e(&mut self) -> &mut u8 {
+	pub fn d(&mut self) -> &mut u8 {
 		&mut self.mem[5]
 	}
+	pub fn e(&mut self) -> &mut u8 {
+		&mut self.mem[4]
+	}
 	pub fn h(&mut self) -> &mut u8 {
-		&mut self.mem[6]
+		&mut self.mem[7]
 	}
 	pub fn l(&mut self) -> &mut u8 {
-		&mut self.mem[7]
+		&mut self.mem[6]
 	}
 	pub fn af(&mut self) -> *mut u16 {
 		&mut self.mem[..2] as *mut _ as *mut u16
@@ -48,7 +48,32 @@ impl Registers {
 	pub fn hl(&mut self) -> *mut u16 {
 		&mut self.mem[6..] as *mut _ as *mut u16
 	}
+
+	pub fn set_flags(&mut self, mask: u8) {
+		for i in (0..8u8).filter(|n| ((1u8 << n) & mask) > 0) {
+			self.mem[0] |= 1 << i
+		}
+	}
+	pub fn clear_flags(&mut self, mask: u8) {
+		for i in (0..8u8).filter(|n| ((1u8 << n) & mask) > 0) {
+			self.mem[0] &= 0xFF - (1 << i)
+		}
+	}
+	pub fn get_flag(&self, ident: u8) -> bool {
+		(self.mem[0] & ident) > 0
+	}
 }
+
+#[allow(dead_code)]
+pub const ALL_FLAGS: u8         = 0xF0;
+#[allow(dead_code)]
+pub const ZERO_FLAG: u8 		= 0x80;
+#[allow(dead_code)]
+pub const NEGATIVE_FLAG: u8 	= 0x40;
+#[allow(dead_code)]
+pub const HALFCARRY_FLAG: u8 	= 0x20;
+#[allow(dead_code)]
+pub const CARRY_FLAG: u8 		= 0x10;
 
 #[cfg(test)]
 mod test {
@@ -67,7 +92,7 @@ mod test {
 		let mut reg = Registers::new();
 		assert_eq!(*reg.a(), 0);
 		unsafe{*reg.af() = 256;}
-		assert_eq!(*reg.a(), 0);
-		assert_eq!(*reg.f(), 1);
+		assert_eq!(*reg.a(), 1);
+		assert_eq!(*reg.f(), 0);
 	}
 }

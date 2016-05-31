@@ -1,9 +1,18 @@
-use emulator::registers::Registers;
+use emulator::registers::*;
 
 //Instruction constructor macro because consts can't call functions
 macro_rules! new_instruction {
     ($name:expr, $operand_length:expr, $func:expr) => {
     	Instruction{name: $name, operand_length: $operand_length, func: $func}
+    }
+}
+
+macro_rules! xor {
+    ($regs:expr, $reg:ident) => {
+    	*$regs.a() ^= *$regs.$reg();
+
+    	$regs.clear_flags(ALL_FLAGS);
+    	if *$regs.a() == 0 {$regs.set_flags(ZERO_FLAG);}
     }
 }
 
@@ -51,7 +60,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD E,d8", 1, None),
 	new_instruction!("RRA", 0, None),
 	new_instruction!("JR NZ,r8", 1, None),			//0x20
-	new_instruction!("LD HL,d16", 2, None),
+	new_instruction!("LD HL,d16", 2, Some(&ld_hl)),
 	new_instruction!("LD (HL+),A", 0, None),
 	new_instruction!("INC HL", 0, None),
 	new_instruction!("INC H", 0, None),
@@ -193,7 +202,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("XOR H", 0, None),
 	new_instruction!("XOR L", 0, None),
 	new_instruction!("XOR (HL)", 0, None),
-	new_instruction!("XOR A", 0, None),
+	new_instruction!("XOR A", 0, Some(&xor_a)),
 	new_instruction!("OR B", 0, None),				//0xB0
 	new_instruction!("OR C", 0, None),
 	new_instruction!("OR D", 0, None),
@@ -250,7 +259,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("PUSH HL", 0, None),
 	new_instruction!("AND d8", 1, None),
 	new_instruction!("RST 20H", 0, None),
-	new_instruction!("ADD SP,r8", 1, None),					//0xE8
+	new_instruction!("ADD SP,r8", 1, None),			//0xE8
 	new_instruction!("JP (HL)", 0, None),
 	new_instruction!("LD (a16),A", 2, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
@@ -258,7 +267,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("XOR d8", 1, None),
 	new_instruction!("RST 20H", 0, None),
-	new_instruction!("LDH A,(a8)", 1, None),					//0xF0
+	new_instruction!("LDH A,(a8)", 1, None),		//0xF0
 	new_instruction!("POP AF", 0, None),
 	new_instruction!("LD A,(C)", 1, None),
 	new_instruction!("DI", 0, None),
@@ -266,7 +275,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("PUSH AF", 0, None),
 	new_instruction!("OR d8", 1, None),
 	new_instruction!("RST 30H", 0, None),
-	new_instruction!("LD HL,SP+r8", 1, None),					//0xF8
+	new_instruction!("LD HL,SP+r8", 1, None),		//0xF8
 	new_instruction!("LD SP,HL", 0, None),
 	new_instruction!("LD A,(a16)", 2, None),
 	new_instruction!("EI", 0, None),
@@ -276,19 +285,37 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("RST 30H", 0, None),
 ];
 
+fn ld_hl(regs: &mut Registers, operand: u16) {
+	unsafe{*regs.hl() = operand;}
+}
+
 fn ld_sp(regs: &mut Registers, operand: u16) {
 	regs.sp = operand;
+}
+
+fn xor_a(regs: &mut Registers, _: u16) {
+	xor!(regs, a);
 }
 
 #[cfg(test)]
 mod test {
 	use super::*;
-	use emulator::registers::Registers;
+	use emulator::registers::*;
 
 	#[test]
 	fn test_instruction_call() {
 		let mut regs = Registers::new();
 		let func = INSTRUCTIONS[0].func.unwrap();
 		func(&mut regs, 0);
+	}
+	#[test]
+	fn test_xor() {
+		let mut regs = Registers::new();
+		assert_eq!(*regs.a(), 0);
+		assert_eq!(regs.get_flag(ZERO_FLAG), false);
+		let xor_a = INSTRUCTIONS[0xAF].func.unwrap();
+		xor_a(&mut regs, 0);
+		assert_eq!(*regs.a(), 0);
+		assert_eq!(regs.get_flag(ZERO_FLAG), true);
 	}
 }
