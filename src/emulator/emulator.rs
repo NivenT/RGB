@@ -7,9 +7,9 @@ use emulator::rom_info::*;
 
 #[allow(dead_code)]
 pub struct Emulator {
-	memory:		[u8; 65536],
-	controls: 	[u8; 8],
-	regs:		Registers
+	pub memory:		[u8; 65536],
+	pub controls: 	[u8; 8],
+	pub regs:		Registers
 }
 
 #[allow(dead_code)]
@@ -19,12 +19,7 @@ impl Emulator {
 		for i in 0..256 {
 			memory[i] = BIOS[i];
 		}
-		let mut ret = Emulator{memory: memory, controls: [0; 8], regs: Registers::new()};
-
-		while ret.regs.pc < 0x100 {
-			ret.emulate_cycle();
-		}
-		ret
+		Emulator{memory: memory, controls: [0; 8], regs: Registers::new()}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
 		for i in 0..8 {
@@ -93,10 +88,11 @@ impl Emulator {
 		}
 
 		if let Some(func) = instruction.func {
-			func(&mut self.regs, operand);
+			func(self, operand);
 		} else {
-			panic!("Unimplemented function at memory address {:#X} [{:#X} ({} | {})] called with operand {:#X}", 
+			println!("Unimplemented function at memory address {:#X} [{:#X} ({} | {})] called with operand {:#X}", 
 				self.regs.pc-1, opcode, instruction.name, instruction.operand_length, operand);
+			panic!("");
 		}
 		self.regs.pc += instruction.operand_length as u16;
 	}

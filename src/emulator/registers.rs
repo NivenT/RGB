@@ -69,7 +69,7 @@ pub const ALL_FLAGS: u8         = 0xF0;
 #[allow(dead_code)]
 pub const ZERO_FLAG: u8 		= 0x80;
 #[allow(dead_code)]
-pub const NEGATIVE_FLAG: u8 	= 0x40;
+pub const SUBTRACT_FLAG: u8 	= 0x40;
 #[allow(dead_code)]
 pub const HALFCARRY_FLAG: u8 	= 0x20;
 #[allow(dead_code)]
