@@ -26,6 +26,7 @@ impl Instruction {
 	}
 }
 
+#[allow(dead_code)]
 pub const INSTRUCTIONS: [Instruction; 17] = [
 	new_instruction!("NOP", 0, Some(&|_| ())),		//0x00
 	new_instruction!("LD BC, 0x%04X", 2, None),

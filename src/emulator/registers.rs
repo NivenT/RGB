@@ -2,9 +2,9 @@
 		In order, A F B C D E H L **/
 #[derive(Debug, Default)]
 pub struct Registers {
-	mem: [u8; 8],
-	pc:  u16,
-	sp:  u16
+	mem: 	[u8; 8],
+	pub pc:	u16,
+	pub sp: u16
 }
 
 #[allow(dead_code)]

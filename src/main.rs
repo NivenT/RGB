@@ -11,6 +11,8 @@ use glium_sdl2::DisplayBuild;
 use sdl2::event::Event;
 use tini::Ini;
 
+use emulator::emulator::Emulator;
+
 fn main() {
 	let config = Ini::from_file("settings.ini").unwrap();
 	let game_path: String = config.get("game", "game").unwrap();
@@ -18,11 +20,16 @@ fn main() {
 	let controls: Vec<u8> = buttons.iter()
 								   .map(|a| config.get("controls", a).unwrap())
 								   .collect();
-
+	/*
 	println!("game_path: {}", game_path);
 	for (key, val) in buttons.iter().zip(controls.iter()) {
 		println!("{}: {}", key, val);
 	}
+	*/
+
+	let mut emu = Emulator::new();
+	emu.set_controls(controls);
+	emu.load_game(game_path);
 
 	let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -34,7 +41,7 @@ fn main() {
 
 	let mut running = true;
     let mut event_pump = sdl_context.event_pump().unwrap();
-    while running {
+    while running && false {
 		for event in event_pump.poll_iter() {
             match event {
                 Event::Quit{..} => {
