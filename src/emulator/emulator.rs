@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use emulator::registers::Registers;
+use emulator::instructions::*;
 use emulator::rom_info::*;
 
 #[allow(dead_code)]
@@ -83,6 +84,20 @@ impl Emulator {
 		println!("Successfully loaded {}", title);
 	}
 	pub fn emulate_cycle(&mut self) {
-		self.regs.pc += 1;
+		let opcode = self.memory[self.regs.pc as usize]; self.regs.pc += 1;
+		let instruction = INSTRUCTIONS[opcode as usize];
+
+		let mut operand = self.memory[self.regs.pc as usize] as u16;
+		if instruction.operand_length == 2 {
+			operand = (operand << 8) | self.memory[self.regs.pc as usize+1] as u16;
+		}
+
+		if let Some(func) = instruction.func {
+			func(&mut self.regs, operand);
+		} else {
+			panic!("Unimplemented function at memory address {:#X} [{:#X} ({} | {})] called with operand {:#X}", 
+				self.regs.pc-1, opcode, instruction.name, instruction.operand_length, operand);
+		}
+		self.regs.pc += instruction.operand_length as u16;
 	}
 }
