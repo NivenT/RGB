@@ -346,7 +346,7 @@ fn xor_a(emu: &mut Emulator, _: u16) {
 fn cb(emu: &mut Emulator, operand: u16) {
 	let instruction = CB_INSTRUCTIONS[operand as usize];
 	if let Some(func) = instruction.func {
-		func(&mut emu.regs);
+		func(emu);
 	} else {
 		println!("Unimplemented function at memory address {:#X} [{:#X} {:#X} ({})]", 
 			emu.regs.pc-1, 0xCB, operand, instruction.name);
