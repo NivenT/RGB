@@ -21,6 +21,24 @@ macro_rules! xor {
 }
 
 macro_rules! ld {
+	(sp, 16) => {
+		|emu, operand| {
+			emu.regs.sp = operand;
+		}
+	};
+
+	($reg:ident, 16) => {
+    	|emu, operand| {
+    		unsafe{*emu.regs.$reg() = operand;}
+    	}
+    };
+
+    ($reg:ident, 8) => {
+    	|emu, operand| {
+    		*emu.regs.$reg() = operand as u8;
+    	}
+    };
+
     ($reg1:ident, $reg2:ident) => {
     	|emu, _| {
     		*emu.regs.$reg1() = *emu.regs.$reg2();
@@ -51,12 +69,12 @@ pub struct Instruction {
 pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0x00
 	new_instruction!("NOP", 0, Some(&|_,_| ())),	
-	new_instruction!("LD BC,d16, 0x%04X", 2, None),
-	new_instruction!("LD (BC), A", 0, None),
+	new_instruction!("LD BC,d16", 2, None),
+	new_instruction!("LD (BC),A", 0, None),
 	new_instruction!("INC BC", 0, None),
 	new_instruction!("INC B", 0, None),
 	new_instruction!("DEC B", 0, None),
-	new_instruction!("LD B,d8", 1, None),
+	new_instruction!("LD B,d8", 1, Some(&ld!(b, 8))),
 	new_instruction!("RLCA", 0, None),
 	//0x08
 	new_instruction!("LD (a16),SP", 2, None),
@@ -65,7 +83,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("DEC BC", 0, None),
 	new_instruction!("INC C", 0, None),
 	new_instruction!("DEC C", 0, None),
-	new_instruction!("LD C,d8", 1, None),
+	new_instruction!("LD C,d8", 1, Some(&ld!(c, 8))),
 	new_instruction!("RRCA", 0, Some(&rrca)),
 	//0x10
 	new_instruction!("STOP 0", 1, None),			
@@ -74,7 +92,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("INC DE", 0, None),
 	new_instruction!("INC D", 0, None),
 	new_instruction!("DEC D", 0, None),
-	new_instruction!("LD D,d8", 1, None),
+	new_instruction!("LD D,d8", 1, Some(&ld!(d, 8))),
 	new_instruction!("RLA", 0, None),
 	//0x18
 	new_instruction!("JR r8", 1, None),				
@@ -83,16 +101,16 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("DEC DE", 0, None),
 	new_instruction!("INC E", 0, None),
 	new_instruction!("DEC E", 0, None),
-	new_instruction!("LD E,d8", 1, None),
+	new_instruction!("LD E,d8", 1, Some(&ld!(e, 8))),
 	new_instruction!("RRA", 0, None),
 	//0x20
 	new_instruction!("JR NZ,r8", 1, Some(&jr_nz)),			
-	new_instruction!("LD HL,d16", 2, Some(&ld_hl)),
+	new_instruction!("LD HL,d16", 2, Some(&ld!(hl, 16))),
 	new_instruction!("LD (HL+),A", 0, None),
 	new_instruction!("INC HL", 0, None),
 	new_instruction!("INC H", 0, None),
 	new_instruction!("DEC H", 0, None),
-	new_instruction!("LD H,d8", 1, None),
+	new_instruction!("LD H,d8", 1, Some(&ld!(h, 8))),
 	new_instruction!("DAA", 0, None),
 	//0x28
 	new_instruction!("JR Z,r8", 1, Some(&jr_z)),			
@@ -101,11 +119,11 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("DEC HL", 0, None),
 	new_instruction!("INC L", 0, None),
 	new_instruction!("DEC L", 0, None),
-	new_instruction!("LD L,d8", 1, None),
+	new_instruction!("LD L,d8", 1, Some(&ld!(l, 8))),
 	new_instruction!("CPL", 0, None),
 	//0x30
 	new_instruction!("JR NC,r8", 1, Some(&jr_nc)),			
-	new_instruction!("LD SP,d16", 2, Some(&ld_sp)),
+	new_instruction!("LD SP,d16", 2, Some(&ld!(sp, 16))),
 	new_instruction!("LD (HL-),A", 0, Some(&ld_hld_a)),
 	new_instruction!("INC SP", 0, None),
 	new_instruction!("INC (HL)", 0, None),
@@ -119,7 +137,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("DEC SP", 0, None),
 	new_instruction!("INC A", 0, None),
 	new_instruction!("DEC A", 0, None),
-	new_instruction!("LD A,d8", 1, None),
+	new_instruction!("LD A,d8", 1, Some(&ld!(a, 8))),
 	new_instruction!("CCF", 0, None),
 	//0x40
 	new_instruction!("LD B,B", 0, None),			
@@ -366,11 +384,6 @@ fn jr_nz(emu: &mut Emulator, operand: u16) {
 	}
 }
 
-//0x21
-fn ld_hl(emu: &mut Emulator, operand: u16) {
-	unsafe{*emu.regs.hl() = operand;}
-}
-
 //0x28
 fn jr_z(emu: &mut Emulator, operand: u16) {
 	if emu.regs.get_flag(ZERO_FLAG) {
@@ -383,11 +396,6 @@ fn jr_nc(emu: &mut Emulator, operand: u16) {
 	if !emu.regs.get_flag(CARRY_FLAG) {
 		jump(emu, operand);
 	}
-}
-
-//0x31
-fn ld_sp(emu: &mut Emulator, operand: u16) {
-	emu.regs.sp = operand;
 }
 
 //0x32

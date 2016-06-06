@@ -3,3 +3,4 @@ mod registers;
 mod instructions;
 mod rom_info;
 mod cb_instructions;
+mod gpu;
