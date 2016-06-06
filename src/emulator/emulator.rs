@@ -5,14 +5,12 @@ use emulator::registers::Registers;
 use emulator::instructions::*;
 use emulator::rom_info::*;
 
-#[allow(dead_code)]
 pub struct Emulator {
 	pub memory:		[u8; 65536],
 	pub controls: 	[u8; 8],
 	pub regs:		Registers
 }
 
-#[allow(dead_code)]
 impl Emulator {
 	pub fn new() -> Emulator {
 		let mut memory = [0; 65536];
@@ -90,10 +88,13 @@ impl Emulator {
 		if let Some(func) = instruction.func {
 			func(self, operand);
 		} else {
-			println!("Unimplemented function at memory address {:#X} [{:#X} ({} | {})] called with operand {:#X}", 
+			println!("\nUnimplemented function at memory address {:#X} [{:#X} ({} | {})] called with operand {:#X}\n", 
 				self.regs.pc-1, opcode, instruction.name, instruction.operand_length, operand);
 			panic!("");
 		}
+		println!("Ran instruction {:#X} ({} | {}) with operand {:#X}", 
+			opcode, instruction.name, instruction.operand_length, operand);
+
 		self.regs.pc += instruction.operand_length as u16;
 	}
 }

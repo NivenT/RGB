@@ -27,7 +27,6 @@ pub struct Instruction {
 	pub func:			InstructionFunc
 }
 
-#[allow(dead_code)]
 pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0x00
 	new_instruction!("NOP", 0, Some(&|_,_| ())),	
@@ -66,7 +65,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD E,d8", 1, None),
 	new_instruction!("RRA", 0, None),
 	//0x20
-	new_instruction!("JR NZ,r8", 1, None),			
+	new_instruction!("JR NZ,r8", 1, Some(&jr_nz)),			
 	new_instruction!("LD HL,d16", 2, Some(&ld_hl)),
 	new_instruction!("LD (HL+),A", 0, None),
 	new_instruction!("INC HL", 0, None),
@@ -75,7 +74,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD H,d8", 1, None),
 	new_instruction!("DAA", 0, None),
 	//0x28
-	new_instruction!("JR Z,r8", 1, None),			
+	new_instruction!("JR Z,r8", 1, Some(&jr_z)),			
 	new_instruction!("ADD HL,HL", 0, None),
 	new_instruction!("LD A,(HL+)", 0, None),
 	new_instruction!("DEC HL", 0, None),
@@ -84,7 +83,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD L,d8", 1, None),
 	new_instruction!("CPL", 0, None),
 	//0x30
-	new_instruction!("JP NC,r8", 1, None),			
+	new_instruction!("JR NC,r8", 1, Some(&jr_nc)),			
 	new_instruction!("LD SP,d16", 2, Some(&ld_sp)),
 	new_instruction!("LD (HL-),A", 0, Some(&ld_hld_a)),
 	new_instruction!("INC SP", 0, None),
@@ -93,7 +92,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD (HL),d8", 1, None),
 	new_instruction!("SCF", 0, None),
 	//0x38
-	new_instruction!("JR C,r8", 1, None),			
+	new_instruction!("JR C,r8", 1, Some(&jr_c)),			
 	new_instruction!("ADD HL,SP", 0, None),
 	new_instruction!("LD A,(HL-)", 0, None),
 	new_instruction!("DEC SP", 0, None),
@@ -319,9 +318,37 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("RST 30H", 0, None),
 ];
 
+fn jump(emu: &mut Emulator, offset: u16) {
+	unsafe {
+		let offset: i8 = *(&offset as  *const _ as *const i8);
+		emu.regs.pc = (emu.regs.pc as i16 + offset as i16) as u16;
+	}
+}
+
+//0x20
+fn jr_nz(emu: &mut Emulator, operand: u16) {
+	if !emu.regs.get_flag(ZERO_FLAG) {
+		jump(emu, operand);
+	}
+}
+
 //0x21
 fn ld_hl(emu: &mut Emulator, operand: u16) {
 	unsafe{*emu.regs.hl() = operand;}
+}
+
+//0x28
+fn jr_z(emu: &mut Emulator, operand: u16) {
+	if emu.regs.get_flag(ZERO_FLAG) {
+		jump(emu, operand);
+	}
+}
+
+//0x30
+fn jr_nc(emu: &mut Emulator, operand: u16) {
+	if !emu.regs.get_flag(CARRY_FLAG) {
+		jump(emu, operand);
+	}
 }
 
 //0x31
@@ -334,6 +361,13 @@ fn ld_hld_a(emu: &mut Emulator, _: u16) {
 	unsafe{
 		emu.memory[*emu.regs.hl() as usize] = *emu.regs.a();
 		*emu.regs.hl() -= 1;
+	}
+}
+
+//0x38
+fn jr_c(emu: &mut Emulator, operand: u16) {
+	if emu.regs.get_flag(CARRY_FLAG) {
+		jump(emu, operand);
 	}
 }
 
@@ -385,5 +419,15 @@ mod test {
 			assert_eq!(emu.memory[5], 18);
 		}
 
+	}
+	#[test]
+	fn test_jr_nz() {
+		let mut emu = Emulator::new();
+		emu.regs.pc = 1000;
+		let jr_nz = INSTRUCTIONS[0x20].func.unwrap();
+		jr_nz(&mut emu, 0xEC); //-20 as a signed 8-bit integer
+		assert_eq!(emu.regs.pc, 980);
+		jr_nz(&mut emu, 0x64); //100 as a signed 8-bit integer
+		assert_eq!(emu.regs.pc, 1080);
 	}
 }
