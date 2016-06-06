@@ -28,6 +28,17 @@ macro_rules! ld {
     }
 }
 
+macro_rules! rst {
+    ($val:expr) => {
+    	|emu, _| {
+    		emu.memory[emu.regs.sp as usize-1] = ((emu.regs.pc & 0xFF00) >> 8) as u8;
+    		emu.memory[emu.regs.sp as usize-2] = (emu.regs.pc & 0x00FF) as u8;
+    		emu.regs.pc = $val;
+    		emu.regs.sp -= 2;
+    	}
+    }
+}
+
 pub type InstructionFunc = Option<&'static Fn(&mut Emulator, u16) -> ()>;
 
 #[derive(Copy, Clone)]
@@ -262,7 +273,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("CALL NZ,a16", 2, None),
 	new_instruction!("PUSH BC", 0, None),
 	new_instruction!("ADD A,d8", 1, None),
-	new_instruction!("RST 00H", 0, None),
+	new_instruction!("RST 00H", 0, Some(&rst!(0x0000))),
 	//0xC8
 	new_instruction!("RET Z", 0, None),				
 	new_instruction!("RET", 0, None),
@@ -271,7 +282,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("CALL Z,a16", 2, None),
 	new_instruction!("CALL a16", 2, None),
 	new_instruction!("ADC A,d8", 1, None),
-	new_instruction!("RST 00H", 0, None),
+	new_instruction!("RST 08H", 0, Some(&rst!(0x0008))),
 	//0xD0
 	new_instruction!("RET NC", 0, None),			
 	new_instruction!("POP DE", 0, None),
@@ -280,7 +291,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("CALL NC,a16", 2, None),
 	new_instruction!("PUSH DE", 0, None),
 	new_instruction!("SUB d8", 1, None),
-	new_instruction!("RST 10H", 0, None),
+	new_instruction!("RST 10H", 0, Some(&rst!(0x0010))),
 	//0xD8
 	new_instruction!("RET C", 0, None),				
 	new_instruction!("RETI", 0, None),
@@ -289,7 +300,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("CALL C,a16", 2, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("SBC A,d8", 1, None),
-	new_instruction!("RST 10H", 0, None),
+	new_instruction!("RST 18H", 0, Some(&rst!(0x0018))),
 	//0xE0
 	new_instruction!("LDH (a8),A", 1, None),		
 	new_instruction!("POP HL", 0, None),
@@ -298,7 +309,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("PUSH HL", 0, None),
 	new_instruction!("AND d8", 1, None),
-	new_instruction!("RST 20H", 0, None),
+	new_instruction!("RST 20H", 0, Some(&rst!(0x0020))),
 	//0xE8
 	new_instruction!("ADD SP,r8", 1, None),			
 	new_instruction!("JP (HL)", 0, None),
@@ -307,7 +318,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("XOR d8", 1, None),
-	new_instruction!("RST 20H", 0, None),
+	new_instruction!("RST 28H", 0, Some(&rst!(0x0028))),
 	//0xF0
 	new_instruction!("LDH A,(a8)", 1, None),		
 	new_instruction!("POP AF", 0, None),
@@ -316,7 +327,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("PUSH AF", 0, None),
 	new_instruction!("OR d8", 1, None),
-	new_instruction!("RST 30H", 0, None),
+	new_instruction!("RST 30H", 0, Some(&rst!(0x0030))),
 	//0xF8
 	new_instruction!("LD HL,SP+r8", 1, None),	
 	new_instruction!("LD SP,HL", 0, None),
@@ -325,7 +336,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("CP d8", 1, None),
-	new_instruction!("RST 30H", 0, None),
+	new_instruction!("RST 38H", 0, Some(&rst!(0x0038))),
 ];
 
 fn jump(emu: &mut Emulator, offset: u16) {
@@ -400,7 +411,7 @@ fn cb(emu: &mut Emulator, operand: u16) {
 	if let Some(func) = instruction.func {
 		func(emu);
 	} else {
-		println!("Unimplemented function at memory address {:#X} [{:#X} {:#X} ({})]", 
+		println!("Unimplemented function at memory address ({:#X}) [{:#X} {:#X} ({})]", 
 			emu.regs.pc-1, 0xCB, operand, instruction.name);
 		panic!("");
 	}
@@ -459,5 +470,17 @@ mod test {
 		rrca(&mut emu, 0);
 		assert_eq!(*emu.regs.a(), 140);
 		assert_eq!(*emu.regs.f(), CARRY_FLAG);
+	}
+	#[test]
+	fn test_rst() {
+		let mut emu = Emulator::new();
+		emu.regs.sp = 3;
+		emu.regs.pc = 0xDEAD;
+		let rst_20 = INSTRUCTIONS[0x0E7].func.unwrap();
+		rst_20(&mut emu, 0);
+		assert_eq!(emu.regs.sp, 1);
+		assert_eq!(emu.memory[2], 0xDE);
+		assert_eq!(emu.memory[1], 0xAD);
+		assert_eq!(emu.regs.pc, 0x20);
 	}
 }
