@@ -3,6 +3,7 @@
 #[derive(Debug, Default)]
 pub struct Registers {
 	mem: 	[u8; 8],
+	
 	pub pc:	u16,
 	pub sp: u16
 }

@@ -5,7 +5,11 @@ use emulator::registers::Registers;
 use emulator::instructions::*;
 use emulator::rom_info::*;
 
+use super::super::debug_output;
+
 pub struct Emulator {
+	debug_file:		File,
+
 	pub memory:		[u8; 65536],
 	pub controls: 	[u8; 8],
 	pub regs:		Registers
@@ -17,7 +21,7 @@ impl Emulator {
 		for i in 0..256 {
 			memory[i] = BIOS[i];
 		}
-		Emulator{memory: memory, controls: [0; 8], regs: Registers::new()}
+		Emulator{debug_file: File::create("debug.txt").unwrap(), memory: memory, controls: [0; 8], regs: Registers::new()}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
 		for i in 0..8 {
@@ -87,16 +91,20 @@ impl Emulator {
 		}
 
 		if let Some(func) = instruction.func {
+			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n\t{:?}\n",
+								opcode, instruction.name, instruction.operand_length, operand, address, self.regs);
+			unsafe {if debug_output {println!("{}", debug_info);}}
+			let _ = write!(self.debug_file, "{}\n", debug_info);
+
 			func(self, operand);
 		} else {
-			println!("\nUnimplemented function at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
+			let debug_info = format!("\nUnimplemented function at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
 				address, opcode, instruction.name, instruction.operand_length, operand);
+			let _ = write!(self.debug_file, "{}", debug_info);
+			println!("{}", debug_info);
 			panic!("");
 		}
-		/*
-		println!("Ran instruction {:#X} ({} | {}) with operand {:#X} as address ({:#X})", 
-			opcode, instruction.name, instruction.operand_length, operand, address);
-		*/
+		
 		self.regs.pc += instruction.operand_length as u16;
 	}
 }

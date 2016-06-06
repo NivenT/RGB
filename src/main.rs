@@ -13,6 +13,8 @@ use tini::Ini;
 
 use emulator::emulator::Emulator;
 
+pub static mut debug_output: bool = true;
+
 fn main() {
 	let config = Ini::from_file("settings.ini").unwrap();
 	let game_path: String = config.get("game", "game").unwrap();
@@ -49,7 +51,11 @@ fn main() {
                 },
                 Event::KeyDown{keycode: key, ..} => {
                 	if let Some(key) = key {
-                		println!("key pressed: {:?} ({})", key, key as u8);
+                		//println!("key pressed: {:?} ({})", key, key as u8);
+
+                        if key as u8 == 100 { //D
+                            unsafe{debug_output = !debug_output;}
+                        }
                 	}
                 }
                 _ => ()
