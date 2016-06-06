@@ -12,6 +12,7 @@ impl Registers {
 	pub fn new() -> Registers {
 	    Registers{mem: [0; 8], pc: 0, sp: 0}
 	}
+	//Register access
 	pub fn a(&mut self) -> &mut u8 {
 		&mut self.mem[1]
 	}
@@ -48,7 +49,7 @@ impl Registers {
 	pub fn hl(&mut self) -> *mut u16 {
 		&mut self.mem[6..] as *mut _ as *mut u16
 	}
-
+	//Flag manipulation
 	pub fn set_flags(&mut self, mask: u8) {
 		for i in (0..8u8).filter(|n| ((1u8 << n) & mask) > 0) {
 			self.mem[0] |= 1 << i
@@ -69,7 +70,7 @@ pub const ALL_FLAGS: u8         = 0xF0;
 #[allow(dead_code)]
 pub const ZERO_FLAG: u8 		= 0x80;
 #[allow(dead_code)]
-pub const SUBTRACT_FLAG: u8 	= 0x40;
+pub const NEGATIVE_FLAG: u8 	= 0x40;
 #[allow(dead_code)]
 pub const HALFCARRY_FLAG: u8 	= 0x20;
 #[allow(dead_code)]
