@@ -20,6 +20,7 @@ macro_rules! bit {
 
     		emu.regs.clear_flags(NEGATIVE_FLAG);
     		emu.regs.set_flags(HALFCARRY_FLAG);
+    		8
     	}
     };
 
@@ -33,6 +34,7 @@ macro_rules! bit {
 
     		emu.regs.clear_flags(NEGATIVE_FLAG);
     		emu.regs.set_flags(HALFCARRY_FLAG);
+    		8
     	}
     }
 }
@@ -43,17 +45,19 @@ macro_rules! set {
     		unsafe {
     			emu.memory[*emu.regs.hl() as usize] |= 1 << $shift;
     		}
+    		8
     	}
     };
 
     ($shift:expr, $reg:ident) => {
     	|emu| {
     		*emu.regs.$reg() |= 1 << $shift;
+    		8
     	}
     }
 }
 
-pub type CBInstructionFunc = Option<&'static Fn(&mut Emulator) -> ()>;
+pub type CBInstructionFunc = Option<&'static Fn(&mut Emulator) -> u64>;
 
 #[derive(Copy, Clone)]
 pub struct CBInstruction {

@@ -16,6 +16,8 @@ macro_rules! xor {
 
     		emu.regs.clear_flags(ALL_FLAGS);
     		if *emu.regs.a() == 0 {emu.regs.set_flags(ZERO_FLAG);}
+    		4
+
     	}
     }
 }
@@ -24,24 +26,28 @@ macro_rules! ld {
 	(sp, 16) => {
 		|emu, operand| {
 			emu.regs.sp = operand;
+			12
 		}
 	};
 
 	($reg:ident, 16) => {
     	|emu, operand| {
     		unsafe{*emu.regs.$reg() = operand;}
+    		12
     	}
     };
 
     ($reg:ident, 8) => {
     	|emu, operand| {
     		*emu.regs.$reg() = operand as u8;
+    		8
     	}
     };
 
     ($reg1:ident, $reg2:ident) => {
     	|emu, _| {
     		*emu.regs.$reg1() = *emu.regs.$reg2();
+    		4
     	}
     }
 }
@@ -53,11 +59,13 @@ macro_rules! rst {
     		emu.memory[emu.regs.sp as usize-2] = (emu.regs.pc & 0x00FF) as u8;
     		emu.regs.pc = $val;
     		emu.regs.sp -= 2;
+    		16
     	}
     }
 }
 
-pub type InstructionFunc = Option<&'static Fn(&mut Emulator, u16) -> ()>;
+//Returns the number of cycles the instruction takes
+pub type InstructionFunc = Option<&'static Fn(&mut Emulator, u16) -> u64>;
 
 #[derive(Copy, Clone)]
 pub struct Instruction {
@@ -68,7 +76,7 @@ pub struct Instruction {
 
 pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0x00
-	new_instruction!("NOP", 0, Some(&|_,_| ())),	
+	new_instruction!("NOP", 0, Some(&|_,_| 4)),	
 	new_instruction!("LD BC,d16", 2, None),
 	new_instruction!("LD (BC),A", 0, None),
 	new_instruction!("INC BC", 0, None),
@@ -357,15 +365,16 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("RST 38H", 0, Some(&rst!(0x0038))),
 ];
 
-fn jump(emu: &mut Emulator, offset: u16) {
+fn jump(emu: &mut Emulator, offset: u16) -> u64 {
 	unsafe {
 		let offset: i8 = *(&offset as  *const _ as *const i8);
 		emu.regs.pc = (emu.regs.pc as i16 + offset as i16) as u16;
 	}
+	12
 }
 
 //0x0F
-fn rrca(emu: &mut Emulator, _: u16) {
+fn rrca(emu: &mut Emulator, _: u16) -> u64 {
 	let carry = *emu.regs.a() & 0x01;
 	*emu.regs.a() >>= 1;
 	if carry > 0 {
@@ -375,49 +384,55 @@ fn rrca(emu: &mut Emulator, _: u16) {
 		emu.regs.clear_flags(CARRY_FLAG);
 	}
 	emu.regs.clear_flags(ZERO_FLAG | NEGATIVE_FLAG | HALFCARRY_FLAG);
+	4
 }
 
 //0x20
-fn jr_nz(emu: &mut Emulator, operand: u16) {
+fn jr_nz(emu: &mut Emulator, operand: u16) -> u64 {
 	if !emu.regs.get_flag(ZERO_FLAG) {
-		jump(emu, operand);
+		return jump(emu, operand);
 	}
+	8
 }
 
 //0x28
-fn jr_z(emu: &mut Emulator, operand: u16) {
+fn jr_z(emu: &mut Emulator, operand: u16) -> u64 {
 	if emu.regs.get_flag(ZERO_FLAG) {
-		jump(emu, operand);
+		return jump(emu, operand);
 	}
+	8
 }
 
 //0x30
-fn jr_nc(emu: &mut Emulator, operand: u16) {
+fn jr_nc(emu: &mut Emulator, operand: u16) -> u64 {
 	if !emu.regs.get_flag(CARRY_FLAG) {
-		jump(emu, operand);
+		return jump(emu, operand);
 	}
+	8
 }
 
 //0x32
-fn ld_hld_a(emu: &mut Emulator, _: u16) {
+fn ld_hld_a(emu: &mut Emulator, _: u16) -> u64 {
 	unsafe{
 		emu.memory[*emu.regs.hl() as usize] = *emu.regs.a();
 		*emu.regs.hl() -= 1;
 	}
+	8
 }
 
 //0x38
-fn jr_c(emu: &mut Emulator, operand: u16) {
+fn jr_c(emu: &mut Emulator, operand: u16) -> u64 {
 	if emu.regs.get_flag(CARRY_FLAG) {
-		jump(emu, operand);
+		return jump(emu, operand);
 	}
+	8
 }
 
 //0xCB
-fn cb(emu: &mut Emulator, operand: u16) {
+fn cb(emu: &mut Emulator, operand: u16) -> u64 {
 	let instruction = CB_INSTRUCTIONS[operand as usize];
 	if let Some(func) = instruction.func {
-		func(emu);
+		return func(emu);
 	} else {
 		println!("Unimplemented function at memory address ({:#X}) [{:#X} {:#X} ({})]", 
 			emu.regs.pc-1, 0xCB, operand, instruction.name);
