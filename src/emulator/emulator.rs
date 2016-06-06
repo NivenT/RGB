@@ -77,6 +77,7 @@ impl Emulator {
 		println!("Successfully loaded {}", title);
 	}
 	pub fn emulate_cycle(&mut self) {
+		let address = self.regs.pc;
 		let opcode = self.memory[self.regs.pc as usize]; self.regs.pc += 1;
 		let instruction = INSTRUCTIONS[opcode as usize];
 
@@ -88,13 +89,14 @@ impl Emulator {
 		if let Some(func) = instruction.func {
 			func(self, operand);
 		} else {
-			println!("\nUnimplemented function at memory address {:#X} [{:#X} ({} | {})] called with operand {:#X}\n", 
-				self.regs.pc-1, opcode, instruction.name, instruction.operand_length, operand);
+			println!("\nUnimplemented function at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
+				address, opcode, instruction.name, instruction.operand_length, operand);
 			panic!("");
 		}
-		println!("Ran instruction {:#X} ({} | {}) with operand {:#X}", 
-			opcode, instruction.name, instruction.operand_length, operand);
-
+		/*
+		println!("Ran instruction {:#X} ({} | {}) with operand {:#X} as address ({:#X})", 
+			opcode, instruction.name, instruction.operand_length, operand, address);
+		*/
 		self.regs.pc += instruction.operand_length as u16;
 	}
 }

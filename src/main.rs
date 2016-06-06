@@ -61,6 +61,7 @@ fn main() {
         target.finish().unwrap();
 
         if running_bios && emu.regs.pc >= 0x100 {
+            println!("Finished running BIOS");
         	emu.load_game(game_path.clone());
         	running_bios = false;
         }

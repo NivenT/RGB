@@ -45,7 +45,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("INC C", 0, None),
 	new_instruction!("DEC C", 0, None),
 	new_instruction!("LD C,d8", 1, None),
-	new_instruction!("RRCA", 0, None),
+	new_instruction!("RRCA", 0, Some(&rrca)),
 	//0x10
 	new_instruction!("STOP 0", 1, None),			
 	new_instruction!("LD DE,d16", 2, None),
@@ -325,6 +325,19 @@ fn jump(emu: &mut Emulator, offset: u16) {
 	}
 }
 
+//0x0F
+fn rrca(emu: &mut Emulator, _: u16) {
+	let carry = *emu.regs.a() & 0x01;
+	*emu.regs.a() >>= 1;
+	if carry > 0 {
+		emu.regs.set_flags(CARRY_FLAG);
+		*emu.regs.a() |= 0x80;
+	} else {
+		emu.regs.clear_flags(CARRY_FLAG);
+	}
+	emu.regs.clear_flags(ZERO_FLAG | NEGATIVE_FLAG | HALFCARRY_FLAG);
+}
+
 //0x20
 fn jr_nz(emu: &mut Emulator, operand: u16) {
 	if !emu.regs.get_flag(ZERO_FLAG) {
@@ -429,5 +442,17 @@ mod test {
 		assert_eq!(emu.regs.pc, 980);
 		jr_nz(&mut emu, 0x64); //100 as a signed 8-bit integer
 		assert_eq!(emu.regs.pc, 1080);
+	}
+	#[test]
+	fn test_rcca() {
+		let mut emu = Emulator::new();
+		*emu.regs.a() = 50;
+		let rrca = INSTRUCTIONS[0x0F].func.unwrap();
+		rrca(&mut emu, 0);
+		assert_eq!(*emu.regs.a(), 25);
+		assert_eq!(*emu.regs.f(), 0);
+		rrca(&mut emu, 0);
+		assert_eq!(*emu.regs.a(), 140);
+		assert_eq!(*emu.regs.f(), CARRY_FLAG);
 	}
 }
