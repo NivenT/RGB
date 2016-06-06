@@ -9,7 +9,7 @@ macro_rules! new_cb_instruction {
 
 macro_rules! bit {
 	($shift:expr, hl) => {
-    	|emu: &mut Emulator| {
+    	|emu| {
     		unsafe {
     			if ((1 << $shift) & emu.memory[*emu.regs.hl() as usize]) > 0 {
     				emu.regs.clear_flags(ZERO_FLAG);
@@ -24,7 +24,7 @@ macro_rules! bit {
     };
 
     ($shift:expr, $reg:ident) => {
-    	|emu: &mut Emulator| {
+    	|emu| {
     		if ((1 << $shift) & *emu.regs.$reg()) > 0 {
     			emu.regs.clear_flags(ZERO_FLAG);
     		} else {
@@ -39,7 +39,7 @@ macro_rules! bit {
 
 macro_rules! set {
     ($shift:expr, hl) => {
-    	|emu: &mut Emulator| {
+    	|emu| {
     		unsafe {
     			emu.memory[*emu.regs.hl() as usize] |= 1 << $shift;
     		}
@@ -47,7 +47,7 @@ macro_rules! set {
     };
 
     ($shift:expr, $reg:ident) => {
-    	|emu: &mut Emulator| {
+    	|emu| {
     		*emu.regs.$reg() |= 1 << $shift;
     	}
     }

@@ -10,11 +10,21 @@ macro_rules! new_instruction {
 }
 
 macro_rules! xor {
-    ($regs:expr, $reg:ident) => {
-    	*$regs.a() ^= *$regs.$reg();
+    ($reg:ident) => {
+    	|emu, _| {
+    		*emu.regs.a() ^= *emu.regs.$reg();
 
-    	$regs.clear_flags(ALL_FLAGS);
-    	if *$regs.a() == 0 {$regs.set_flags(ZERO_FLAG);}
+    		emu.regs.clear_flags(ALL_FLAGS);
+    		if *emu.regs.a() == 0 {emu.regs.set_flags(ZERO_FLAG);}
+    	}
+    }
+}
+
+macro_rules! ld {
+    ($reg1:ident, $reg2:ident) => {
+    	|emu, _| {
+    		*emu.regs.$reg1() = *emu.regs.$reg2();
+    	}
     }
 }
 
@@ -164,14 +174,14 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("HALT", 0, None),
 	new_instruction!("LD (HL),A", 0, None),
 	//0x78
-	new_instruction!("LD A,B", 0, None),			
-	new_instruction!("LD A,C", 0, None),
-	new_instruction!("LD A,D", 0, None),
-	new_instruction!("LD A,E", 0, None),
-	new_instruction!("LD A,H", 0, None),
-	new_instruction!("LD A,L", 0, None),
+	new_instruction!("LD A,B", 0, Some(&ld!(a, b))),			
+	new_instruction!("LD A,C", 0, Some(&ld!(a, c))),
+	new_instruction!("LD A,D", 0, Some(&ld!(a, d))),
+	new_instruction!("LD A,E", 0, Some(&ld!(a, e))),
+	new_instruction!("LD A,H", 0, Some(&ld!(a, h))),
+	new_instruction!("LD A,L", 0, Some(&ld!(a, l))),
 	new_instruction!("LD A,(HL)", 0, None),
-	new_instruction!("LD A,A", 0, None),
+	new_instruction!("LD A,A", 0, Some(&ld!(a, a))),
 	//0x80
 	new_instruction!("ADD A,B", 0, None),			
 	new_instruction!("ADD A,C", 0, None),
@@ -218,14 +228,14 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("AND (HL)", 0, None),
 	new_instruction!("AND A", 0, None),
 	//0xA8
-	new_instruction!("XOR B", 0, None),				
-	new_instruction!("XOR C", 0, None),
-	new_instruction!("XOR D", 0, None),
-	new_instruction!("XOR E", 0, None),
-	new_instruction!("XOR H", 0, None),
-	new_instruction!("XOR L", 0, None),
+	new_instruction!("XOR B", 0, Some(&xor!(b))),				
+	new_instruction!("XOR C", 0, Some(&xor!(c))),
+	new_instruction!("XOR D", 0, Some(&xor!(d))),
+	new_instruction!("XOR E", 0, Some(&xor!(e))),
+	new_instruction!("XOR H", 0, Some(&xor!(h))),
+	new_instruction!("XOR L", 0, Some(&xor!(l))),
 	new_instruction!("XOR (HL)", 0, None),
-	new_instruction!("XOR A", 0, Some(&xor_a)),
+	new_instruction!("XOR A", 0, Some(&xor!(a))),
 	//0xB0
 	new_instruction!("OR B", 0, None),				
 	new_instruction!("OR C", 0, None),
@@ -382,11 +392,6 @@ fn jr_c(emu: &mut Emulator, operand: u16) {
 	if emu.regs.get_flag(CARRY_FLAG) {
 		jump(emu, operand);
 	}
-}
-
-//0xAF
-fn xor_a(emu: &mut Emulator, _: u16) {
-	xor!(emu.regs, a);
 }
 
 //0xCB
