@@ -44,6 +44,23 @@ macro_rules! ld {
     	}
     };
 
+    (c, mem, $reg:ident) => {
+    	|emu, _| {
+    		emu.memory[0xFF00 + *emu.regs.c() as usize] = *emu.regs.$reg();
+    		8
+    	}
+    };
+
+    ($reg1:ident, mem, $reg2:ident, $shift:expr) => {
+    	|emu, _| {
+    		unsafe{
+    			emu.memory[*emu.regs.$reg1() as usize] = *emu.regs.$reg2();
+    			*emu.regs.$reg1() = (*emu.regs.$reg1() as i16 + $shift) as u16;
+    		}
+    		8
+    	}
+    };
+
     ($reg1:ident, $reg2:ident) => {
     	|emu, _| {
     		*emu.regs.$reg1() = *emu.regs.$reg2();
@@ -132,7 +149,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0x30
 	new_instruction!("JR NC,r8", 1, Some(&jr_nc)),			
 	new_instruction!("LD SP,d16", 2, Some(&ld!(sp, 16))),
-	new_instruction!("LD (HL-),A", 0, Some(&ld_hld_a)),
+	new_instruction!("LD (HL-),A", 0, Some(&ld!(hl, mem, a, -1))),
 	new_instruction!("INC SP", 0, None),
 	new_instruction!("INC (HL)", 0, None),
 	new_instruction!("DEC (HL)", 0, None),
@@ -330,7 +347,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0xE0
 	new_instruction!("LDH (a8),A", 1, None),		
 	new_instruction!("POP HL", 0, None),
-	new_instruction!("LD (C),A", 1, None),
+	new_instruction!("LD (C),A", 0, Some(&ld!(c, mem, a))),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("PUSH HL", 0, None),
@@ -411,15 +428,6 @@ fn jr_nc(emu: &mut Emulator, operand: u16) -> u64 {
 	8
 }
 
-//0x32
-fn ld_hld_a(emu: &mut Emulator, _: u16) -> u64 {
-	unsafe{
-		emu.memory[*emu.regs.hl() as usize] = *emu.regs.a();
-		*emu.regs.hl() -= 1;
-	}
-	8
-}
-
 //0x38
 fn jr_c(emu: &mut Emulator, operand: u16) -> u64 {
 	if emu.regs.get_flag(CARRY_FLAG) {
@@ -460,15 +468,16 @@ mod test {
 	#[test]
 	fn test_ld_hld_a() {
 		let mut emu = Emulator::new();
-		*emu.regs.l() = 5;
+		*emu.regs.l() = 255;
+		*emu.regs.h() = 255;
 		*emu.regs.a() = 18;
 		unsafe{
-			assert_eq!(*emu.regs.hl(), 5);
+			assert_eq!(*emu.regs.hl(), 65535);
 			assert_eq!(emu.memory[5], BIOS[5]);
 			let ld_hld_a = INSTRUCTIONS[0x32].func.unwrap();
 			ld_hld_a(&mut emu, 0);
-			assert_eq!(*emu.regs.hl(), 4);
-			assert_eq!(emu.memory[5], 18);
+			assert_eq!(*emu.regs.hl(), 65534);
+			assert_eq!(emu.memory[65535], 18);
 		}
 
 	}
