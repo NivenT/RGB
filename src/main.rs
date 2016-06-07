@@ -31,6 +31,7 @@ fn main() {
 
 	let mut emu = Emulator::new();
 	emu.set_controls(controls);
+    emu.load_game(game_path.clone());
 
 	let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -42,7 +43,6 @@ fn main() {
 
 	let mut running = true;
     let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut running_bios = true;
     while running {
 		for event in event_pump.poll_iter() {
             match event {
@@ -66,11 +66,6 @@ fn main() {
         target.clear_color(0.1, 0.1, 0.1, 1.0f32);
         target.finish().unwrap();
 
-        if running_bios && emu.regs.pc >= 0x100 {
-            println!("Finished running BIOS");
-        	emu.load_game(game_path.clone());
-        	running_bios = false;
-        }
         emu.emulate_cycle();
     }
 }

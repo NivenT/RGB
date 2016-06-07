@@ -11,7 +11,7 @@ macro_rules! bit {
 	($shift:expr, hl) => {
     	|emu| {
     		unsafe {
-    			if ((1 << $shift) & emu.memory[*emu.regs.hl() as usize]) > 0 {
+    			if ((1 << $shift) & emu.mem.rb(*emu.regs.hl())) > 0 {
     				emu.regs.clear_flags(ZERO_FLAG);
     			} else {
     				emu.regs.set_flags(ZERO_FLAG);
@@ -43,7 +43,8 @@ macro_rules! set {
     ($shift:expr, hl) => {
     	|emu| {
     		unsafe {
-    			emu.memory[*emu.regs.hl() as usize] |= 1 << $shift;
+    			let val = emu.mem.rb(*emu.regs.hl());
+    			emu.mem.wb(*emu.regs.hl(), val | (1 << $shift));
     		}
     		8
     	}
@@ -387,9 +388,9 @@ mod test {
 		}
 		assert_eq!(*emu.regs.h(), 8);
 		assert_eq!(*emu.regs.l(), 1);
-		let orig = emu.memory[2049];
+		let orig = emu.mem.rb(2049);
 		let set_3_hl = CB_INSTRUCTIONS[0xDE].func.unwrap();
 		set_3_hl(&mut emu);
-		assert_eq!(emu.memory[2049], orig | 8);
+		assert_eq!(emu.mem.rb(2049), orig | 8);
 	}
 }

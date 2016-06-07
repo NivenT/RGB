@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use emulator::registers::Registers;
+use emulator::memory::Memory;
 use emulator::instructions::*;
 use emulator::rom_info::*;
 
@@ -11,19 +12,19 @@ pub struct Emulator {
 	debug_file:		File,
 	clock:			u64,
 
-	pub memory:		[u8; 65536],
+	pub mem:		Memory,
 	pub controls: 	[u8; 8],
 	pub regs:		Registers
 }
 
 impl Emulator {
 	pub fn new() -> Emulator {
-		let mut memory = [0; 65536];
+		let mut memory = Memory::new();
 		for i in 0..256 {
-			memory[i] = BIOS[i];
+			memory.wb(i, BIOS[i as usize]);
 		}
 		Emulator{debug_file: File::create("debug.txt").unwrap(), clock: 0,
-					memory: memory, controls: [0; 8], regs: Registers::new()}
+					mem: memory, controls: [0; 8], regs: Registers::new()}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
 		for i in 0..8 {
@@ -33,12 +34,11 @@ impl Emulator {
 	pub fn load_game(&mut self, path: String) {
 		println!("Loading game from \"{}\"...", path);
 		let mut game_file = File::open(path).unwrap();
-		let mut contents: Vec<u8> = Default::default();
 
-		let size = game_file.read_to_end(&mut contents).unwrap();
+		let size = game_file.read(&mut self.mem.cart).unwrap();
 		println!("Game has a size of {} bytes ({} KiB)", size, size/1024);
 
-		let header = &contents[..0x150];
+		let header = &self.mem.cart[..0x150];
 		let title = String::from_utf8_lossy(&header[0x134..0x144]);
 		println!("The title of the game is {}", title);
 
@@ -77,20 +77,18 @@ impl Emulator {
 			println!("This is the Japanese version of {}", title);
 		}
 
-		for i in 0..contents.len() {
-			self.memory[i] = contents[i];
-		}
 		println!("Successfully loaded {}", title);
 	}
 	pub fn emulate_cycle(&mut self) {
 		let address = self.regs.pc;
-		let opcode = self.memory[self.regs.pc as usize]; self.regs.pc += 1;
+		let opcode = self.mem.rb(self.regs.pc); self.regs.pc += 1;
 		let instruction = INSTRUCTIONS[opcode as usize];
 
-		let mut operand = self.memory[self.regs.pc as usize] as u16;
-		if instruction.operand_length == 2 {
-			operand += (self.memory[self.regs.pc as usize+1] as u16) << 8;
-		}
+		let operand = if instruction.operand_length == 1 {
+			self.mem.rb(self.regs.pc) as u16
+		} else {
+			self.mem.rw(self.regs.pc)
+		};
 
 		if let Some(func) = instruction.func {
 			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n\t{:?}\n",

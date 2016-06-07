@@ -46,7 +46,7 @@ macro_rules! ld {
 
     (c, mem, $reg:ident) => {
     	|emu, _| {
-    		emu.memory[0xFF00 + *emu.regs.c() as usize] = *emu.regs.$reg();
+    		emu.mem.wb(0xFF00 + *emu.regs.c() as u16, *emu.regs.$reg());
     		8
     	}
     };
@@ -54,7 +54,7 @@ macro_rules! ld {
     ($reg1:ident, mem, $reg2:ident, $shift:expr) => {
     	|emu, _| {
     		unsafe{
-    			emu.memory[*emu.regs.$reg1() as usize] = *emu.regs.$reg2();
+    			emu.mem.wb(*emu.regs.$reg1(), *emu.regs.$reg2());
     			*emu.regs.$reg1() = (*emu.regs.$reg1() as i16 + $shift) as u16;
     		}
     		8
@@ -72,8 +72,7 @@ macro_rules! ld {
 macro_rules! rst {
     ($val:expr) => {
     	|emu, _| {
-    		emu.memory[emu.regs.sp as usize-1] = ((emu.regs.pc & 0xFF00) >> 8) as u8;
-    		emu.memory[emu.regs.sp as usize-2] = (emu.regs.pc & 0x00FF) as u8;
+    		emu.mem.ww(emu.regs.sp-2, emu.regs.pc);
     		emu.regs.pc = $val;
     		emu.regs.sp -= 2;
     		16
@@ -473,11 +472,11 @@ mod test {
 		*emu.regs.a() = 18;
 		unsafe{
 			assert_eq!(*emu.regs.hl(), 65535);
-			assert_eq!(emu.memory[5], BIOS[5]);
+			assert_eq!(emu.mem.rb(5), BIOS[5]);
 			let ld_hld_a = INSTRUCTIONS[0x32].func.unwrap();
 			ld_hld_a(&mut emu, 0);
 			assert_eq!(*emu.regs.hl(), 65534);
-			assert_eq!(emu.memory[65535], 18);
+			assert_eq!(emu.mem.rb(65535), 18);
 		}
 
 	}
@@ -511,8 +510,8 @@ mod test {
 		let rst_20 = INSTRUCTIONS[0x0E7].func.unwrap();
 		rst_20(&mut emu, 0);
 		assert_eq!(emu.regs.sp, 1);
-		assert_eq!(emu.memory[2], 0xDE);
-		assert_eq!(emu.memory[1], 0xAD);
+		assert_eq!(emu.mem.rb(2), 0xDE);
+		assert_eq!(emu.mem.rb(1), 0xAD);
 		assert_eq!(emu.regs.pc, 0x20);
 	}
 }
