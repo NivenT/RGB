@@ -89,7 +89,7 @@ impl Emulator {
 
 		let mut operand = self.memory[self.regs.pc as usize] as u16;
 		if instruction.operand_length == 2 {
-			operand = (operand << 8) | self.memory[self.regs.pc as usize+1] as u16;
+			operand += (self.memory[self.regs.pc as usize+1] as u16) << 8;
 		}
 
 		if let Some(func) = instruction.func {
