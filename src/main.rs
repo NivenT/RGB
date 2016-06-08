@@ -13,7 +13,7 @@ use tini::Ini;
 
 use emulator::emulator::Emulator;
 
-pub static mut debug_output: bool = true;
+pub static mut debug_output: bool = false;
 
 fn main() {
 	let config = Ini::from_file("settings.ini").unwrap();
@@ -37,9 +37,9 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
 
     let display = video_subsystem.window("My window", 800, 600)
-        .resizable()
-        .build_glium()
-        .unwrap();
+                                 .resizable()
+                                 .build_glium()
+                                 .unwrap();
 
 	let mut running = true;
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -62,10 +62,10 @@ fn main() {
             }
         }
 
+        emu.emulate_cycle();
+
         let mut target = display.draw();
         target.clear_color(0.1, 0.1, 0.1, 1.0f32);
         target.finish().unwrap();
-
-        emu.emulate_cycle();
     }
 }

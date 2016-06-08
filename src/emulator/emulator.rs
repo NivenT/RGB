@@ -3,6 +3,7 @@ use std::io::prelude::*;
 
 use emulator::registers::Registers;
 use emulator::memory::Memory;
+use emulator::gpu::Gpu;
 use emulator::instructions::*;
 use emulator::rom_info::*;
 
@@ -13,6 +14,7 @@ pub struct Emulator {
 	clock:			u64,
 
 	pub mem:		Memory,
+	pub gpu:		Gpu,
 	pub controls: 	[u8; 8],
 	pub regs:		Registers
 }
@@ -23,8 +25,8 @@ impl Emulator {
 		for i in 0..256 {
 			memory.wb(i, BIOS[i as usize]);
 		}
-		Emulator{debug_file: File::create("debug.txt").unwrap(), clock: 0,
-					mem: memory, controls: [0; 8], regs: Registers::new()}
+		Emulator{debug_file: File::create("debug.txt").unwrap(), clock: 0, mem: memory,
+					gpu: Gpu::new(), controls: [0; 8], regs: Registers::new()}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
 		for i in 0..8 {
@@ -90,13 +92,14 @@ impl Emulator {
 			self.mem.rw(self.regs.pc)
 		};
 
+		let cycles: u64;
 		if let Some(func) = instruction.func {
 			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n\t{:?}\n",
 								opcode, instruction.name, instruction.operand_length, operand, address, self.regs);
 			unsafe {if debug_output {println!("{}", debug_info);}}
 			let _ = write!(self.debug_file, "{}\n", debug_info);
 
-			self.clock += func(self, operand);
+			cycles = func(self, operand);
 		} else {
 			let debug_info = format!("\nUnimplemented function at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
 				address, opcode, instruction.name, instruction.operand_length, operand);
@@ -105,6 +108,8 @@ impl Emulator {
 			panic!("");
 		}
 		
+		self.clock += cycles;
 		self.regs.pc += instruction.operand_length as u16;
+		self.gpu.step(&mut self.mem, cycles as i16);
 	}
 }
