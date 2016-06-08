@@ -34,7 +34,22 @@ pub struct Gpu {
 
 impl Gpu {
 	pub fn new() -> Gpu {
-	    Gpu{screen_data: [[Color::BLACK; 160]; 144], sl_count: 0, bp: 0}
+		let mut temp = [[Color::BLACK; 160]; 144];
+		for row in 0..144i16 {
+			for col in 0..160i16 {
+				let dist = (row-72)*(row-72)+(col-80)*(col-80);
+				if dist < 20*20 {
+					temp[row as usize][col as usize] = Color::BLACK;
+				} else if dist < 50*50 {
+					temp[row as usize][col as usize] = Color::DARK_GRAY;
+				} else if dist < 80*80 {
+					temp[row as usize][col as usize] = Color::LIGHT_GRAY;
+				} else {
+					temp[row as usize][col as usize] = Color::WHITE;
+				}
+			}
+		}
+	    Gpu{screen_data: temp, sl_count: 0, bp: 0}
 	}
 	pub fn get_screen(&self) -> &[[Color; 160]; 144] {
 		&self.screen_data

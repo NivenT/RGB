@@ -5,13 +5,15 @@ extern crate sdl2;
 extern crate tini;
 
 mod emulator;
+mod input;
+mod rendering;
 
-use glium::Surface;
 use glium_sdl2::DisplayBuild;
-use sdl2::event::Event;
 use tini::Ini;
 
 use emulator::emulator::Emulator;
+use input::*;
+use rendering::*;
 
 pub static mut debug_output: bool = false;
 
@@ -43,29 +45,10 @@ fn main() {
 
 	let mut running = true;
     let mut event_pump = sdl_context.event_pump().unwrap();
+    let renderer = Renderer::new(&display);
     while running {
-		for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit{..} => {
-                    running = false;
-                },
-                Event::KeyDown{keycode: key, ..} => {
-                	if let Some(key) = key {
-                		//println!("key pressed: {:?} ({})", key, key as u8);
-
-                        if key as u8 == 100 { //D
-                            unsafe{debug_output = !debug_output;}
-                        }
-                	}
-                }
-                _ => ()
-            }
-        }
-
+        running = handle_input(&mut event_pump);
         emu.emulate_cycle();
-
-        let mut target = display.draw();
-        target.clear_color(0.1, 0.1, 0.1, 1.0f32);
-        target.finish().unwrap();
+        renderer.render(&display, emu.gpu.get_screen());
     }
 }
