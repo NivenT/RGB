@@ -91,6 +91,7 @@ impl Emulator {
 		} else {
 			self.mem.rw(self.regs.pc)
 		};
+		self.regs.pc += instruction.operand_length as u16;
 
 		let cycles: u64;
 		if let Some(func) = instruction.func {
@@ -109,7 +110,6 @@ impl Emulator {
 		}
 		
 		self.clock += cycles;
-		self.regs.pc += instruction.operand_length as u16;
 		self.gpu.step(&mut self.mem, cycles as i16);
 	}
 }

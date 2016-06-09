@@ -11,13 +11,9 @@ macro_rules! bit {
 	($shift:expr, hl) => {
     	|emu| {
     		unsafe {
-    			if ((1 << $shift) & emu.mem.rb(*emu.regs.hl())) > 0 {
-    				emu.regs.clear_flags(ZERO_FLAG);
-    			} else {
-    				emu.regs.set_flags(ZERO_FLAG);
-    			}
+    			let val = emu.mem.rb(*emu.regs.hl());
+    			emu.regs.update_flags(ZERO_FLAG, ((1 << $shift) & val) == 0);
     		}
-
     		emu.regs.clear_flags(NEGATIVE_FLAG);
     		emu.regs.set_flags(HALFCARRY_FLAG);
     		8
@@ -26,12 +22,8 @@ macro_rules! bit {
 
     ($shift:expr, $reg:ident) => {
     	|emu| {
-    		if ((1 << $shift) & *emu.regs.$reg()) > 0 {
-    			emu.regs.clear_flags(ZERO_FLAG);
-    		} else {
-    			emu.regs.set_flags(ZERO_FLAG);
-    		}
-
+    		let val = *emu.regs.$reg();
+    		emu.regs.update_flags(ZERO_FLAG, ((1 << $shift) & val) == 0);
     		emu.regs.clear_flags(NEGATIVE_FLAG);
     		emu.regs.set_flags(HALFCARRY_FLAG);
     		8

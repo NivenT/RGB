@@ -61,6 +61,13 @@ impl Registers {
 			self.mem[0] &= 0xFF - (1 << i)
 		}
 	}
+	pub fn update_flags(&mut self, mask: u8, val: bool) {
+		if val {
+			self.set_flags(mask)
+		} else {
+			self.clear_flags(mask)
+		}
+	}
 	pub fn get_flag(&self, ident: u8) -> bool {
 		(self.mem[0] & ident) > 0
 	}

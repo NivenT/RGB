@@ -24,12 +24,6 @@ fn main() {
 	let controls: Vec<u8> = buttons.iter()
 								   .map(|a| config.get("controls", a).unwrap())
 								   .collect();
-	/*
-	println!("game_path: {}", game_path);
-	for (key, val) in buttons.iter().zip(controls.iter()) {
-		println!("{}: {}", key, val);
-	}
-	*/
 
 	let mut emu = Emulator::new();
 	emu.set_controls(controls);
@@ -38,7 +32,7 @@ fn main() {
 	let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let display = video_subsystem.window("My window", 800, 600)
+    let display = video_subsystem.window("Rust Gameboy", 800, 600)
                                  .resizable()
                                  .build_glium()
                                  .unwrap();

@@ -51,7 +51,7 @@ impl Memory {
 	}
 	//read word
 	pub fn rw(&self, address: u16) -> u16 {
-		self.rb(address) as u16 + (self.rb(address+1) as u16) << 8
+		self.rb(address) as u16 + ((self.rb(address+1) as u16) << 8)
 	}
 	//write byte
 	pub fn wb(&mut self, address: u16, val: u8) {
