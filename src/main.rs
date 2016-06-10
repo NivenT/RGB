@@ -7,6 +7,7 @@ extern crate tini;
 mod emulator;
 mod input;
 mod rendering;
+mod programstate;
 
 use glium_sdl2::DisplayBuild;
 use tini::Ini;
@@ -14,10 +15,11 @@ use tini::Ini;
 use emulator::emulator::Emulator;
 use input::*;
 use rendering::*;
-
-pub static mut debug_output: bool = false;
+use programstate::*;
 
 fn main() {
+    let mut state = ProgramState::new();
+
 	let config = Ini::from_file("settings.ini").unwrap();
 	let game_path: String = config.get("game", "game").unwrap();
 	let buttons = ["up", "down", "left", "right", "a", "b", "start", "select"];
@@ -37,12 +39,13 @@ fn main() {
                                  .build_glium()
                                  .unwrap();
 
-	let mut running = true;
     let mut event_pump = sdl_context.event_pump().unwrap();
     let renderer = Renderer::new(&display);
-    while running {
-        running = handle_input(&mut event_pump);
-        emu.emulate_cycle();
+    while !state.done {
+        handle_input(&mut event_pump, &mut state);
+        if !state.paused {
+            emu.emulate_cycle(&state);
+        }
         renderer.render(&display, emu.gpu.get_screen());
     }
 }

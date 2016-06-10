@@ -108,7 +108,7 @@ impl Gpu {
 	}
 	fn draw_background(&mut self, mem: &mut Memory) {
 		let (scroll_y, scroll_x) = (mem.rb(0xFF42), mem.rb(0xFF43));
-		let (window_y, window_x) = (mem.rb(0xFF4A), mem.rb(0xFF4B) - 7);
+		let (window_y, window_x) = (mem.rb(0xFF4A), mem.rb(0xFF4B).wrapping_sub(7));
 
 		let control = mem.rb(0xFF40);
 		let tile_data_loc   = if (control & (1 << 4)) > 0 {0x8000} else {0x8800};
@@ -139,8 +139,13 @@ impl Gpu {
 
 			let tile_data = [mem.rb(tile_loc + tile_line*2), mem.rb(tile_loc + tile_line*2 + 1)];
 			let color_bit = 7 - x_offset%8;
-			let color_id = ((tile_data[1] & (1 << color_bit)) >> (color_bit-1)) | 
-						   ((tile_data[0] & (1 << color_bit)) >> color_bit);
+			//There has to be a way to do with in one line without the if
+			let color_id = if color_bit == 0 {
+				((tile_data[1] & 1) << 1) | (tile_data[0] & 1)
+			} else {
+				((tile_data[1] & (1 << color_bit)) >> (color_bit-1)) | 
+				((tile_data[0] & (1 << color_bit)) >> color_bit)
+			};
 
 			self.screen_data[line as usize][pixel as usize] = 
 				Color::from_palette(color_id, mem.rb(0xFF47));

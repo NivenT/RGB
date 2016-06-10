@@ -7,7 +7,7 @@ use emulator::gpu::Gpu;
 use emulator::instructions::*;
 use emulator::rom_info::*;
 
-use super::super::debug_output;
+use super::super::programstate::*;
 
 pub struct Emulator {
 	debug_file:		File,
@@ -81,7 +81,7 @@ impl Emulator {
 
 		println!("Successfully loaded {}", title);
 	}
-	pub fn emulate_cycle(&mut self) {
+	pub fn emulate_cycle(&mut self, state: &ProgramState) {
 		let address = self.regs.pc;
 		let opcode = self.mem.rb(self.regs.pc); self.regs.pc += 1;
 		let instruction = INSTRUCTIONS[opcode as usize];
@@ -97,7 +97,7 @@ impl Emulator {
 		if let Some(func) = instruction.func {
 			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n\t{:?}\n",
 								opcode, instruction.name, instruction.operand_length, operand, address, self.regs);
-			unsafe {if debug_output {println!("{}", debug_info);}}
+			if state.debug {println!("{}", debug_info);}
 			let _ = write!(self.debug_file, "{}\n", debug_info);
 
 			cycles = func(self, operand);
