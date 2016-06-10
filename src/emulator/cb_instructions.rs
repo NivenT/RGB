@@ -16,7 +16,7 @@ macro_rules! bit {
     		}
     		emu.regs.clear_flags(NEGATIVE_FLAG);
     		emu.regs.set_flags(HALFCARRY_FLAG);
-    		8
+    		16
     	}
     };
 
@@ -38,13 +38,47 @@ macro_rules! set {
     			let val = emu.mem.rb(*emu.regs.hl());
     			emu.mem.wb(*emu.regs.hl(), val | (1 << $shift));
     		}
-    		8
+    		16
     	}
     };
 
     ($shift:expr, $reg:ident) => {
     	|emu| {
     		*emu.regs.$reg() |= 1 << $shift;
+    		8
+    	}
+    }
+}
+
+macro_rules! rl {
+	(hl) => {
+		|emu| {
+			unsafe {
+				let carry = if emu.regs.get_flag(CARRY_FLAG) {1} else {0};
+				let val = emu.mem.rb(*emu.regs.hl());
+    			emu.regs.update_flags(CARRY_FLAG, (val & 0x80) > 0);
+
+    			emu.mem.wb(*emu.regs.hl(), (val << 1) | carry);
+
+    			let val = emu.mem.rb(*emu.regs.hl());
+    			emu.regs.update_flags(ZERO_FLAG, val == 0);
+    			emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
+    			16
+			}
+		}
+	};
+
+    ($reg:ident) => {
+    	|emu| {
+    		let carry = if emu.regs.get_flag(CARRY_FLAG) {1} else {0};
+    		let val = *emu.regs.$reg();
+    		emu.regs.update_flags(CARRY_FLAG, (val & 0x80) > 0);
+
+    		*emu.regs.$reg() = (val << 1) | carry;
+
+    		let val = *emu.regs.$reg();
+    		emu.regs.update_flags(ZERO_FLAG, val == 0);
+    		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
     		8
     	}
     }
@@ -78,14 +112,14 @@ pub const CB_INSTRUCTIONS: [CBInstruction; 256] = [
 	new_cb_instruction!("RRC (HL)", None),
 	new_cb_instruction!("RRC A", None),
 	//0x10
-	new_cb_instruction!("RL B", None),
-	new_cb_instruction!("RL C", None),
-	new_cb_instruction!("RL D", None),
-	new_cb_instruction!("RL E", None),
-	new_cb_instruction!("RL H", None),
-	new_cb_instruction!("RL L", None),
-	new_cb_instruction!("RL (HL)", None),
-	new_cb_instruction!("RL A", None),
+	new_cb_instruction!("RL B", Some(&rl!(b))),
+	new_cb_instruction!("RL C", Some(&rl!(c))),
+	new_cb_instruction!("RL D", Some(&rl!(d))),
+	new_cb_instruction!("RL E", Some(&rl!(e))),
+	new_cb_instruction!("RL H", Some(&rl!(h))),
+	new_cb_instruction!("RL L", Some(&rl!(l))),
+	new_cb_instruction!("RL (HL)", Some(&rl!(hl))),
+	new_cb_instruction!("RL A", Some(&rl!(a))),
 	//0x18
 	new_cb_instruction!("RR B", None),
 	new_cb_instruction!("RR C", None),
@@ -370,7 +404,6 @@ mod test {
 		assert_eq!(*emu.regs.a(), 100);
 		assert_eq!(*emu.regs.f(), HALFCARRY_FLAG);
 	}
-
 	#[test]
 	fn test_set() {
 		let mut emu = Emulator::new();
@@ -384,5 +417,19 @@ mod test {
 		let set_3_hl = CB_INSTRUCTIONS[0xDE].func.unwrap();
 		set_3_hl(&mut emu);
 		assert_eq!(emu.mem.rb(2049), orig | 8);
+	}
+	#[test]
+	fn test_rl() {
+		let mut emu = Emulator::new();
+		*emu.regs.a() = 23;
+		*emu.regs.f() = CARRY_FLAG;
+		let rl_a = CB_INSTRUCTIONS[0x17].func.unwrap();
+		rl_a(&mut emu);
+		assert_eq!(*emu.regs.a(), 47);
+		assert_eq!(*emu.regs.f(), 0);
+		*emu.regs.a() = 0x80;
+		rl_a(&mut emu);
+		assert_eq!(*emu.regs.a(), 0);
+		assert_eq!(*emu.regs.f(), ZERO_FLAG | CARRY_FLAG);
 	}
 }

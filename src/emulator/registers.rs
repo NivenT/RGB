@@ -52,14 +52,10 @@ impl Registers {
 	}
 	//Flag manipulation
 	pub fn set_flags(&mut self, mask: u8) {
-		for i in (0..8u8).filter(|n| ((1u8 << n) & mask) > 0) {
-			self.mem[0] |= 1 << i
-		}
+		self.mem[0] |= mask;
 	}
 	pub fn clear_flags(&mut self, mask: u8) {
-		for i in (0..8u8).filter(|n| ((1u8 << n) & mask) > 0) {
-			self.mem[0] &= 0xFF - (1 << i)
-		}
+		self.mem[0] &= !mask;
 	}
 	pub fn update_flags(&mut self, mask: u8, val: bool) {
 		if val {
