@@ -209,6 +209,43 @@ macro_rules! pop {
     }
 }
 
+macro_rules! cp {
+	() => {
+		|emu, operand| {
+			let (a,b) = (*emu.regs.a() as u16, operand);
+	    	emu.regs.update_flags(ZERO_FLAG, a == b);
+			emu.regs.set_flags(NEGATIVE_FLAG);
+			emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) < (b & 0xF));
+			emu.regs.update_flags(CARRY_FLAG, a < b);
+			8
+		}
+	};
+
+	(hl) => {
+		|emu, _| {
+			unsafe {
+				let (a,b) = (*emu.regs.a() as u16, *emu.regs.hl());
+		    	emu.regs.update_flags(ZERO_FLAG, a == b);
+				emu.regs.set_flags(NEGATIVE_FLAG);
+				emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) < (b & 0xF));
+				emu.regs.update_flags(CARRY_FLAG, a < b);
+			}
+			8
+		}
+	};
+
+    ($reg:ident) => {
+    	|emu, _| {
+    		let (a,b) = (*emu.regs.a(), *emu.regs.$reg());
+	    	emu.regs.update_flags(ZERO_FLAG, a == b);
+			emu.regs.set_flags(NEGATIVE_FLAG);
+			emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) < (b & 0xF));
+			emu.regs.update_flags(CARRY_FLAG, a < b);
+    		4    		
+    	}
+    }
+}
+
 //Returns the number of cycles the instruction takes
 pub type InstructionFunc = Option<&'static Fn(&mut Emulator, u16) -> u64>;
 
@@ -248,7 +285,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD D,d8", 1, Some(&ld!(d, 8))),
 	new_instruction!("RLA", 0, Some(&rla)),
 	//0x18
-	new_instruction!("JR r8", 1, None),				
+	new_instruction!("JR r8", 1, Some(&jr)),				
 	new_instruction!("ADD HL,DE", 0, None),
 	new_instruction!("LD A,(DE)", 0, Some(&ld!(a, de, mem, 0))),
 	new_instruction!("DEC DE", 0, Some(&dec!(de, 16))),
@@ -428,45 +465,45 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("OR (HL)", 0, None),
 	new_instruction!("OR A", 0, None),
 	//0xB8
-	new_instruction!("CP B", 0, None),				
-	new_instruction!("CP C", 0, None),
-	new_instruction!("CP D", 0, None),
-	new_instruction!("CP E", 0, None),
-	new_instruction!("CP H", 0, None),
-	new_instruction!("CP L", 0, None),
-	new_instruction!("CP (HL)", 0, None),
-	new_instruction!("CP A", 0, None),
+	new_instruction!("CP B", 0, Some(&cp!(b))),				
+	new_instruction!("CP C", 0, Some(&cp!(c))),
+	new_instruction!("CP D", 0, Some(&cp!(d))),
+	new_instruction!("CP E", 0, Some(&cp!(e))),
+	new_instruction!("CP H", 0, Some(&cp!(h))),
+	new_instruction!("CP L", 0, Some(&cp!(l))),
+	new_instruction!("CP (HL)", 0, Some(&cp!(hl))),
+	new_instruction!("CP A", 0, Some(&cp!(a))),
 	//0xC0
-	new_instruction!("RET NZ", 0, None),			
+	new_instruction!("RET NZ", 0, Some(&ret_nz)),			
 	new_instruction!("POP BC", 0, Some(&pop!(bc))),
-	new_instruction!("JP NZ,a16", 2, None),
-	new_instruction!("JP a16", 2, None),
+	new_instruction!("JP NZ,a16", 2, Some(&jp_nz)),
+	new_instruction!("JP a16", 2, Some(&jp)),
 	new_instruction!("CALL NZ,a16", 2, Some(&call_nz_a16)),
 	new_instruction!("PUSH BC", 0, Some(&push!(bc))),
 	new_instruction!("ADD A,d8", 1, None),
 	new_instruction!("RST 00H", 0, Some(&rst!(0x0000))),
 	//0xC8
-	new_instruction!("RET Z", 0, None),				
-	new_instruction!("RET", 0, None),
-	new_instruction!("JP Z,a16", 2, None),
+	new_instruction!("RET Z", 0, Some(&ret_z)),				
+	new_instruction!("RET", 0, Some(&ret)),
+	new_instruction!("JP Z,a16", 2, Some(&jp_z)),
 	new_instruction!("PREFIX CB", 1, Some(&cb)),
 	new_instruction!("CALL Z,a16", 2, Some(&call_z_a16)),
 	new_instruction!("CALL a16", 2, Some(&call_a16)),
 	new_instruction!("ADC A,d8", 1, None),
 	new_instruction!("RST 08H", 0, Some(&rst!(0x0008))),
 	//0xD0
-	new_instruction!("RET NC", 0, None),			
+	new_instruction!("RET NC", 0, Some(&ret_nc)),			
 	new_instruction!("POP DE", 0, Some(&pop!(de))),
-	new_instruction!("JP NC,a16", 2, None),
+	new_instruction!("JP NC,a16", 2, Some(&jp_nc)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("CALL NC,a16", 2, Some(&call_nc_a16)),
 	new_instruction!("PUSH DE", 0, Some(&push!(de))),
 	new_instruction!("SUB d8", 1, None),
 	new_instruction!("RST 10H", 0, Some(&rst!(0x0010))),
 	//0xD8
-	new_instruction!("RET C", 0, None),				
+	new_instruction!("RET C", 0, Some(&ret_c)),				
 	new_instruction!("RETI", 0, None),
-	new_instruction!("JP C,a16", 2, None),
+	new_instruction!("JP C,a16", 2, Some(&jp_c)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("CALL C,a16", 2, Some(&call_c_a16)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
@@ -483,7 +520,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("RST 20H", 0, Some(&rst!(0x0020))),
 	//0xE8
 	new_instruction!("ADD SP,r8", 1, None),			
-	new_instruction!("JP (HL)", 0, None),
+	new_instruction!("JP (HL)", 0, Some(&jp_hl)),
 	new_instruction!("LD (a16),A", 2, Some(&ld_a16_a)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
@@ -506,14 +543,9 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("EI", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
-	new_instruction!("CP d8", 1, None),
+	new_instruction!("CP d8", 1, Some(&cp!())),
 	new_instruction!("RST 38H", 0, Some(&rst!(0x0038))),
 ];
-
-fn jump(emu: &mut Emulator, offset: u16) -> u64 {
-	emu.regs.pc = (emu.regs.pc as i16 + offset as i8 as i16) as u16;
-	12
-}
 
 //0x70
 fn rlca(emu: &mut Emulator, _: u16) -> u64 {
@@ -552,6 +584,12 @@ fn rla(emu: &mut Emulator, _: u16) -> u64 {
 	4
 }
 
+//0x18
+fn jr(emu: &mut Emulator, operand: u16) -> u64 {
+	emu.regs.pc = (emu.regs.pc as i16 + operand as i8 as i16) as u16;
+	12
+}
+
 //0x1F
 fn rra(emu: &mut Emulator, _: u16) -> u64 {
 	let carry = if emu.regs.get_flag(CARRY_FLAG) {0x80} else {0};
@@ -566,7 +604,7 @@ fn rra(emu: &mut Emulator, _: u16) -> u64 {
 //0x20
 fn jr_nz(emu: &mut Emulator, operand: u16) -> u64 {
 	if !emu.regs.get_flag(ZERO_FLAG) {
-		return jump(emu, operand);
+		return jr(emu, operand);
 	}
 	8
 }
@@ -574,7 +612,7 @@ fn jr_nz(emu: &mut Emulator, operand: u16) -> u64 {
 //0x28
 fn jr_z(emu: &mut Emulator, operand: u16) -> u64 {
 	if emu.regs.get_flag(ZERO_FLAG) {
-		return jump(emu, operand);
+		return jr(emu, operand);
 	}
 	8
 }
@@ -582,7 +620,7 @@ fn jr_z(emu: &mut Emulator, operand: u16) -> u64 {
 //0x30
 fn jr_nc(emu: &mut Emulator, operand: u16) -> u64 {
 	if !emu.regs.get_flag(CARRY_FLAG) {
-		return jump(emu, operand);
+		return jr(emu, operand);
 	}
 	8
 }
@@ -598,15 +636,60 @@ fn ld_hlp_d8(emu: &mut Emulator, operand: u16) -> u64 {
 //0x38
 fn jr_c(emu: &mut Emulator, operand: u16) -> u64 {
 	if emu.regs.get_flag(CARRY_FLAG) {
-		return jump(emu, operand);
+		return jr(emu, operand);
 	}
 	8
+}
+
+//0xC0
+fn ret_nz(emu: &mut Emulator, operand: u16) -> u64 {
+	if !emu.regs.get_flag(ZERO_FLAG) {
+		return ret(emu, operand)+4;
+	}
+	8
+}
+
+//0xC2
+fn jp_nz(emu: &mut Emulator, operand: u16) -> u64 {
+	if !emu.regs.get_flag(ZERO_FLAG) {
+		return jp(emu, operand);
+	}
+	12
+}
+
+//0xC3
+fn jp(emu: &mut Emulator, operand: u16) -> u64 {
+	emu.regs.pc = operand;
+	16
 }
 
 //0xC4
 fn call_nz_a16(emu: &mut Emulator, operand: u16) -> u64 {
 	if !emu.regs.get_flag(ZERO_FLAG) {
 		return call_a16(emu, operand);
+	}
+	12
+}
+
+//0xC8
+fn ret_z(emu: &mut Emulator, operand: u16) -> u64 {
+	if emu.regs.get_flag(ZERO_FLAG) {
+		return ret(emu, operand)+4;
+	}
+	8
+}
+
+//0xC9
+fn ret(emu: &mut Emulator, _: u16) -> u64 {
+	emu.regs.pc = emu.mem.rw(emu.regs.sp);
+	emu.regs.sp += 2;
+	16
+}
+
+//0xCA
+fn jp_z(emu: &mut Emulator, operand: u16) -> u64 {
+	if emu.regs.get_flag(ZERO_FLAG) {
+		return jp(emu, operand);
 	}
 	12
 }
@@ -639,10 +722,42 @@ fn call_a16(emu: &mut Emulator, operand: u16) -> u64 {
 	24
 }
 
+//0xD0
+fn ret_nc(emu: &mut Emulator, operand: u16) -> u64 {
+	if !emu.regs.get_flag(CARRY_FLAG) {
+		return ret(emu, operand)+4;
+	}
+	8
+}
+
+//0xD2
+fn jp_nc(emu: &mut Emulator, operand: u16) -> u64 {
+	if !emu.regs.get_flag(CARRY_FLAG) {
+		return jp(emu, operand);
+	}
+	12
+}
+
 //0xD4
 fn call_nc_a16(emu: &mut Emulator, operand: u16) -> u64 {
 	if !emu.regs.get_flag(CARRY_FLAG) {
 		return call_a16(emu, operand);
+	}
+	12
+}
+
+//0xD8
+fn ret_c(emu: &mut Emulator, operand: u16) -> u64 {
+	if emu.regs.get_flag(CARRY_FLAG) {
+		return ret(emu, operand)+4;
+	}
+	8
+}
+
+//0xDA
+fn jp_c(emu: &mut Emulator, operand: u16) -> u64 {
+	if emu.regs.get_flag(CARRY_FLAG) {
+		return jp(emu, operand);
 	}
 	12
 }
@@ -659,6 +774,14 @@ fn call_c_a16(emu: &mut Emulator, operand: u16) -> u64 {
 fn ldh_a8_a(emu: &mut Emulator, operand: u16) -> u64 {
 	emu.mem.wb(0xFF00 + operand, *emu.regs.a());
 	12
+}
+
+//0xE9
+fn jp_hl(emu: &mut Emulator, _: u16) -> u64 {
+	unsafe {
+		emu.regs.pc = *emu.regs.hl();
+	}
+	4
 }
 
 //0xEA
