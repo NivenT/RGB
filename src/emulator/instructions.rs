@@ -51,11 +51,28 @@ macro_rules! ld {
     	}
     };
 
+    ($reg:ident, c, mem) => {
+    	|emu, _| {
+    		*emu.regs.$reg() = emu.mem.rb(0xFF00 + *emu.regs.c() as u16);
+    		8
+    	}
+    };
+
     ($reg1:ident, mem, $reg2:ident, $shift:expr) => {
     	|emu, _| {
     		unsafe{
     			emu.mem.wb(*emu.regs.$reg1(), *emu.regs.$reg2());
     			*emu.regs.$reg1() = (*emu.regs.$reg1() as i32 + $shift) as u16;
+    		}
+    		8
+    	}
+    };
+
+    ($reg1:ident, $reg2:ident, mem, $shift:expr) => {
+    	|emu, _| {
+    		unsafe {
+    			*emu.regs.$reg1() = emu.mem.rb(*emu.regs.$reg2());
+    			*emu.regs.$reg2() = (*emu.regs.$reg2() as i32 + $shift) as u16;
     		}
     		8
     	}
@@ -81,21 +98,51 @@ macro_rules! rst {
 }
 
 macro_rules! inc {
-    ($reg:ident) => {
+    ($reg:ident, 8) => {
     	|emu, _| {
     		*emu.regs.$reg() += 1;
 
     		let val = *emu.regs.$reg();
     		emu.regs.update_flags(ZERO_FLAG, val == 0);
     		emu.regs.clear_flags(NEGATIVE_FLAG);
-    		emu.regs.update_flags(HALFCARRY_FLAG, (val & 0x1F) == 0x010);
+    		emu.regs.update_flags(HALFCARRY_FLAG, (val & 0x1F) == 0x10);
     		4
+    	}
+    };
+
+    (sp, 16) => {
+    	|emu, _| {
+    		emu.regs.sp += 1;
+    		8
+    	}
+    };
+
+    ($reg:ident, 16) => {
+    	|emu, _| {
+    		unsafe {
+    			*emu.regs.$reg() += 1;
+    			8
+    		}
+    	}
+    };
+
+    ($reg:ident, mem) => {
+    	|emu, _| {
+    		unsafe {
+    			let val = emu.mem.rb(*emu.regs.$reg())+1;
+    			emu.mem.wb(*emu.regs.$reg(), val);
+
+    			emu.regs.update_flags(ZERO_FLAG, val == 0);
+	    		emu.regs.clear_flags(NEGATIVE_FLAG);
+	    		emu.regs.update_flags(HALFCARRY_FLAG, (val & 0x1F) == 0x10);
+    			12
+    		}
     	}
     }
 }
 
 macro_rules! dec {
-    ($reg:ident) => {
+    ($reg:ident, 8) => {
     	|emu, _| {
     		*emu.regs.$reg() -= 1;
 
@@ -104,6 +151,36 @@ macro_rules! dec {
     		emu.regs.set_flags(NEGATIVE_FLAG);
     		emu.regs.update_flags(HALFCARRY_FLAG, (val & 0xF) != 0xE);
     		4
+    	}
+    };
+
+    (sp, 16) => {
+    	|emu, _| {
+    		emu.regs.sp -= 1;
+    		8
+    	}
+    };
+
+    ($reg:ident, 16) => {
+    	|emu, _| {
+    		unsafe {
+    			*emu.regs.$reg() -= 1;
+    			8
+    		}
+    	}
+    };
+
+    ($reg:ident, mem) => {
+    	|emu, _| {
+    		unsafe {
+    			let val = emu.mem.rb(*emu.regs.$reg())-1;
+    			emu.mem.wb(*emu.regs.$reg(), val);
+
+    			emu.regs.update_flags(ZERO_FLAG, val == 0);
+	    		emu.regs.clear_flags(NEGATIVE_FLAG);
+	    		emu.regs.update_flags(HALFCARRY_FLAG, (val & 0xF) == 0xE);
+    			12
+    		}
     	}
     }
 }
@@ -121,74 +198,74 @@ pub struct Instruction {
 pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0x00
 	new_instruction!("NOP", 0, Some(&|_,_| 4)),	
-	new_instruction!("LD BC,d16", 2, None),
-	new_instruction!("LD (BC),A", 0, None),
-	new_instruction!("INC BC", 0, None),
-	new_instruction!("INC B", 0, Some(&inc!(b))),
-	new_instruction!("DEC B", 0, Some(&dec!(b))),
+	new_instruction!("LD BC,d16", 2, Some(&ld!(bc, 16))),
+	new_instruction!("LD (BC),A", 0, Some(&ld!(bc, mem, a, 0))),
+	new_instruction!("INC BC", 0, Some(&inc!(bc, 16))),
+	new_instruction!("INC B", 0, Some(&inc!(b, 8))),
+	new_instruction!("DEC B", 0, Some(&dec!(b, 8))),
 	new_instruction!("LD B,d8", 1, Some(&ld!(b, 8))),
 	new_instruction!("RLCA", 0, None),
 	//0x08
 	new_instruction!("LD (a16),SP", 2, None),
 	new_instruction!("ADD HL,BC", 0, None),
-	new_instruction!("LD A,(BC)", 0, None),
-	new_instruction!("DEC BC", 0, None),
-	new_instruction!("INC C", 0, Some(&inc!(c))),
-	new_instruction!("DEC C", 0, Some(&dec!(c))),
+	new_instruction!("LD A,(BC)", 0, Some(&ld!(a, bc, mem, 0))),
+	new_instruction!("DEC BC", 0, Some(&dec!(bc, 16))),
+	new_instruction!("INC C", 0, Some(&inc!(c, 8))),
+	new_instruction!("DEC C", 0, Some(&dec!(c, 8))),
 	new_instruction!("LD C,d8", 1, Some(&ld!(c, 8))),
 	new_instruction!("RRCA", 0, Some(&rrca)),
 	//0x10
 	new_instruction!("STOP 0", 1, None),			
-	new_instruction!("LD DE,d16", 2, None),
-	new_instruction!("LD (DE),A", 0, None),
-	new_instruction!("INC DE", 0, None),
-	new_instruction!("INC D", 0, Some(&inc!(d))),
-	new_instruction!("DEC D", 0, Some(&dec!(d))),
+	new_instruction!("LD DE,d16", 2, Some(&ld!(de, 16))),
+	new_instruction!("LD (DE),A", 0, Some(&ld!(de, mem, a, 0))),
+	new_instruction!("INC DE", 0, Some(&inc!(de, 16))),
+	new_instruction!("INC D", 0, Some(&inc!(d, 8))),
+	new_instruction!("DEC D", 0, Some(&dec!(d, 8))),
 	new_instruction!("LD D,d8", 1, Some(&ld!(d, 8))),
 	new_instruction!("RLA", 0, None),
 	//0x18
 	new_instruction!("JR r8", 1, None),				
 	new_instruction!("ADD HL,DE", 0, None),
-	new_instruction!("LD A,(DE)", 0, None),
-	new_instruction!("DEC DE", 0, None),
-	new_instruction!("INC E", 0, Some(&inc!(e))),
-	new_instruction!("DEC E", 0, Some(&dec!(e))),
+	new_instruction!("LD A,(DE)", 0, Some(&ld!(a, de, mem, 0))),
+	new_instruction!("DEC DE", 0, Some(&dec!(de, 16))),
+	new_instruction!("INC E", 0, Some(&inc!(e, 8))),
+	new_instruction!("DEC E", 0, Some(&dec!(e, 8))),
 	new_instruction!("LD E,d8", 1, Some(&ld!(e, 8))),
 	new_instruction!("RRA", 0, None),
 	//0x20
 	new_instruction!("JR NZ,r8", 1, Some(&jr_nz)),			
 	new_instruction!("LD HL,d16", 2, Some(&ld!(hl, 16))),
-	new_instruction!("LD (HL+),A", 0, None),
-	new_instruction!("INC HL", 0, None),
-	new_instruction!("INC H", 0, Some(&inc!(h))),
-	new_instruction!("DEC H", 0, Some(&dec!(h))),
+	new_instruction!("LD (HL+),A", 0, Some(&ld!(hl, mem, a, 1))),
+	new_instruction!("INC HL", 0, Some(&inc!(hl, 16))),
+	new_instruction!("INC H", 0, Some(&inc!(h, 8))),
+	new_instruction!("DEC H", 0, Some(&dec!(h, 8))),
 	new_instruction!("LD H,d8", 1, Some(&ld!(h, 8))),
 	new_instruction!("DAA", 0, None),
 	//0x28
 	new_instruction!("JR Z,r8", 1, Some(&jr_z)),			
 	new_instruction!("ADD HL,HL", 0, None),
-	new_instruction!("LD A,(HL+)", 0, None),
-	new_instruction!("DEC HL", 0, None),
-	new_instruction!("INC L", 0, Some(&inc!(l))),
-	new_instruction!("DEC L", 0, Some(&dec!(l))),
+	new_instruction!("LD A,(HL+)", 0, Some(&ld!(a, hl, mem, 1))),
+	new_instruction!("DEC HL", 0, Some(&dec!(hl, 16))),
+	new_instruction!("INC L", 0, Some(&inc!(l, 8))),
+	new_instruction!("DEC L", 0, Some(&dec!(l, 8))),
 	new_instruction!("LD L,d8", 1, Some(&ld!(l, 8))),
 	new_instruction!("CPL", 0, None),
 	//0x30
 	new_instruction!("JR NC,r8", 1, Some(&jr_nc)),			
 	new_instruction!("LD SP,d16", 2, Some(&ld!(sp, 16))),
 	new_instruction!("LD (HL-),A", 0, Some(&ld!(hl, mem, a, -1))),
-	new_instruction!("INC SP", 0, None),
-	new_instruction!("INC (HL)", 0, None),
-	new_instruction!("DEC (HL)", 0, None),
+	new_instruction!("INC SP", 0, Some(&inc!(sp, 16))),
+	new_instruction!("INC (HL)", 0, Some(&inc!(hl, mem))),
+	new_instruction!("DEC (HL)", 0, Some(&dec!(hl, mem))),
 	new_instruction!("LD (HL),d8", 1, None),
 	new_instruction!("SCF", 0, None),
 	//0x38
 	new_instruction!("JR C,r8", 1, Some(&jr_c)),			
 	new_instruction!("ADD HL,SP", 0, None),
-	new_instruction!("LD A,(HL-)", 0, None),
-	new_instruction!("DEC SP", 0, None),
-	new_instruction!("INC A", 0, Some(&inc!(a))),
-	new_instruction!("DEC A", 0, Some(&dec!(a))),
+	new_instruction!("LD A,(HL-)", 0, Some(&ld!(a, hl, mem, -1))),
+	new_instruction!("DEC SP", 0, Some(&dec!(sp, 16))),
+	new_instruction!("INC A", 0, Some(&inc!(a, 8))),
+	new_instruction!("DEC A", 0, Some(&dec!(a, 8))),
 	new_instruction!("LD A,d8", 1, Some(&ld!(a, 8))),
 	new_instruction!("CCF", 0, None),
 	//0x40
@@ -198,7 +275,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD B,E", 0, Some(&ld!(b, e))),
 	new_instruction!("LD B,H", 0, Some(&ld!(b, h))),
 	new_instruction!("LD B,L", 0, Some(&ld!(b, l))),
-	new_instruction!("LD B,(HL)", 0, None),
+	new_instruction!("LD B,(HL)", 0, Some(&ld!(b, hl, mem, 0))),
 	new_instruction!("LD B,A", 0, Some(&ld!(b, a))),
 	//0x48
 	new_instruction!("LD C,B", 0, Some(&ld!(c, b))),			
@@ -207,7 +284,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD C,E", 0, Some(&ld!(c, e))),
 	new_instruction!("LD C,H", 0, Some(&ld!(c, h))),
 	new_instruction!("LD C,L", 0, Some(&ld!(c, l))),
-	new_instruction!("LD C,(HL)", 0, None),
+	new_instruction!("LD C,(HL)", 0, Some(&ld!(c, hl, mem, 0))),
 	new_instruction!("LD C,A", 0, Some(&ld!(c, a))),
 	//0x50
 	new_instruction!("LD D,B", 0, Some(&ld!(d, b))),			
@@ -216,7 +293,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD D,E", 0, Some(&ld!(d, e))),
 	new_instruction!("LD D,H", 0, Some(&ld!(d, h))),
 	new_instruction!("LD D,L", 0, Some(&ld!(d, l))),
-	new_instruction!("LD D,(HL)", 0, None),
+	new_instruction!("LD D,(HL)", 0, Some(&ld!(d, hl, mem, 0))),
 	new_instruction!("LD D,A", 0, Some(&ld!(d, a))),
 	//0x58
 	new_instruction!("LD E,B", 0, Some(&ld!(e, b))),			
@@ -225,7 +302,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD E,E", 0, Some(&ld!(e, e))),
 	new_instruction!("LD E,H", 0, Some(&ld!(e, h))),
 	new_instruction!("LD E,L", 0, Some(&ld!(e, l))),
-	new_instruction!("LD E,(HL)", 0, None),
+	new_instruction!("LD E,(HL)", 0, Some(&ld!(e, hl, mem, 0))),
 	new_instruction!("LD E,A", 0, Some(&ld!(e, a))),
 	//0x60
 	new_instruction!("LD H,B", 0, Some(&ld!(h, b))),			
@@ -234,7 +311,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD H,E", 0, Some(&ld!(h, e))),
 	new_instruction!("LD H,H", 0, Some(&ld!(h, h))),
 	new_instruction!("LD H,L", 0, Some(&ld!(h, l))),
-	new_instruction!("LD H,(HL)", 0, None),
+	new_instruction!("LD H,(HL)", 0, Some(&ld!(h, hl, mem, 0))),
 	new_instruction!("LD H,A", 0, Some(&ld!(h, a))),
 	//0x68
 	new_instruction!("LD L,B", 0, Some(&ld!(l, b))),			
@@ -243,7 +320,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD L,E", 0, Some(&ld!(l, e))),
 	new_instruction!("LD L,H", 0, Some(&ld!(l, h))),
 	new_instruction!("LD L,L", 0, Some(&ld!(l, l))),
-	new_instruction!("LD L,(HL)", 0, None),
+	new_instruction!("LD L,(HL)", 0, Some(&ld!(l, hl, mem, 0))),
 	new_instruction!("LD L,A", 0, Some(&ld!(l, a))),
 	//0x70
 	new_instruction!("LD (HL),B", 0, Some(&ld!(hl, mem, b, 0))),			
@@ -261,7 +338,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD A,E", 0, Some(&ld!(a, e))),
 	new_instruction!("LD A,H", 0, Some(&ld!(a, h))),
 	new_instruction!("LD A,L", 0, Some(&ld!(a, l))),
-	new_instruction!("LD A,(HL)", 0, None),
+	new_instruction!("LD A,(HL)", 0, Some(&ld!(a, hl, mem, 0))),
 	new_instruction!("LD A,A", 0, Some(&ld!(a, a))),
 	//0x80
 	new_instruction!("ADD A,B", 0, None),			
@@ -372,7 +449,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("SBC A,d8", 1, None),
 	new_instruction!("RST 18H", 0, Some(&rst!(0x0018))),
 	//0xE0
-	new_instruction!("LDH (a8),A", 1, None),		
+	new_instruction!("LDH (a8),A", 1, Some(&ldh_a8_a)),		
 	new_instruction!("POP HL", 0, None),
 	new_instruction!("LD (C),A", 0, Some(&ld!(c, mem, a))),
 	new_instruction!("NO_INSTRUCTION", 0, None),
@@ -383,25 +460,25 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0xE8
 	new_instruction!("ADD SP,r8", 1, None),			
 	new_instruction!("JP (HL)", 0, None),
-	new_instruction!("LD (a16),A", 2, None),
+	new_instruction!("LD (a16),A", 2, Some(&ld_a16_a)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("XOR d8", 1, None),
 	new_instruction!("RST 28H", 0, Some(&rst!(0x0028))),
 	//0xF0
-	new_instruction!("LDH A,(a8)", 1, None),		
+	new_instruction!("LDH A,(a8)", 1, Some(&ldh_a_a8)),		
 	new_instruction!("POP AF", 0, None),
-	new_instruction!("LD A,(C)", 1, None),
+	new_instruction!("LD A,(C)", 0, Some(&ld!(a, c, mem))),
 	new_instruction!("DI", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("PUSH AF", 0, None),
 	new_instruction!("OR d8", 1, None),
 	new_instruction!("RST 30H", 0, Some(&rst!(0x0030))),
 	//0xF8
-	new_instruction!("LD HL,SP+r8", 1, None),	
-	new_instruction!("LD SP,HL", 0, None),
-	new_instruction!("LD A,(a16)", 2, None),
+	new_instruction!("LD HL,SP+r8", 1, Some(&ld_hl_spr8)),	
+	new_instruction!("LD SP,HL", 0, Some(&ld_sp_hl)),
+	new_instruction!("LD A,(a16)", 2, Some(&ld_a_a16)),
 	new_instruction!("EI", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
@@ -410,10 +487,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 ];
 
 fn jump(emu: &mut Emulator, offset: u16) -> u64 {
-	unsafe {
-		let offset: i8 = *(&offset as  *const _ as *const i8);
-		emu.regs.pc = (emu.regs.pc as i16 + offset as i16) as u16;
-	}
+	emu.regs.pc = (emu.regs.pc as i16 + offset as i8 as i16) as u16;
 	12
 }
 
@@ -473,6 +547,46 @@ fn cb(emu: &mut Emulator, operand: u16) -> u64 {
 			emu.regs.pc-2, 0xCB, operand, instruction.name);
 		panic!("");
 	}
+}
+
+//0xE0
+fn ldh_a8_a(emu: &mut Emulator, operand: u16) -> u64 {
+	emu.mem.wb(0xFF00 + operand, *emu.regs.a());
+	12
+}
+
+//0xEA
+fn ld_a16_a(emu: &mut Emulator, operand: u16) -> u64 {
+	emu.mem.wb(operand, *emu.regs.a());
+	16
+}
+
+//0xF0
+fn ldh_a_a8(emu: &mut Emulator, operand: u16) -> u64 {
+	*emu.regs.a() = emu.mem.rb(0xFF00 + operand);
+	12
+}
+
+//0xF8
+fn ld_hl_spr8(emu: &mut Emulator, operand: u16) -> u64 {
+	unsafe {
+		*emu.regs.hl() = (emu.regs.sp as i16 + operand as i8 as i16) as u16;
+	}
+	12
+}
+
+//0xF9
+fn ld_sp_hl(emu: &mut Emulator, _: u16) -> u64 {
+	unsafe {
+		emu.regs.sp = *emu.regs.hl();
+	}
+	8
+}
+
+//0xFA
+fn ld_a_a16(emu: &mut Emulator, operand: u16) -> u64 {
+	*emu.regs.a() = emu.mem.rb(operand);
+	16
 }
 
 #[cfg(test)]
@@ -555,5 +669,19 @@ mod test {
 		dec_b(&mut emu, 0);
 		assert_eq!(*emu.regs.b(), 14);
 		assert_eq!(*emu.regs.f(), NEGATIVE_FLAG);
+	}
+	#[test]
+	fn test_ld_hl_spr8() {
+		let mut emu = Emulator::new();
+		emu.regs.sp = 100;
+		let ld_hl_spr8 = INSTRUCTIONS[0xF8].func.unwrap();
+		ld_hl_spr8(&mut emu, 20);
+		unsafe {
+			assert_eq!(*emu.regs.hl(), 120);
+		}
+		ld_hl_spr8(&mut emu, 0xFF); // -1 as a signed 8-bit integer
+		unsafe {
+			assert_eq!(*emu.regs.hl(), 99);
+		}
 	}
 }

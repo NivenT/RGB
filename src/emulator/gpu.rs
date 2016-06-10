@@ -87,7 +87,7 @@ impl Gpu {
 			if (status & (1 << 6)) > 0 {
 				//Request Interupt
 			} else {
-				status = status & 0xFB;
+				status &= 0xFB;
 			}
 		}
 
