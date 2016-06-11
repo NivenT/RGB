@@ -10,14 +10,25 @@ macro_rules! new_instruction {
 }
 
 macro_rules! xor {
+	(hl) => {
+    	|emu, _| {
+	    	unsafe {
+	    		let (a,b) = (*emu.regs.a(), emu.mem.rb(*emu.regs.hl()));
+	    		*emu.regs.a() ^= b;
+	    		emu.regs.update_flags(ZERO_FLAG, (a ^ b) == 0);
+	    		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG | CARRY_FLAG);
+	    		8
+	    	}
+    	}
+    };
+
     ($reg:ident) => {
     	|emu, _| {
-    		*emu.regs.a() ^= *emu.regs.$reg();
-
-    		emu.regs.clear_flags(ALL_FLAGS);
-    		if *emu.regs.a() == 0 {emu.regs.set_flags(ZERO_FLAG);}
+    		let (a,b) = (*emu.regs.a(), *emu.regs.$reg());
+    		*emu.regs.a() ^= b;
+    		emu.regs.update_flags(ZERO_FLAG, (a ^ b) == 0);
+    		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG | CARRY_FLAG);
     		4
-
     	}
     }
 }
@@ -246,6 +257,84 @@ macro_rules! cp {
     }
 }
 
+macro_rules! sub {
+	(hl) => {
+    	|emu, _| {
+    		unsafe {
+    			let (a,b) = (*emu.regs.a(), emu.mem.rb(*emu.regs.hl()));
+	    		*emu.regs.a() = (*emu.regs.a()).wrapping_sub(b);
+	    		emu.regs.update_flags(ZERO_FLAG, a == b);
+				emu.regs.set_flags(NEGATIVE_FLAG);
+				emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) < (b & 0xF));
+				emu.regs.update_flags(CARRY_FLAG, a < b);
+	    		8
+    		}
+    	}
+    };
+
+    ($reg:ident) => {
+    	|emu, _| {
+    		let (a,b) = (*emu.regs.a(), *emu.regs.$reg());
+    		*emu.regs.a() = (*emu.regs.a()).wrapping_sub(b);
+    		emu.regs.update_flags(ZERO_FLAG, a == b);
+			emu.regs.set_flags(NEGATIVE_FLAG);
+			emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) < (b & 0xF));
+			emu.regs.update_flags(CARRY_FLAG, a < b);
+    		4
+    	}
+    }
+}
+
+macro_rules! and {
+	($reg:ident) => {
+    	|emu, _| {
+	    	unsafe {
+	    		let (a,b) = (*emu.regs.a(), emu.mem.rb(*emu.regs.hl()));
+	    		*emu.regs.a() &= b;
+	    		emu.regs.update_flags(ZERO_FLAG, (a & b) == 0);
+	    		emu.regs.clear_flags(NEGATIVE_FLAG | CARRY_FLAG);
+	    		emu.regs.set_flags(HALFCARRY_FLAG);
+	    		8
+	    	}
+    	}
+    };
+
+    ($reg:ident) => {
+    	|emu, _| {
+    		let (a,b) = (*emu.regs.a(), *emu.regs.$reg());
+    		*emu.regs.a() &= b;
+    		emu.regs.update_flags(ZERO_FLAG, (a & b) == 0);
+    		emu.regs.clear_flags(NEGATIVE_FLAG | CARRY_FLAG);
+    		emu.regs.set_flags(HALFCARRY_FLAG);
+    		4
+    	}
+    }
+}
+
+macro_rules! or {
+	(hl) => {
+    	|emu, _| {
+    		unsafe {
+    			let (a,b) = (*emu.regs.a(), emu.mem.rb(*emu.regs.hl()));
+	    		*emu.regs.a() |= b;
+	    		emu.regs.update_flags(ZERO_FLAG, (a | b) == 0);
+	    		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG | CARRY_FLAG);
+	    		8
+    		}
+    	}
+    };
+
+    ($reg:ident) => {
+    	|emu, _| {
+    		let (a,b) = (*emu.regs.a(), *emu.regs.$reg());
+    		*emu.regs.a() |= b;
+    		emu.regs.update_flags(ZERO_FLAG, (a | b) == 0);
+    		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG | CARRY_FLAG);
+    		4
+    	}
+    }
+}
+
 //Returns the number of cycles the instruction takes
 pub type InstructionFunc = Option<&'static Fn(&mut Emulator, u16) -> u64>;
 
@@ -420,14 +509,14 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("ADC A,(HL)", 0, None),
 	new_instruction!("ADC A,A", 0, None),
 	//0x90
-	new_instruction!("SUB B", 0, None),				
-	new_instruction!("SUB C", 0, None),
-	new_instruction!("SUB D", 0, None),
-	new_instruction!("SUB E", 0, None),
-	new_instruction!("SUB H", 0, None),
-	new_instruction!("SUB L", 0, None),
-	new_instruction!("SUB (HL)", 0, None),
-	new_instruction!("SUB A", 0, None),
+	new_instruction!("SUB B", 0, Some(&sub!(b))),				
+	new_instruction!("SUB C", 0, Some(&sub!(c))),
+	new_instruction!("SUB D", 0, Some(&sub!(d))),
+	new_instruction!("SUB E", 0, Some(&sub!(e))),
+	new_instruction!("SUB H", 0, Some(&sub!(h))),
+	new_instruction!("SUB L", 0, Some(&sub!(l))),
+	new_instruction!("SUB (HL)", 0, Some(&sub!(hl))),
+	new_instruction!("SUB A", 0, Some(&sub!(a))),
 	//0x98
 	new_instruction!("SBC A,B", 0, None),			
 	new_instruction!("SBC A,C", 0, None),
@@ -438,14 +527,14 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("SBC A,(HL)", 0, None),
 	new_instruction!("SBC A,A", 0, None),
 	//0xA0
-	new_instruction!("AND B", 0, None),				
-	new_instruction!("AND C", 0, None),
-	new_instruction!("AND D", 0, None),
-	new_instruction!("AND E", 0, None),
-	new_instruction!("AND H", 0, None),
-	new_instruction!("AND L", 0, None),
-	new_instruction!("AND (HL)", 0, None),
-	new_instruction!("AND A", 0, None),
+	new_instruction!("AND B", 0, Some(&and!(b))),				
+	new_instruction!("AND C", 0, Some(&and!(c))),
+	new_instruction!("AND D", 0, Some(&and!(d))),
+	new_instruction!("AND E", 0, Some(&and!(e))),
+	new_instruction!("AND H", 0, Some(&and!(h))),
+	new_instruction!("AND L", 0, Some(&and!(l))),
+	new_instruction!("AND (HL)", 0, Some(&and!(hl))),
+	new_instruction!("AND A", 0, Some(&and!(a))),
 	//0xA8
 	new_instruction!("XOR B", 0, Some(&xor!(b))),				
 	new_instruction!("XOR C", 0, Some(&xor!(c))),
@@ -453,17 +542,17 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("XOR E", 0, Some(&xor!(e))),
 	new_instruction!("XOR H", 0, Some(&xor!(h))),
 	new_instruction!("XOR L", 0, Some(&xor!(l))),
-	new_instruction!("XOR (HL)", 0, None),
+	new_instruction!("XOR (HL)", 0, Some(&xor!(hl))),
 	new_instruction!("XOR A", 0, Some(&xor!(a))),
 	//0xB0
-	new_instruction!("OR B", 0, None),				
-	new_instruction!("OR C", 0, None),
-	new_instruction!("OR D", 0, None),
-	new_instruction!("OR E", 0, None),
-	new_instruction!("OR H", 0, None),
-	new_instruction!("OR L", 0, None),
-	new_instruction!("OR (HL)", 0, None),
-	new_instruction!("OR A", 0, None),
+	new_instruction!("OR B", 0, Some(&or!(b))),				
+	new_instruction!("OR C", 0, Some(&or!(c))),
+	new_instruction!("OR D", 0, Some(&or!(d))),
+	new_instruction!("OR E", 0, Some(&or!(e))),
+	new_instruction!("OR H", 0, Some(&or!(h))),
+	new_instruction!("OR L", 0, Some(&or!(l))),
+	new_instruction!("OR (HL)", 0, Some(&or!(hl))),
+	new_instruction!("OR A", 0, Some(&or!(a))),
 	//0xB8
 	new_instruction!("CP B", 0, Some(&cp!(b))),				
 	new_instruction!("CP C", 0, Some(&cp!(c))),

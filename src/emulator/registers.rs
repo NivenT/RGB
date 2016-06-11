@@ -69,8 +69,6 @@ impl Registers {
 	}
 }
 
-
-pub const ALL_FLAGS: u8         = 0xF0;
 pub const ZERO_FLAG: u8 		= 0x80;
 pub const NEGATIVE_FLAG: u8 	= 0x40;
 pub const HALFCARRY_FLAG: u8 	= 0x20;

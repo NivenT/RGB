@@ -3,13 +3,14 @@
 
 #[derive(Debug)]
 pub struct ProgramState {
-    pub debug:	bool,
-    pub done:	bool,
-    pub paused:	bool
+    pub debug:		bool,
+    pub done:		bool,
+    pub paused:		bool,
+    pub adv_frame:	bool,
 }
 
 impl ProgramState {
     pub fn new() -> ProgramState {
-    	ProgramState{debug: false, done: false, paused: false}
+    	ProgramState{debug: false, done: false, paused: false, adv_frame: false}
     }
 }

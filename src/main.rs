@@ -43,8 +43,9 @@ fn main() {
     let renderer = Renderer::new(&display);
     while !state.done {
         handle_input(&mut event_pump, &mut state);
-        if !state.paused {
+        if !state.paused || state.adv_frame {
             emu.emulate_cycle(&state);
+            state.adv_frame = false;
         }
         renderer.render(&display, emu.gpu.get_screen());
     }

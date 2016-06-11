@@ -24,6 +24,7 @@ fn handle_keydown(key: Keycode, state: &mut ProgramState) {
 	match key {
 		Keycode::D => {state.debug = !state.debug},
         Keycode::P => {state.paused = !state.paused},
+        Keycode::F => {state.adv_frame = true},
 		Keycode::Escape => {state.done = true},
 		_ => ()
 	}
