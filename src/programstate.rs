@@ -6,7 +6,7 @@ pub struct ProgramState {
     pub debug:		bool,
     pub done:		bool,
     pub paused:		bool,
-    pub adv_frame:	bool,
+    pub adv_frame:	bool
 }
 
 impl ProgramState {

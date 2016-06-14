@@ -5,3 +5,4 @@ mod rom_info;
 mod cb_instructions;
 pub mod gpu;
 mod memory;
+mod interrupts;

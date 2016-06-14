@@ -917,6 +917,7 @@ fn ld_a_a16(emu: &mut Emulator, operand: u16) -> u64 {
 mod test {
 	use super::*;
 	use emulator::registers::*;
+	use emulator::cb_instructions::*;
 	use emulator::emulator::Emulator;
 	use emulator::rom_info::BIOS;
 
@@ -1038,6 +1039,17 @@ mod test {
 		unsafe {
 			assert_eq!(emu.regs.sp, 100);
 			assert_eq!(*emu.regs.hl(), 512);
+		}
+	}
+	#[test]
+	fn test_implemented_all_instructions() {
+		for i in 0..256 {
+			let instruction = INSTRUCTIONS[i];
+			assert!(instruction.func.is_some() || (instruction.name == "NO_INSTRUCTION"));
+		}
+		for i in 0..256 {
+			let instruction = CB_INSTRUCTIONS[i];
+			assert!(instruction.func.is_some());
 		}
 	}
 }

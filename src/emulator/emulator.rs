@@ -4,6 +4,7 @@ use std::io::prelude::*;
 use emulator::registers::Registers;
 use emulator::memory::Memory;
 use emulator::gpu::Gpu;
+use emulator::interrupts::InterruptManager;
 use emulator::instructions::*;
 use emulator::rom_info::*;
 
@@ -12,6 +13,7 @@ use super::super::programstate::*;
 pub struct Emulator {
 	debug_file:		File,
 	clock:			u64,
+	interrupts:		InterruptManager,
 
 	pub mem:		Memory,
 	pub gpu:		Gpu,
@@ -26,7 +28,8 @@ impl Emulator {
 			memory.wb(i, BIOS[i as usize]);
 		}
 		Emulator{debug_file: File::create("debug.txt").unwrap(), clock: 0, mem: memory,
-					gpu: Gpu::new(), controls: [0; 8], regs: Registers::new()}
+					gpu: Gpu::new(), controls: [0; 8], regs: Registers::new(),
+					interrupts: InterruptManager::new()}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
 		for i in 0..8 {
@@ -110,6 +113,11 @@ impl Emulator {
 		}
 		
 		self.clock += cycles;
-		self.gpu.step(&mut self.mem, cycles as i16);
+		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16);
+		self.interrupts.step(&mut self.mem, &mut self.regs);
+
+		if self.regs.pc >= 0x100 {
+			self.mem.finished_with_bios();
+		}
 	}
 }

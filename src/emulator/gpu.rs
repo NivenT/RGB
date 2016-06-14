@@ -1,4 +1,5 @@
 use emulator::memory::Memory;
+use emulator::interrupts::InterruptManager;
 
 const SCANLINE_TOTAL_TIME: i16 = 456;
 const SCANLINE_MODE2_OVER: i16 = 456-80;
@@ -39,8 +40,8 @@ impl Gpu {
 	pub fn get_screen(&self) -> &[[Color; 160]; 144] {
 		&self.screen_data
 	}
-	pub fn step(&mut self, mem: &mut Memory, cycles: i16) {
-		self.set_lcd_status(mem);
+	pub fn step(&mut self, mem: &mut Memory, im: &InterruptManager, cycles: i16) {
+		self.set_lcd_status(mem, im);
 		if self.is_lcd_enabled(mem) {
 			self.sl_count -= cycles;
 			if self.sl_count <= 0 {
@@ -49,14 +50,14 @@ impl Gpu {
 
 				self.sl_count = SCANLINE_TOTAL_TIME;
 				if line == 144 {
-					//Request Interupt
+					im.request_interrupt(mem, 0);
 				} else if line < 144 {
 					self.draw_line(mem);
 				}
 			}
 		}
 	}
-	fn set_lcd_status(&mut self, mem: &mut Memory) {
+	fn set_lcd_status(&mut self, mem: &mut Memory, im: &InterruptManager) {
 		let mut status = mem.rb(0xFF41);
 		let line = mem.rb(0xFF44);
 		let mode = status & 3;
@@ -80,12 +81,12 @@ impl Gpu {
 		}
 
 		if request_interrupt && (mode != (status & 3)) {
-			//Request Interupt
+			im.request_interrupt(mem, 1);
 		}
 		if line == mem.rb(0xFF45) && self.is_lcd_enabled(mem) {
 			status = (status & 0xFB) | 4;
 			if (status & (1 << 6)) > 0 {
-				//Request Interupt
+				im.request_interrupt(mem, 1);
 			} else {
 				status &= 0xFB;
 			}

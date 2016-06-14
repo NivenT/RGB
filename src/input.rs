@@ -25,6 +25,9 @@ fn handle_keydown(key: Keycode, state: &mut ProgramState) {
 		Keycode::D => {state.debug = !state.debug},
         Keycode::P => {state.paused = !state.paused},
         Keycode::F => {state.adv_frame = true},
+        Keycode::M => {
+            //Prompt use for range of memory and then dump memory
+        },
 		Keycode::Escape => {state.done = true},
 		_ => ()
 	}

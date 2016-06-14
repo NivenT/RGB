@@ -21,15 +21,19 @@ pub struct Memory {
 
 //Memory struct exists in case memory management needs to become more complicated
 pub struct Memory {
-	pub cart:			[u8; 0x08000], //Largest possible cartridge size is 4096 KiB. Only 32 KiB supported right now
+	pub cart:		[u8; 0x08000], //Largest possible cartridge size is 4096 KiB. Only 32 KiB supported right now
 	
-	rom:				[u8; 0x10000],
-	running_bios:		bool
+	rom:			[u8; 0x10000],
+	running_bios:	bool
 }
 
 impl Memory {
 	pub fn new() -> Memory {
 	    Memory{rom: [0; 0x10000], cart: [0; 0x08000], running_bios: true}
+	}
+	pub fn finished_with_bios(&mut self) {
+		self.running_bios = false;
+		panic!("Finished BIOS");
 	}
 	//read byte
 	pub fn rb(&self, address: u16) -> u8 {
