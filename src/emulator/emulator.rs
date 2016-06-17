@@ -2,14 +2,15 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use emulator::registers::Registers;
-use emulator::memory::Memory;
 use emulator::gpu::Gpu;
 use emulator::interrupts::InterruptManager;
 use emulator::instructions::*;
 use emulator::rom_info::*;
+use emulator::memory::*;
 
 use super::super::programstate::*;
 
+#[allow(dead_code)]
 pub struct Emulator {
 	debug_file:		File,
 	clock:			u64,
@@ -84,7 +85,7 @@ impl Emulator {
 
 		println!("Successfully loaded {}", title);
 	}
-	pub fn emulate_cycle(&mut self, state: &ProgramState) {
+	pub fn step(&mut self, state: &ProgramState) -> u64 {
 		let address = self.regs.pc;
 		let opcode = self.mem.rb(self.regs.pc); self.regs.pc += 1;
 		let instruction = INSTRUCTIONS[opcode as usize];
@@ -101,13 +102,13 @@ impl Emulator {
 			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n\t{:?}\n",
 								opcode, instruction.name, instruction.operand_length, operand, address, self.regs);
 			if state.debug {println!("{}", debug_info);}
-			let _ = write!(self.debug_file, "{}\n", debug_info);
+			//let _ = write!(self.debug_file, "{}\n", debug_info);
 
 			cycles = func(self, operand);
 		} else {
 			let debug_info = format!("\nUnimplemented function at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
 				address, opcode, instruction.name, instruction.operand_length, operand);
-			let _ = write!(self.debug_file, "{}", debug_info);
+			//let _ = write!(self.debug_file, "{}", debug_info);
 			println!("{}", debug_info);
 			panic!("");
 		}
@@ -119,5 +120,6 @@ impl Emulator {
 		if self.regs.pc >= 0x100 {
 			self.mem.finished_with_bios();
 		}
+		cycles
 	}
 }

@@ -7,7 +7,7 @@ pub struct InterruptManager {
 
 impl InterruptManager {
 	pub fn new() -> InterruptManager {
-		InterruptManager{interrupts_enabled: true}
+		InterruptManager{interrupts_enabled: false}
 	}
 	pub fn request_interrupt(&self, mem: &mut Memory, id: u8) {
 		let interrupt_request_register = mem.rb(0xFF0F);
@@ -18,6 +18,7 @@ impl InterruptManager {
 			for i in 0..5 {
 				if (mem.rb(0xFF0F) & (1 << i)) > 0 && (mem.rb(0xFFFF) & (1 << i)) > 0 {
 					//Interrupt both requested and enabled
+					println!("Servicing interrupt");
 					self.interrupts_enabled = false;
 					let request = mem.rb(0xFF0F);
 					mem.wb(0xFF0F, request & !(1 << i));

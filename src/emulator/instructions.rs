@@ -155,7 +155,7 @@ macro_rules! inc {
 macro_rules! dec {
     ($reg:ident, 8) => {
     	|emu, _| {
-    		*emu.regs.$reg() -= 1;
+    		*emu.regs.$reg() = (*emu.regs.$reg()).wrapping_sub(1);
 
     		let val = *emu.regs.$reg();
     		emu.regs.update_flags(ZERO_FLAG, val == 0);
