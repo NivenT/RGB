@@ -167,7 +167,7 @@ macro_rules! dec {
 
     (sp, 16) => {
     	|emu, _| {
-    		emu.regs.sp -= 1;
+    		emu.regs.sp = emu.regs.sp.wrapping_sub(1);
     		8
     	}
     };
@@ -175,7 +175,7 @@ macro_rules! dec {
     ($reg:ident, 16) => {
     	|emu, _| {
     		unsafe {
-    			*emu.regs.$reg() -= 1;
+    			*emu.regs.$reg() = (*emu.regs.$reg()).wrapping_sub(1);
     			8
     		}
     	}
