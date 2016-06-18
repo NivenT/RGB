@@ -117,6 +117,11 @@ impl Emulator {
 		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16);
 		self.interrupts.step(&mut self.mem, &mut self.regs);
 
+		//Dirty bug fix until problem can be more properly investigated
+		if opcode == 0x20 && operand == 0xFE {
+			self.regs.pc += 2;
+		}
+
 		if self.regs.pc >= 0x100 {
 			self.mem.finished_with_bios();
 		}

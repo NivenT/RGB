@@ -6,7 +6,7 @@ const SCANLINE_MODE2_OVER: i16 = 456-80;
 const SCANLINE_MODE3_OVER: i16 = 456-80-172;
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color{WHITE = 255, LIGHT_GRAY = 192, DARK_GRAY = 96, BLACK = 0}
 
 impl Color {
@@ -138,7 +138,7 @@ impl Gpu {
 			};
 			let tile_line = (y_offset%8) as u16;
 
-			let tile_data = [mem.rb(tile_loc + tile_line*2), mem.rb(tile_loc + tile_line*2 + 1)];
+			let tile_data = [mem.rb(tile_loc+tile_line*2), mem.rb(tile_loc+tile_line*2+1)];
 			let color_bit = 7 - x_offset%8;
 			//There has to be a way to do with in one line without the if
 			let color_id = if color_bit == 0 {
@@ -152,8 +152,42 @@ impl Gpu {
 				Color::from_palette(color_id, mem.rb(0xFF47));
 		}
 	}
-	#[allow(unused_variables)]
 	fn draw_sprites(&mut self, mem: &mut Memory) {
+		let control = mem.rb(0xFF40);
+		let large_sprites = (control & (1 << 2)) > 0;
 
+		for sprite in 0..40 {
+			let offset = sprite*4;
+			let (x_pos, y_pos) = (mem.rb(0xFE00+offset)-16, mem.rb(0xFE00+offset+1)-8);
+			let tile_loc = mem.rb(0xFE00+offset+2);
+			let attributes = mem.rb(0xFE00+offset+3);
+
+			let (x_flip, y_flip) = ((attributes & (1 << 5)) > 0, (attributes & (1 << 6)) > 0);
+			let line = mem.rb(0xFF44);
+
+			let y_size = if large_sprites {16} else {8};
+			if y_pos <= line && line <= y_pos + y_size {
+				let line = line - y_pos;
+
+				let address = 0x8000 + tile_loc as u16*16 + line as u16*2;
+				let data = [mem.rb(address), mem.rb(address+1)];
+				for color_bit in 0..7 {
+					let color_id = if color_bit == 0 {
+						((data[1] & 1) << 1) | (data[0] & 1)
+					} else {
+						((data[1] & (1 << color_bit)) >> (color_bit-1)) | 
+						((data[0] & (1 << color_bit)) >> color_bit)
+					};
+
+					let palette_address = if (attributes & (1 << 4)) > 0 {0xFF49} else {0xFF48};
+					let color = Color::from_palette(color_id, mem.rb(palette_address));
+
+					if color != Color::WHITE {
+						self.screen_data[line as usize][(x_pos+7-color_bit) as usize] =
+							color;
+					}
+				}
+			}
+		}
 	}
 }

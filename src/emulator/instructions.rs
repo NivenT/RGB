@@ -335,6 +335,34 @@ macro_rules! or {
     }
 }
 
+macro_rules! add {
+	(hl) => {
+    	|emu, _| {
+    		unsafe {
+    			let (a,b) = (*emu.regs.a(), emu.mem.rb(*emu.regs.hl()));
+	    		*emu.regs.a() = (*emu.regs.a()).wrapping_add(b);
+	    		emu.regs.update_flags(ZERO_FLAG, a.wrapping_add(b) == 0);
+				emu.regs.clear_flags(NEGATIVE_FLAG);
+				emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) > 0xF);
+				emu.regs.update_flags(CARRY_FLAG, a as u16 + b as u16 > 255);
+	    		8
+    		}
+    	}
+    };
+
+    ($reg:ident) => {
+    	|emu, _| {
+    		let (a,b) = (*emu.regs.a(), *emu.regs.$reg());
+    		*emu.regs.a() = (*emu.regs.a()).wrapping_add(b);
+    		emu.regs.update_flags(ZERO_FLAG, a.wrapping_add(b) == 0);
+			emu.regs.clear_flags(NEGATIVE_FLAG);
+			emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) > 0xF);
+			emu.regs.update_flags(CARRY_FLAG, a as u16 + b as u16 > 255);
+    		4
+    	}
+    }
+}
+
 //Returns the number of cycles the instruction takes
 pub type InstructionFunc = Option<&'static Fn(&mut Emulator, u16) -> u64>;
 
@@ -491,14 +519,14 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD A,(HL)", 0, Some(&ld!(a, hl, mem, 0))),
 	new_instruction!("LD A,A", 0, Some(&ld!(a, a))),
 	//0x80
-	new_instruction!("ADD A,B", 0, None),			
-	new_instruction!("ADD A,C", 0, None),
-	new_instruction!("ADD A,D", 0, None),
-	new_instruction!("ADD A,E", 0, None),
-	new_instruction!("ADD A,H", 0, None),
-	new_instruction!("ADD A,L", 0, None),
-	new_instruction!("ADD A,(HL)", 0, None),
-	new_instruction!("ADD A,A", 0, None),
+	new_instruction!("ADD A,B", 0, Some(&add!(b))),			
+	new_instruction!("ADD A,C", 0, Some(&add!(c))),
+	new_instruction!("ADD A,D", 0, Some(&add!(d))),
+	new_instruction!("ADD A,E", 0, Some(&add!(e))),
+	new_instruction!("ADD A,H", 0, Some(&add!(h))),
+	new_instruction!("ADD A,L", 0, Some(&add!(l))),
+	new_instruction!("ADD A,(HL)", 0, Some(&add!(hl))),
+	new_instruction!("ADD A,A", 0, Some(&add!(a))),
 	//0x88
 	new_instruction!("ADC A,B", 0, None),			
 	new_instruction!("ADC A,C", 0, None),
