@@ -2,7 +2,7 @@ use emulator::memory::Memory;
 use emulator::registers::Registers;
 
 pub struct InterruptManager {
-	interrupts_enabled:	bool
+	pub interrupts_enabled:	bool
 }
 
 impl InterruptManager {

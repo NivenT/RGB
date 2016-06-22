@@ -85,7 +85,13 @@ impl Emulator {
 
 		println!("Successfully loaded {}", title);
 	}
-	pub fn step(&mut self, state: &ProgramState) -> u64 {
+	pub fn enable_interrupts(&mut self) {
+		self.interrupts.interrupts_enabled = true;
+	}
+	pub fn disable_interrupts(&mut self) {
+		self.interrupts.interrupts_enabled = false;
+	}
+	pub fn step(&mut self, state: &mut ProgramState) -> u64 {
 		let address = self.regs.pc;
 		let opcode = self.mem.rb(self.regs.pc); self.regs.pc += 1;
 		let instruction = INSTRUCTIONS[opcode as usize];
@@ -104,9 +110,16 @@ impl Emulator {
 			if state.debug {println!("{}", debug_info);}
 			//let _ = write!(self.debug_file, "{}\n", debug_info);
 
+			if opcode == 0xCD && address > 0x30 {
+				//breakpoint
+				println!("{}", debug_info);
+				state.debug = true;
+				state.paused = true;
+			}
+
 			cycles = func(self, operand);
 		} else {
-			let debug_info = format!("\nUnimplemented function at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
+			let debug_info = format!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
 				address, opcode, instruction.name, instruction.operand_length, operand);
 			//let _ = write!(self.debug_file, "{}", debug_info);
 			println!("{}", debug_info);

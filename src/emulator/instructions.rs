@@ -427,7 +427,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("INC L", 0, Some(&inc!(l, 8))),
 	new_instruction!("DEC L", 0, Some(&dec!(l, 8))),
 	new_instruction!("LD L,d8", 1, Some(&ld!(l, 8))),
-	new_instruction!("CPL", 0, None),
+	new_instruction!("CPL", 0, Some(&cpl)),
 	//0x30
 	new_instruction!("JR NC,r8", 1, Some(&jr_nc)),			
 	new_instruction!("LD SP,d16", 2, Some(&ld!(sp, 16))),
@@ -648,7 +648,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LDH A,(a8)", 1, Some(&ldh_a_a8)),		
 	new_instruction!("POP AF", 0, Some(&pop!(af))),
 	new_instruction!("LD A,(C)", 0, Some(&ld!(a, c, mem))),
-	new_instruction!("DI", 0, None),
+	new_instruction!("DI", 0, Some(&di)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("PUSH AF", 0, Some(&push!(af))),
 	new_instruction!("OR d8", 1, None),
@@ -657,22 +657,12 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD HL,SP+r8", 1, Some(&ld_hl_spr8)),	
 	new_instruction!("LD SP,HL", 0, Some(&ld_sp_hl)),
 	new_instruction!("LD A,(a16)", 2, Some(&ld_a_a16)),
-	new_instruction!("EI", 0, None),
+	new_instruction!("EI", 0, Some(&ei)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("CP d8", 1, Some(&cp!())),
 	new_instruction!("RST 38H", 0, Some(&rst!(0x0038))),
 ];
-
-//0x70
-fn rlca(emu: &mut Emulator, _: u16) -> u64 {
-	let carry = *emu.regs.a() & 0x80;
-	emu.regs.update_flags(CARRY_FLAG, carry > 0);
-
-	*emu.regs.a() = (*emu.regs.a() << 1) | (carry >> 7);
-	emu.regs.clear_flags(ZERO_FLAG | NEGATIVE_FLAG | HALFCARRY_FLAG);
-	4
-}
 
 //0x08
 fn ld_a16p_sp(emu: &mut Emulator, operand: u16) -> u64 {
@@ -734,6 +724,13 @@ fn jr_z(emu: &mut Emulator, operand: u16) -> u64 {
 	8
 }
 
+//0x2F
+fn cpl(emu: &mut Emulator, _: u16) -> u64 {
+	*emu.regs.a() = !*emu.regs.a();
+	emu.regs.set_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
+	4
+}
+
 //0x30
 fn jr_nc(emu: &mut Emulator, operand: u16) -> u64 {
 	if !emu.regs.get_flag(CARRY_FLAG) {
@@ -756,6 +753,16 @@ fn jr_c(emu: &mut Emulator, operand: u16) -> u64 {
 		return jr(emu, operand);
 	}
 	8
+}
+
+//0x70
+fn rlca(emu: &mut Emulator, _: u16) -> u64 {
+	let carry = *emu.regs.a() & 0x80;
+	emu.regs.update_flags(CARRY_FLAG, carry > 0);
+
+	*emu.regs.a() = (*emu.regs.a() << 1) | (carry >> 7);
+	emu.regs.clear_flags(ZERO_FLAG | NEGATIVE_FLAG | HALFCARRY_FLAG);
+	4
 }
 
 //0xC0
@@ -817,7 +824,7 @@ fn cb(emu: &mut Emulator, operand: u16) -> u64 {
 	if let Some(func) = instruction.func {
 		return func(emu);
 	} else {
-		println!("Unimplemented function at memory address ({:#X}) [{:#X} {:#X} ({})]", 
+		println!("Unimplemented CB instruction at memory address ({:#X}) [{:#X} {:#X} ({})]", 
 			emu.regs.pc-2, 0xCB, operand, instruction.name);
 		panic!("");
 	}
@@ -913,6 +920,12 @@ fn ldh_a_a8(emu: &mut Emulator, operand: u16) -> u64 {
 	12
 }
 
+//0xF4
+fn di(emu: &mut Emulator, _: u16) -> u64 {
+	emu.disable_interrupts();
+	4
+}
+
 //0xF8
 fn ld_hl_spr8(emu: &mut Emulator, operand: u16) -> u64 {
 	unsafe {
@@ -941,13 +954,19 @@ fn ld_a_a16(emu: &mut Emulator, operand: u16) -> u64 {
 	16
 }
 
+//0xFB
+fn ei(emu: &mut Emulator, _: u16) -> u64 {
+	emu.enable_interrupts();
+	4
+}
+
 #[cfg(test)]
 mod test {
 	use super::*;
 	use emulator::registers::*;
 	use emulator::cb_instructions::*;
 	use emulator::emulator::Emulator;
-	use emulator::rom_info::BIOS;
+	use emulator::memory::BIOS;
 
 	#[test]
 	fn test_xor() {
@@ -1079,5 +1098,13 @@ mod test {
 			let instruction = CB_INSTRUCTIONS[i];
 			assert!(instruction.func.is_some());
 		}
+	}
+	#[test]
+	fn test_cpl() {
+		let mut emu = Emulator::new();
+		*emu.regs.a() = 0x0F;
+		let cpl = INSTRUCTIONS[0x2F].func.unwrap();
+		cpl(&mut emu, 0);
+		assert_eq!(*emu.regs.a(), 0xF0);
 	}
 }

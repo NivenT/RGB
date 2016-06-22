@@ -52,7 +52,6 @@ impl Memory {
 	}
 	pub fn finished_with_bios(&mut self) {
 		self.running_bios = false;
-		panic!("Finished BIOS");
 	}
 	//read byte
 	pub fn rb(&self, address: u16) -> u8 {
@@ -80,11 +79,13 @@ impl Memory {
 	pub fn wb(&mut self, address: u16, val: u8) {
 		let address = address as usize;
 		if 0xFEA0 <= address && address < 0xFF00 {
-			return panic!("Attempted to write data to unaddressable memory");
+			//panic!("Attempted to write data to unaddressable memory address ({:#X})", address);
+			//not sure if correct behavior
+			self.rom[address - 0x00A0] = val;
 		} else if 0xE000 <= address && address < 0xFE00 {
 			self.rom[address - 0x2000] = val;
-		} else if 0xFFFF == address {
-			panic!("Attempted to write {} to 0xFFF", val);
+		} else if 0xFF44 == address {
+			panic!("Attempted to write data to 0xFF44");
 		}
 		self.rom[address] = val;
 	}
@@ -92,5 +93,9 @@ impl Memory {
 	pub fn ww(&mut self, address: u16, val: u16) {
 		self.wb(address, (val & 0x00FF) as u8);
 		self.wb(address+1, ((val & 0xFF00) >> 8) as u8)
+	}
+	//write line (sets the current scanline)
+	pub fn wl(&mut self, val: u8) {
+		self.rom[0xFF44] = val;
 	}
 }

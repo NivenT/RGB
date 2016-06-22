@@ -60,7 +60,7 @@ fn main() {
         //This makes sure enough cycles are emulated to keep the emulator
         //consistent with a real gameboy
         while (!state.paused || state.adv_frame) && cycles_this_frame < 69905 {
-            let cycles = emu.step(&state);
+            let cycles = emu.step(&mut state);
             //num_cycles += cycles;
             cycles_this_frame += cycles;
             state.adv_frame = false;

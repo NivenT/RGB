@@ -46,7 +46,7 @@ impl Gpu {
 			self.sl_count -= cycles;
 			if self.sl_count <= 0 {
 				let line = (mem.rb(0xFF44) + 1)%154;
-				mem.wb(0xFF44, line);
+				mem.wl(line);
 
 				self.sl_count = SCANLINE_TOTAL_TIME;
 				if line == 144 {
@@ -65,7 +65,7 @@ impl Gpu {
 		let mut request_interrupt = false;
 		if !self.is_lcd_enabled(mem) {
 			self.sl_count = SCANLINE_TOTAL_TIME;
-			mem.wb(0xFF44, 0);
+			mem.wl(0);
 			status = (status & 0xFC) | 1;
 		} else if line > 144 {
 			status = (status & 0xFC) | 1;
