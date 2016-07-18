@@ -160,7 +160,7 @@ macro_rules! dec {
     		let val = *emu.regs.$reg();
     		emu.regs.update_flags(ZERO_FLAG, val == 0);
     		emu.regs.set_flags(NEGATIVE_FLAG);
-    		emu.regs.update_flags(HALFCARRY_FLAG, (val & 0xF) != 0xE);
+    		emu.regs.update_flags(HALFCARRY_FLAG, (val & 0xF) == 0xF);
     		4
     	}
     };
@@ -188,8 +188,8 @@ macro_rules! dec {
     			emu.mem.wb(*emu.regs.$reg(), val);
 
     			emu.regs.update_flags(ZERO_FLAG, val == 0);
-	    		emu.regs.clear_flags(NEGATIVE_FLAG);
-	    		emu.regs.update_flags(HALFCARRY_FLAG, (val & 0xF) == 0xE);
+	    		emu.regs.set_flags(NEGATIVE_FLAG);
+	    		emu.regs.update_flags(HALFCARRY_FLAG, (val & 0xF) == 0xF);
     			12
     		}
     	}
@@ -1005,7 +1005,6 @@ mod test {
 			assert_eq!(*emu.regs.hl(), 65279);
 			assert_eq!(emu.mem.rb(65280), 18);
 		}
-
 	}
 	#[test]
 	fn test_jr_nz() {

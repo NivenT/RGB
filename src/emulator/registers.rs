@@ -1,5 +1,5 @@
 /** Gameboy's 8-bit registers
-		In order, A F B C D E H L **/
+		In order, F A C B E D L H **/
 #[derive(Debug, Default)]
 pub struct Registers {
 	mem: 	[u8; 8],
@@ -122,7 +122,6 @@ mod test {
 		*reg.a() = 5;
 		assert_eq!(*reg.a(), 5);
 	}
-
 	#[test]
 	fn test_joint_reg() {
 		let mut reg = Registers::new();

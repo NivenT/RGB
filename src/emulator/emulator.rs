@@ -117,7 +117,7 @@ impl Emulator {
 			println!("This is the Japanese version of {}", title);
 		}
 
-		println!("Successfully loaded {}", title);
+		println!("Successfully loaded {}\n", title);
 	}
 	pub fn enable_interrupts(&mut self) {
 		self.interrupts.ime = true;
@@ -130,7 +130,6 @@ impl Emulator {
 		let opcode = self.mem.rb(self.regs.pc); self.regs.pc += 1;
 		let instruction = INSTRUCTIONS[opcode as usize];
 
-		println!("{:?}", self);
 		let operand = if instruction.operand_length == 1 {
 			self.mem.rb(self.regs.pc) as u16
 		} else {
@@ -140,10 +139,15 @@ impl Emulator {
 
 		let cycles: u64;
 		if let Some(func) = instruction.func {
+			if address == 0x254 {
+				state.debug = true;
+				state.paused = true;
+			}
+
 			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}\n",
 								opcode, instruction.name, instruction.operand_length, operand, address, self);
 			if state.debug {println!("{}", debug_info);}
-			self.update_debug_file(debug_info); //store debug info in a file
+			//self.update_debug_file(debug_info); //store debug info in a file
 			/*
 			if address > 0x100 {
 				state.debug = true;

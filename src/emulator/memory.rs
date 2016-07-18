@@ -38,7 +38,6 @@ pub struct Memory {
 }
 */
 
-//Memory struct exists in case memory management needs to become more complicated
 pub struct Memory {
 	pub cart:		[u8; 0x08000], //Largest possible cartridge size is 4096 KiB. Only 32 KiB supported right now
 	
@@ -75,7 +74,7 @@ impl Memory {
 	}
 	//read word
 	pub fn rw(&self, address: u16) -> u16 {
-		self.rb(address) as u16 + ((self.rb(address+1) as u16) << 8)
+		self.rb(address) as u16 | ((self.rb(address+1) as u16) << 8)
 	}
 	//write byte
 	pub fn wb(&mut self, address: u16, val: u8) {
