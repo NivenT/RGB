@@ -11,14 +11,13 @@ impl InterruptManager {
 	}
 	pub fn request_interrupt(&self, mem: &mut Memory, id: u8) {
 		let interrupt_request_register = mem.rb(0xFF0F);
-		mem.wb(0xFF0f, interrupt_request_register | (1 << id));
+		mem.wb(0xFF0F, interrupt_request_register | (1 << id));
 	}
 	pub fn step(&mut self, mem: &mut Memory, regs: &mut Registers) {
 		if self.ime {
 			for i in 0..5 {
 				if (mem.rb(0xFF0F) & (1 << i)) > 0 && (mem.rb(0xFFFF) & (1 << i)) > 0 {
 					//Interrupt both requested and enabled
-					println!("Servicing interrupt");
 					self.ime = false;
 					let request = mem.rb(0xFF0F);
 					mem.wb(0xFF0F, request & !(1 << i));

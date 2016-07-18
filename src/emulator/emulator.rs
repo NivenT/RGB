@@ -130,6 +130,7 @@ impl Emulator {
 		let opcode = self.mem.rb(self.regs.pc); self.regs.pc += 1;
 		let instruction = INSTRUCTIONS[opcode as usize];
 
+		println!("{:?}", self);
 		let operand = if instruction.operand_length == 1 {
 			self.mem.rb(self.regs.pc) as u16
 		} else {

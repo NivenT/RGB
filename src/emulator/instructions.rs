@@ -436,7 +436,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("INC (HL)", 0, Some(&inc!(hl, mem))),
 	new_instruction!("DEC (HL)", 0, Some(&dec!(hl, mem))),
 	new_instruction!("LD (HL),d8", 1, Some(&ld_hlp_d8)),
-	new_instruction!("SCF", 0, None),
+	new_instruction!("SCF", 0, Some(&scf)),
 	//0x38
 	new_instruction!("JR C,r8", 1, Some(&jr_c)),			
 	new_instruction!("ADD HL,SP", 0, None),
@@ -445,7 +445,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("INC A", 0, Some(&inc!(a, 8))),
 	new_instruction!("DEC A", 0, Some(&dec!(a, 8))),
 	new_instruction!("LD A,d8", 1, Some(&ld!(a, 8))),
-	new_instruction!("CCF", 0, None),
+	new_instruction!("CCF", 0, Some(&ccf)),
 	//0x40
 	new_instruction!("LD B,B", 0, Some(&ld!(b, b))),			
 	new_instruction!("LD B,C", 0, Some(&ld!(b, c))),
@@ -747,12 +747,25 @@ fn ld_hlp_d8(emu: &mut Emulator, operand: u16) -> u64 {
 	12
 }
 
+//0x37
+fn scf(emu: &mut Emulator, _: u16) -> u64 {
+	emu.regs.set_flags(CARRY_FLAG);
+	4
+}
+
 //0x38
 fn jr_c(emu: &mut Emulator, operand: u16) -> u64 {
 	if emu.regs.get_flag(CARRY_FLAG) {
 		return jr(emu, operand);
 	}
 	8
+}
+
+//0x3F
+fn ccf(emu: &mut Emulator, _: u16) -> u64 {
+	let old_val = emu.regs.get_flag(CARRY_FLAG);
+	emu.regs.update_flags(CARRY_FLAG, !old_val);
+	4
 }
 
 //0x70

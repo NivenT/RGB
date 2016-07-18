@@ -65,7 +65,7 @@ impl Memory {
 			self.cart[address]
 		} else if 0xA000 <= address && address < 0xC000 {
 			//External RAM banking - Not Implemented
-			self.rom[address]
+			self.cart[address]
 		} else if 0xD000 <= address && address < 0xE000 {
 			//Work RAM banking - Not Implemented
 			self.rom[address]
