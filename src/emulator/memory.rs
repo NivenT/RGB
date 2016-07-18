@@ -62,7 +62,7 @@ impl Memory {
 			self.cart[address]
 		} else if 0x4000 <= address && address < 0x8000 {
 			//ROM banking - Not Implemented
-			self.rom[address]
+			self.cart[address]
 		} else if 0xA000 <= address && address < 0xC000 {
 			//External RAM banking - Not Implemented
 			self.rom[address]
@@ -81,7 +81,7 @@ impl Memory {
 	pub fn wb(&mut self, address: u16, val: u8) {
 		let address = address as usize;
 		if 0xFEA0 <= address && address < 0xFF00 {
-			panic!("Attempted to write data to unaddressable memory address ({:#X})", address);
+			//panic!("Attempted to write data to unaddressable memory address ({:#X})", address);
 		} else if 0xE000 <= address && address < 0xFE00 {
 			self.rom[address - 0x2000] = val;
 		} else if 0xFF44 == address {

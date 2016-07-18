@@ -48,6 +48,7 @@ impl fmt::Debug for Emulator {
 	}
 }
 
+#[allow(dead_code)]
 impl Emulator {
 	pub fn new() -> Emulator {
 		let mut memory = Memory::new();
@@ -141,21 +142,21 @@ impl Emulator {
 			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}\n",
 								opcode, instruction.name, instruction.operand_length, operand, address, self);
 			if state.debug {println!("{}", debug_info);}
-			//self.update_debug_file(debug_info);
-			
-			if address == 0xE0 {
+			self.update_debug_file(debug_info); //store debug info in a file
+			/*
+			if address > 0x100 {
 				state.debug = true;
 			}
-			if opcode == 0x20 && operand == 0xFE {
+			if address > 0x1000 {
 				state.paused = true;
 			}
-			
+			*/
 			cycles = func(self, operand);
 		} else {
 			let debug_info = format!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
 				address, opcode, instruction.name, instruction.operand_length, operand);
-			//let _ = write!(self.debug_file, "{}", debug_info);
 			println!("{}", debug_info);
+			self.update_debug_file(debug_info);
 			panic!("");
 		}
 		
@@ -165,26 +166,12 @@ impl Emulator {
 		
 		if self.regs.pc >= 0x100 {
 			self.mem.finished_with_bios();
-
-			unsafe {
-				println!("AF={:#X}", *self.regs.af());
-				println!("BC={:#X}", *self.regs.bc());
-				println!("DE={:#X}", *self.regs.de());
-				println!("HL={:#X}", *self.regs.hl());
-				println!("SP={:#X}",  self.regs.sp);
-				for x in 0x05..0x4C {
-					println!("[{:#X}] = {:#X}", 0xFF00 + x, self.mem.rb(0xFF00+x));
-				}
-				println!("[0xFFFF] = {:#X}", self.mem.rb(0xFFFF));
-			}
-
-			state.paused = true;
 		}
 		cycles
 	}
 
 	fn update_debug_file(&mut self, msg: String) {
-		const MAX_SIZE: usize = 50 * 1024; //File at most 50KiB
+		const MAX_SIZE: usize = 1024 * 1024; //File at most 1MiB
 		let mut buf = vec![];
 
 		let _ = write!(self.debug_file, "{}\n", msg);
