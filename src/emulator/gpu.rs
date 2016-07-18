@@ -116,10 +116,10 @@ impl Gpu {
 		let back_layout_loc = if (control & (1 << 3)) > 0 {0x9C00} else {0x9800};
 		let wind_layout_loc = if (control & (1 << 6)) > 0 {0x9C00} else {0x9800};
 		let using_window = (control & (1 << 5)) > 0 && window_y <= mem.rb(0xFF44);
-		let background_loc: u16 = if using_window {wind_layout_loc} else {back_layout_loc};
+		let background_loc: u16 = if using_window {wind_layout_loc} else {back_layout_loc}; 
 
 		let line = mem.rb(0xFF44);
-		let y_offset = if using_window {line - window_y} else {scroll_y + line};
+		let y_offset = if using_window {line - window_y} else {scroll_y.wrapping_add(line)};
 		let tile_row = y_offset/8;
 
 		for pixel in 0..160 {
@@ -129,18 +129,18 @@ impl Gpu {
 			}
 
 			let tile_col = x_offset/8;
-			let address = background_loc + tile_row as u16 *32 + tile_col as u16;
+			let address = background_loc + tile_row as u16*32 + tile_col as u16;
 
 			let tile_loc = if tile_data_loc == 0x8000 {
-				tile_data_loc + (mem.rb(address as u16) as u16)*16
+				tile_data_loc + (mem.rb(address) as u16)*16
 			} else {
-				tile_data_loc + ((mem.rb(address as u16) as i16 + 128) as u16 * 16)
+				tile_data_loc + ((mem.rb(address) as i8 as i16 + 128) as u16 * 16)
 			};
 			let tile_line = (y_offset%8) as u16;
 
 			let tile_data = [mem.rb(tile_loc+tile_line*2), mem.rb(tile_loc+tile_line*2+1)];
 			let color_bit = 7 - x_offset%8;
-			//There has to be a way to do with in one line without the if
+			//There has to be a way to do this in one line without the if
 			let color_id = if color_bit == 0 {
 				((tile_data[1] & 1) << 1) | (tile_data[0] & 1)
 			} else {
@@ -153,6 +153,7 @@ impl Gpu {
 		}
 	}
 	fn draw_sprites(&mut self, mem: &mut Memory) {
+		println!("Drawing sprites...");
 		let control = mem.rb(0xFF40);
 		let large_sprites = (control & (1 << 2)) > 0;
 
@@ -162,7 +163,7 @@ impl Gpu {
 			let tile_loc = mem.rb(0xFE00+offset+2);
 			let attributes = mem.rb(0xFE00+offset+3);
 
-			let (x_flip, y_flip) = ((attributes & (1 << 5)) > 0, (attributes & (1 << 6)) > 0);
+			//let (x_flip, y_flip) = ((attributes & (1 << 5)) > 0, (attributes & (1 << 6)) > 0);
 			let line = mem.rb(0xFF44);
 
 			let y_size = if large_sprites {16} else {8};

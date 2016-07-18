@@ -235,7 +235,7 @@ macro_rules! cp {
 	(hl) => {
 		|emu, _| {
 			unsafe {
-				let (a,b) = (*emu.regs.a() as u16, *emu.regs.hl());
+				let (a,b) = (*emu.regs.a(), emu.mem.rb(*emu.regs.hl()));
 		    	emu.regs.update_flags(ZERO_FLAG, a == b);
 				emu.regs.set_flags(NEGATIVE_FLAG);
 				emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) < (b & 0xF));
@@ -286,7 +286,7 @@ macro_rules! sub {
 }
 
 macro_rules! and {
-	($reg:ident) => {
+	(hl) => {
     	|emu, _| {
 	    	unsafe {
 	    		let (a,b) = (*emu.regs.a(), emu.mem.rb(*emu.regs.hl()));
@@ -629,7 +629,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0xE0
 	new_instruction!("LDH (a8),A", 1, Some(&ldh_a8_a)),		
 	new_instruction!("POP HL", 0, Some(&pop!(hl))),
-	new_instruction!("LD (C),A", 0, Some(&ld!(c, mem, a))),
+	new_instruction!("LD (C),A", 1, Some(&ld!(c, mem, a))), //Doesn't use operand
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("PUSH HL", 0, Some(&push!(hl))),
@@ -647,7 +647,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0xF0
 	new_instruction!("LDH A,(a8)", 1, Some(&ldh_a_a8)),		
 	new_instruction!("POP AF", 0, Some(&pop!(af))),
-	new_instruction!("LD A,(C)", 0, Some(&ld!(a, c, mem))),
+	new_instruction!("LD A,(C)", 1, Some(&ld!(a, c, mem))), //Doesn't use operand
 	new_instruction!("DI", 0, Some(&di)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("PUSH AF", 0, Some(&push!(af))),
@@ -1106,5 +1106,17 @@ mod test {
 		let cpl = INSTRUCTIONS[0x2F].func.unwrap();
 		cpl(&mut emu, 0);
 		assert_eq!(*emu.regs.a(), 0xF0);
+	}
+	#[test]
+	fn test_ret() {
+		let mut emu = Emulator::new();
+		emu.regs.pc = 0x1000;
+		emu.regs.sp = 100;
+		let call = INSTRUCTIONS[0xCD].func.unwrap();
+		call(&mut emu, 0x20F0);
+		assert_eq!(emu.regs.pc, 0x20F0);
+		let ret = INSTRUCTIONS[0xC9].func.unwrap();
+		ret(&mut emu, 0);
+		assert_eq!(emu.regs.pc, 0x1000);
 	}
 }

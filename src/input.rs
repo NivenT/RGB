@@ -9,8 +9,7 @@ use sdl2::keyboard::Keycode;
 use programstate::*;
 use emulator::memory::Memory;
 
-fn prompt_for_val<T>(prompt: &str) -> Result<T, T::Err>
-    where T: FromStr {
+fn prompt_for_val<T: FromStr>(prompt: &str) -> Result<T, T::Err> {
     print!("{}", prompt);
 
     let mut input = String::new();
@@ -50,12 +49,13 @@ fn handle_keydown(key: Keycode, state: &mut ProgramState, mem: &Memory) {
 
             for row in 0..num_rows {
                 print!("{:#X}: ", row*16 + start);
-                let min = if (diff - row*16) < 16 {diff - row*16} else {16};
-                for col in 0..min {
+                let end = if (diff - row*16) < 16 {diff - row*16} else {16};
+                for col in 0..end {
                     print!("{:#X} ", mem.rb(row*16 + col + start));
                 }
                 println!("");
             }
+            println!("");
         },
 		Keycode::Escape => {state.done = true},
 		_ => ()

@@ -50,6 +50,43 @@ impl Registers {
 	pub fn hl(&mut self) -> *mut u16 {
 		&mut self.mem[6..] as *mut _ as *mut u16
 	}
+	//Immutable register access
+	pub fn a_immut(&self) -> u8 {
+		self.mem[1]
+	}
+	pub fn f_immut(&self) -> u8 {
+		self.mem[0]
+	}
+	pub fn b_immut(&self) -> u8 {
+		self.mem[3]
+	}
+	pub fn c_immut(&self) -> u8 {
+		self.mem[2]
+	}
+	pub fn d_immut(&self) -> u8 {
+		self.mem[5]
+	}
+	pub fn e_immut(&self) -> u8 {
+		self.mem[4]
+	}
+	pub fn h_immut(&self) -> u8 {
+		self.mem[7]
+	}
+	pub fn l_immut(&self) -> u8 {
+		self.mem[6]
+	}
+	pub fn af_immut(&self) -> *const u16 {
+		&self.mem[..2] as *const _ as *const u16
+	}
+	pub fn bc_immut(&self) -> *const u16 {
+		&self.mem[2..4] as *const _ as *const u16
+	}
+	pub fn de_immut(&self) -> *const u16 {
+		&self.mem[4..6] as *const _ as *const u16
+	}
+	pub fn hl_immut(&self) -> *const u16 {
+		&self.mem[6..] as *const _ as *const u16
+	}
 	//Flag manipulation
 	pub fn set_flags(&mut self, mask: u8) {
 		self.mem[0] |= mask;

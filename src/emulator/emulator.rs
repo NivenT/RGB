@@ -1,10 +1,12 @@
-use std::fs::File;
+use std::fmt;
+use std::fs::{OpenOptions, File};
+use std::io::SeekFrom;
 use std::io::prelude::*;
 
-use emulator::registers::Registers;
 use emulator::gpu::Gpu;
 use emulator::interrupts::InterruptManager;
 use emulator::instructions::*;
+use emulator::registers::*;
 use emulator::rom_info::*;
 use emulator::memory::*;
 
@@ -22,14 +24,45 @@ pub struct Emulator {
 	pub regs:		Registers
 }
 
+impl fmt::Debug for Emulator {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let _ = write!(f, "*****EMULATOR DEBUG INFO*****\n");
+		unsafe {
+			let _ = write!(f, "AF:        {:#X}\n", *self.regs.af_immut());
+			let _ = write!(f, "BC:        {:#X}\n", *self.regs.bc_immut());
+			let _ = write!(f, "DE:        {:#X}\n", *self.regs.de_immut());
+			let _ = write!(f, "HL:        {:#X}\n", *self.regs.hl_immut());
+			let _ = write!(f, "SP:        {:#X}\n",  self.regs.sp);
+			let _ = write!(f, "PC:        {:#X}\n",  self.regs.pc);
+			let _ = write!(f, "\n");
+			let _ = write!(f, "ZERO:      {}\n", self.regs.get_flag(ZERO_FLAG));
+			let _ = write!(f, "NEGATIVE:  {}\n", self.regs.get_flag(NEGATIVE_FLAG));
+			let _ = write!(f, "HALFCARRY: {}\n", self.regs.get_flag(HALFCARRY_FLAG));
+			let _ = write!(f, "CARRY:     {}\n", self.regs.get_flag(CARRY_FLAG));
+			let _ = write!(f, "\n");
+			let _ = write!(f, "IF:        {:#X}\n", self.mem.rb(0xFF0F));
+			let _ = write!(f, "IE:        {:#X}\n", self.mem.rb(0xFFFF));
+			let _ = write!(f, "IME:       {}\n", self.interrupts.ime);
+		}
+		write!(f, "*****************************")
+	}
+}
+
 impl Emulator {
 	pub fn new() -> Emulator {
 		let mut memory = Memory::new();
 		for i in 0..256 {
 			memory.wb(i, BIOS[i as usize]);
 		}
-		Emulator{debug_file: File::create("debug.txt").unwrap(), clock: 0, mem: memory,
-					gpu: Gpu::new(), controls: [0; 8], regs: Registers::new(),
+
+		let debug_file = OpenOptions::new().read(true)
+									  	   .write(true)
+									  	   .truncate(true)
+										   .create(true)
+							   			   .open("debug.txt")
+									       .unwrap();
+		Emulator{debug_file: debug_file, clock: 0, mem: memory, gpu: Gpu::new(), 
+					controls: [0; 8], regs: Registers::new(), 
 					interrupts: InterruptManager::new()}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
@@ -86,10 +119,10 @@ impl Emulator {
 		println!("Successfully loaded {}", title);
 	}
 	pub fn enable_interrupts(&mut self) {
-		self.interrupts.interrupts_enabled = true;
+		self.interrupts.ime = true;
 	}
 	pub fn disable_interrupts(&mut self) {
-		self.interrupts.interrupts_enabled = false;
+		self.interrupts.ime = false;
 	}
 	pub fn step(&mut self, state: &mut ProgramState) -> u64 {
 		let address = self.regs.pc;
@@ -105,18 +138,18 @@ impl Emulator {
 
 		let cycles: u64;
 		if let Some(func) = instruction.func {
-			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n\t{:?}\n",
-								opcode, instruction.name, instruction.operand_length, operand, address, self.regs);
+			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}\n",
+								opcode, instruction.name, instruction.operand_length, operand, address, self);
 			if state.debug {println!("{}", debug_info);}
-			//let _ = write!(self.debug_file, "{}\n", debug_info);
-
-			if opcode == 0xCD && address > 0x30 {
-				//breakpoint
-				println!("{}", debug_info);
+			//self.update_debug_file(debug_info);
+			
+			if address == 0xE0 {
 				state.debug = true;
+			}
+			if opcode == 0x20 && operand == 0xFE {
 				state.paused = true;
 			}
-
+			
 			cycles = func(self, operand);
 		} else {
 			let debug_info = format!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
@@ -129,15 +162,45 @@ impl Emulator {
 		self.clock += cycles;
 		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16);
 		self.interrupts.step(&mut self.mem, &mut self.regs);
-
-		//Dirty bug fix until problem can be more properly investigated
-		if opcode == 0x20 && operand == 0xFE {
-			self.regs.pc += 2;
-		}
-
+		
 		if self.regs.pc >= 0x100 {
 			self.mem.finished_with_bios();
+
+			unsafe {
+				println!("AF={:#X}", *self.regs.af());
+				println!("BC={:#X}", *self.regs.bc());
+				println!("DE={:#X}", *self.regs.de());
+				println!("HL={:#X}", *self.regs.hl());
+				println!("SP={:#X}",  self.regs.sp);
+				for x in 0x05..0x4C {
+					println!("[{:#X}] = {:#X}", 0xFF00 + x, self.mem.rb(0xFF00+x));
+				}
+				println!("[0xFFFF] = {:#X}", self.mem.rb(0xFFFF));
+			}
+
+			state.paused = true;
 		}
 		cycles
+	}
+
+	fn update_debug_file(&mut self, msg: String) {
+		const MAX_SIZE: usize = 50 * 1024; //File at most 50KiB
+		let mut buf = vec![];
+
+		let _ = write!(self.debug_file, "{}\n", msg);
+
+		let _ = self.debug_file.seek(SeekFrom::Start(0));
+		let size = match self.debug_file.read_to_end(&mut buf) {
+			Ok(len)  => len,
+			Err(msg) => panic!("{}", msg)
+		};
+		if size > MAX_SIZE {
+			let _ = self.debug_file.set_len(0);
+			/*
+			let _ = self.debug_file.write(&buf[buf.len()-MAX_SIZE..]);
+			let _ = self.debug_file.set_len(MAX_SIZE as u64);
+			*/
+		}
+		let _ = self.debug_file.seek(SeekFrom::End(0));
 	}
 }
