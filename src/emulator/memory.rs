@@ -64,7 +64,7 @@ impl Memory {
 			self.cart[address]
 		} else if 0xA000 <= address && address < 0xC000 {
 			//External RAM banking - Not Implemented
-			self.mem[address]
+			self.cart[address]
 		} else if 0xD000 <= address && address < 0xE000 {
 			//Work RAM banking - Not Implemented
 			self.mem[address]
@@ -84,8 +84,8 @@ impl Memory {
 		} else if 0xE000 <= address && address < 0xFE00 {
 			self.mem[address - 0x2000] = val;
 		} else if 0xFF44 == address {
-			self.mem[0xFF44] = 0;
-		}
+			panic!("Attempted to overwrite scanline position")
+		} 
 		self.mem[address] = val;
 	}
 	//write word

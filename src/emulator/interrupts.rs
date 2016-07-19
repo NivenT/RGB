@@ -16,7 +16,7 @@ impl InterruptManager {
 	pub fn step(&mut self, mem: &mut Memory, regs: &mut Registers) {
 		if self.ime {
 			for i in 0..5 {
-				if (mem.rb(0xFF0F) & (1 << i)) > 0 && (mem.rb(0xFFFF) & (1 << i)) > 0 {
+				if (mem.rb(0xFFFF) & mem.rb(0xFF0F) & (1 << i)) > 0 {
 					//Interrupt both requested and enabled
 					self.ime = false;
 					let request = mem.rb(0xFF0F);
@@ -25,7 +25,7 @@ impl InterruptManager {
 					mem.ww(regs.sp-2, regs.pc);
 					regs.sp -= 2;
 
-					//println!("Servicing interrupt {}", i);
+					//println!("Servicing interrupt {}...", i);
 					regs.pc = 0x40 + 0x08*i;
 				}
 			}

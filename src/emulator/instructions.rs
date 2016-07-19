@@ -430,7 +430,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD C,d8", 1, Some(&ld!(c, 8))),
 	new_instruction!("RRCA", 0, Some(&rrca)),
 	//0x10
-	new_instruction!("STOP 0", 1, None),			
+	new_instruction!("STOP 0", 0, None),					//Maybe operand of length 1	
 	new_instruction!("LD DE,d16", 2, Some(&ld!(de, 16))),
 	new_instruction!("LD (DE),A", 0, Some(&ld!(de, mem, a, 0))),
 	new_instruction!("INC DE", 0, Some(&inc!(de, 16))),
@@ -674,7 +674,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("RST 20H", 0, Some(&rst!(0x0020))),
 	//0xE8
 	new_instruction!("ADD SP,r8", 1, None),			
-	new_instruction!("JP (HL)", 0, Some(&jp_hl)),
+	new_instruction!("JP HL", 0, Some(&jp_hl)),
 	new_instruction!("LD (a16),A", 2, Some(&ld_a16_a)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
@@ -874,8 +874,8 @@ fn cb(emu: &mut Emulator, operand: u16) -> u64 {
 	if let Some(func) = instruction.func {
 		return func(emu);
 	} else {
-		println!("Unimplemented CB instruction at memory address ({:#X}) [{:#X} {:#X} ({})]", 
-			emu.regs.pc-2, 0xCB, operand, instruction.name);
+		println!("Unimplemented CB instruction at memory address ({:#X}) [0xCB {:#X} ({})]", 
+			emu.regs.pc-2, operand, instruction.name);
 		panic!("");
 	}
 }

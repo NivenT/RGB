@@ -153,13 +153,13 @@ impl Gpu {
 		}
 	}
 	fn draw_sprites(&mut self, mem: &mut Memory) {
-		println!("Drawing sprites...");
 		let control = mem.rb(0xFF40);
 		let large_sprites = (control & (1 << 2)) > 0;
 
 		for sprite in 0..40 {
 			let offset = sprite*4;
-			let (x_pos, y_pos) = (mem.rb(0xFE00+offset)-16, mem.rb(0xFE00+offset+1)-8);
+			let (x_pos, y_pos) = (mem.rb(0xFE00+offset+1).wrapping_sub(8),
+								  mem.rb(0xFE00+offset).wrapping_sub(16));
 			let tile_loc = mem.rb(0xFE00+offset+2);
 			let attributes = mem.rb(0xFE00+offset+3);
 
@@ -168,6 +168,8 @@ impl Gpu {
 
 			let y_size = if large_sprites {16} else {8};
 			if y_pos <= line && line <= y_pos + y_size {
+				panic!("Drawing sprite {}", sprite);
+
 				let line = line - y_pos;
 
 				let address = 0x8000 + tile_loc as u16*16 + line as u16*2;
@@ -184,8 +186,8 @@ impl Gpu {
 					let color = Color::from_palette(color_id, mem.rb(palette_address));
 
 					if color != Color::WHITE {
-						self.screen_data[line as usize][(x_pos+7-color_bit) as usize] =
-							color;
+						let pixel = x_pos+7-color_bit;
+						self.screen_data[line as usize][pixel as usize] = color;
 					}
 				}
 			}
