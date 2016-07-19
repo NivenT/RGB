@@ -7,7 +7,7 @@ pub struct InterruptManager {
 
 impl InterruptManager {
 	pub fn new() -> InterruptManager {
-		InterruptManager{ime: false}
+		InterruptManager{ime: true}
 	}
 	pub fn request_interrupt(&self, mem: &mut Memory, id: u8) {
 		let interrupt_request_register = mem.rb(0xFF0F);
@@ -22,16 +22,11 @@ impl InterruptManager {
 					let request = mem.rb(0xFF0F);
 					mem.wb(0xFF0F, request & !(1 << i));
 
-					mem.ww(regs.sp - 2, regs.pc);
+					mem.ww(regs.sp-2, regs.pc);
 					regs.sp -= 2;
 
-					regs.pc = match i {
-						0 => 0x40,
-						1 => 0x48,
-						2 => 0x50,
-						4 => 0x60,
-						_ => panic!("Unrecognized interrupt: {}", i)
-					}
+					println!("Servicing interrupt {}", i);
+					regs.pc = 0x40 + 0x08*i;
 				}
 			}
 		}

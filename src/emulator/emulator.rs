@@ -135,11 +135,11 @@ impl Emulator {
 		} else {
 			self.mem.rw(self.regs.pc)
 		};
-		self.regs.pc += instruction.operand_length as u16;
+		self.regs.pc += instruction.operand_length;
 
 		let cycles: u64;
 		if let Some(func) = instruction.func {
-			if address == 0x254 {
+			if address == 0x0254 {
 				state.debug = true;
 				state.paused = true;
 			}
@@ -148,14 +148,7 @@ impl Emulator {
 								opcode, instruction.name, instruction.operand_length, operand, address, self);
 			if state.debug {println!("{}", debug_info);}
 			//self.update_debug_file(debug_info); //store debug info in a file
-			/*
-			if address > 0x100 {
-				state.debug = true;
-			}
-			if address > 0x1000 {
-				state.paused = true;
-			}
-			*/
+
 			cycles = func(self, operand);
 		} else {
 			let debug_info = format!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
@@ -169,7 +162,7 @@ impl Emulator {
 		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16);
 		self.interrupts.step(&mut self.mem, &mut self.regs);
 		
-		if self.regs.pc >= 0x100 {
+		if self.regs.pc == 0x100 {
 			self.mem.finished_with_bios();
 		}
 		cycles

@@ -369,7 +369,7 @@ pub type InstructionFunc = Option<&'static Fn(&mut Emulator, u16) -> u64>;
 #[derive(Copy, Clone)]
 pub struct Instruction {
 	pub name:			&'static str,
-	pub operand_length:	u8,
+	pub operand_length:	u16,
 	pub func:			InstructionFunc
 }
 
@@ -693,7 +693,7 @@ fn rla(emu: &mut Emulator, _: u16) -> u64 {
 
 //0x18
 fn jr(emu: &mut Emulator, operand: u16) -> u64 {
-	emu.regs.pc = (emu.regs.pc as i16 + operand as i8 as i16) as u16;
+	emu.regs.pc = (emu.regs.pc as i32 + operand as i8 as i32) as u16;
 	12
 }
 
@@ -942,7 +942,7 @@ fn di(emu: &mut Emulator, _: u16) -> u64 {
 //0xF8
 fn ld_hl_spr8(emu: &mut Emulator, operand: u16) -> u64 {
 	unsafe {
-		let result = (emu.regs.sp as i16 + operand as i8 as i16) as u32;
+		let result = (emu.regs.sp as i32 + operand as i8 as i32) as u32;
 		*emu.regs.hl() = (result & 0xFFFF) as u16;
 		
 		let val = (operand & 0x0F) + (emu.regs.sp & 0x0F);
@@ -1017,7 +1017,7 @@ mod test {
 		assert_eq!(emu.regs.pc, 1080);
 	}
 	#[test]
-	fn test_rcca() {
+	fn test_rrca() {
 		let mut emu = Emulator::new();
 		*emu.regs.a() = 50;
 		let rrca = INSTRUCTIONS[0x0F].func.unwrap();
@@ -1130,5 +1130,17 @@ mod test {
 		let ret = INSTRUCTIONS[0xC9].func.unwrap();
 		ret(&mut emu, 0);
 		assert_eq!(emu.regs.pc, 0x1000);
+	}
+	#[test]
+	fn test_rla() {
+		let mut emu = Emulator::new();
+		*emu.regs.a() = 0x7F;
+		let rla = INSTRUCTIONS[0x17].func.unwrap();
+		rla(&mut emu, 0);
+		assert_eq!(*emu.regs.a(), 0xFE);
+		assert_eq!(*emu.regs.f(), 0);
+		rla(&mut emu, 0);
+		assert_eq!(*emu.regs.a(), 0xFC);
+		assert_eq!(*emu.regs.f(), CARRY_FLAG);
 	}
 }

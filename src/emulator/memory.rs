@@ -41,13 +41,13 @@ pub struct Memory {
 pub struct Memory {
 	pub cart:		[u8; 0x08000], //Largest possible cartridge size is 4096 KiB. Only 32 KiB supported right now
 	
-	rom:			[u8; 0x10000],
+	mem:			[u8; 0x10000],
 	running_bios:	bool
 }
 
 impl Memory {
 	pub fn new() -> Memory {
-	    Memory{rom: [0; 0x10000], cart: [0; 0x08000], running_bios: true}
+	    Memory{mem: [0; 0x10000], cart: [0; 0x08000], running_bios: true}
 	}
 	pub fn finished_with_bios(&mut self) {
 		self.running_bios = false;
@@ -56,7 +56,7 @@ impl Memory {
 	pub fn rb(&self, address: u16) -> u8 {
 		let address = address as usize;
 		if address < 0x0100 {
-			if self.running_bios {self.rom[address]} else {self.cart[address]}
+			if self.running_bios {self.mem[address]} else {self.cart[address]}
 		} else if address < 0x4000 {
 			self.cart[address]
 		} else if 0x4000 <= address && address < 0x8000 {
@@ -64,12 +64,12 @@ impl Memory {
 			self.cart[address]
 		} else if 0xA000 <= address && address < 0xC000 {
 			//External RAM banking - Not Implemented
-			self.cart[address]
+			self.mem[address]
 		} else if 0xD000 <= address && address < 0xE000 {
 			//Work RAM banking - Not Implemented
-			self.rom[address]
+			self.mem[address]
 		} else {
-			self.rom[address]
+			self.mem[address]
 		}
 	}
 	//read word
@@ -82,11 +82,11 @@ impl Memory {
 		if 0xFEA0 <= address && address < 0xFF00 {
 			//panic!("Attempted to write data to unaddressable memory address ({:#X})", address);
 		} else if 0xE000 <= address && address < 0xFE00 {
-			self.rom[address - 0x2000] = val;
+			self.mem[address - 0x2000] = val;
 		} else if 0xFF44 == address {
-			panic!("Attempted to write data to 0xFF44");
+			self.mem[0xFF44] = 0;
 		}
-		self.rom[address] = val;
+		self.mem[address] = val;
 	}
 	//write word
 	pub fn ww(&mut self, address: u16, val: u16) {
@@ -95,6 +95,6 @@ impl Memory {
 	}
 	//write line (sets the current scanline)
 	pub fn wl(&mut self, val: u8) {
-		self.rom[0xFF44] = val;
+		self.mem[0xFF44] = val;
 	}
 }

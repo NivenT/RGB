@@ -84,6 +84,25 @@ macro_rules! rl {
     }
 }
 
+macro_rules! res {
+    ($shift:expr, hl) => {
+    	|emu| {
+    		unsafe {
+    			let val = emu.mem.rb(*emu.regs.hl());
+    			emu.mem.wb(*emu.regs.hl(), val & !(1 << $shift));
+    		}
+    		16
+    	}
+    };
+
+    ($shift:expr, $reg:ident) => {
+    	|emu| {
+    		*emu.regs.$reg() &= !(1 << $shift);
+    		8
+    	}
+    }
+}
+
 pub type CBInstructionFunc = Option<&'static Fn(&mut Emulator) -> u64>;
 
 #[derive(Copy, Clone)]
@@ -238,77 +257,77 @@ pub const CB_INSTRUCTIONS: [CBInstruction; 256] = [
 	new_cb_instruction!("BIT 7,(HL)", Some(&bit!(7, hl))),
 	new_cb_instruction!("BIT 7,A", Some(&bit!(7, a))),
 	//0x80
-	new_cb_instruction!("RES 0,B", None),
-	new_cb_instruction!("RES 0,C", None),
-	new_cb_instruction!("RES 0,D", None),
-	new_cb_instruction!("RES 0,E", None),
-	new_cb_instruction!("RES 0,H", None),
-	new_cb_instruction!("RES 0,L", None),
-	new_cb_instruction!("RES 0,(HL)", None),
-	new_cb_instruction!("RES 0,A", None),
+	new_cb_instruction!("RES 0,B", Some(&res!(0, b))),
+	new_cb_instruction!("RES 0,C", Some(&res!(0, c))),
+	new_cb_instruction!("RES 0,D", Some(&res!(0, d))),
+	new_cb_instruction!("RES 0,E", Some(&res!(0, e))),
+	new_cb_instruction!("RES 0,H", Some(&res!(0, h))),
+	new_cb_instruction!("RES 0,L", Some(&res!(0, l))),
+	new_cb_instruction!("RES 0,(HL)", Some(&res!(0, hl))),
+	new_cb_instruction!("RES 0,A", Some(&res!(0, a))),
 	//0x88
-	new_cb_instruction!("RES 1,B", None),
-	new_cb_instruction!("RES 1,C", None),
-	new_cb_instruction!("RES 1,D", None),
-	new_cb_instruction!("RES 1,E", None),
-	new_cb_instruction!("RES 1,H", None),
-	new_cb_instruction!("RES 1,L", None),
-	new_cb_instruction!("RES 1,(HL)", None),
-	new_cb_instruction!("RES 1,A", None),
+	new_cb_instruction!("RES 1,B", Some(&res!(1, b))),
+	new_cb_instruction!("RES 1,C", Some(&res!(1, c))),
+	new_cb_instruction!("RES 1,D", Some(&res!(1, d))),
+	new_cb_instruction!("RES 1,E", Some(&res!(1, e))),
+	new_cb_instruction!("RES 1,H", Some(&res!(1, h))),
+	new_cb_instruction!("RES 1,L", Some(&res!(1, l))),
+	new_cb_instruction!("RES 1,(HL)", Some(&res!(1, hl))),
+	new_cb_instruction!("RES 1,A", Some(&res!(1, a))),
 	//0x90
-	new_cb_instruction!("RES 2,B", None),
-	new_cb_instruction!("RES 2,C", None),
-	new_cb_instruction!("RES 2,D", None),
-	new_cb_instruction!("RES 2,E", None),
-	new_cb_instruction!("RES 2,H", None),
-	new_cb_instruction!("RES 2,L", None),
-	new_cb_instruction!("RES 2,(HL)", None),
-	new_cb_instruction!("RES 2,A", None),
+	new_cb_instruction!("RES 2,B", Some(&res!(2, b))),
+	new_cb_instruction!("RES 2,C", Some(&res!(2, c))),
+	new_cb_instruction!("RES 2,D", Some(&res!(2, d))),
+	new_cb_instruction!("RES 2,E", Some(&res!(2, e))),
+	new_cb_instruction!("RES 2,H", Some(&res!(2, h))),
+	new_cb_instruction!("RES 2,L", Some(&res!(2, l))),
+	new_cb_instruction!("RES 2,(HL)", Some(&res!(2, hl))),
+	new_cb_instruction!("RES 2,A", Some(&res!(2, a))),
 	//0x98
-	new_cb_instruction!("RES 3,B", None),
-	new_cb_instruction!("RES 3,C", None),
-	new_cb_instruction!("RES 3,D", None),
-	new_cb_instruction!("RES 3,E", None),
-	new_cb_instruction!("RES 3,H", None),
-	new_cb_instruction!("RES 3,L", None),
-	new_cb_instruction!("RES 3,(HL)", None),
-	new_cb_instruction!("RES 3,A", None),
+	new_cb_instruction!("RES 3,B", Some(&res!(3, b))),
+	new_cb_instruction!("RES 3,C", Some(&res!(3, c))),
+	new_cb_instruction!("RES 3,D", Some(&res!(3, d))),
+	new_cb_instruction!("RES 3,E", Some(&res!(3, e))),
+	new_cb_instruction!("RES 3,H", Some(&res!(3, h))),
+	new_cb_instruction!("RES 3,L", Some(&res!(3, l))),
+	new_cb_instruction!("RES 3,(HL)", Some(&res!(3, hl))),
+	new_cb_instruction!("RES 3,A", Some(&res!(3, a))),
 	//0xA0
-	new_cb_instruction!("RES 4,B", None),
-	new_cb_instruction!("RES 4,C", None),
-	new_cb_instruction!("RES 4,D", None),
-	new_cb_instruction!("RES 4,E", None),
-	new_cb_instruction!("RES 4,H", None),
-	new_cb_instruction!("RES 4,L", None),
-	new_cb_instruction!("RES 4,(HL)", None),
-	new_cb_instruction!("RES 4,A", None),
+	new_cb_instruction!("RES 4,B", Some(&res!(4, b))),
+	new_cb_instruction!("RES 4,C", Some(&res!(4, c))),
+	new_cb_instruction!("RES 4,D", Some(&res!(4, d))),
+	new_cb_instruction!("RES 4,E", Some(&res!(4, e))),
+	new_cb_instruction!("RES 4,H", Some(&res!(4, h))),
+	new_cb_instruction!("RES 4,L", Some(&res!(4, l))),
+	new_cb_instruction!("RES 4,(HL)", Some(&res!(4, hl))),
+	new_cb_instruction!("RES 4,A", Some(&res!(4, a))),
 	//0xA8
-	new_cb_instruction!("RES 5,B", None),
-	new_cb_instruction!("RES 5,C", None),
-	new_cb_instruction!("RES 5,D", None),
-	new_cb_instruction!("RES 5,E", None),
-	new_cb_instruction!("RES 5,H", None),
-	new_cb_instruction!("RES 5,L", None),
-	new_cb_instruction!("RES 5,(HL)", None),
-	new_cb_instruction!("RES 5,A", None),
+	new_cb_instruction!("RES 5,B", Some(&res!(5, b))),
+	new_cb_instruction!("RES 5,C", Some(&res!(5, c))),
+	new_cb_instruction!("RES 5,D", Some(&res!(5, d))),
+	new_cb_instruction!("RES 5,E", Some(&res!(5, e))),
+	new_cb_instruction!("RES 5,H", Some(&res!(5, h))),
+	new_cb_instruction!("RES 5,L", Some(&res!(5, l))),
+	new_cb_instruction!("RES 5,(HL)", Some(&res!(5, hl))),
+	new_cb_instruction!("RES 5,A", Some(&res!(5, a))),
 	//0xB0
-	new_cb_instruction!("RES 6,B", None),
-	new_cb_instruction!("RES 6,C", None),
-	new_cb_instruction!("RES 6,D", None),
-	new_cb_instruction!("RES 6,E", None),
-	new_cb_instruction!("RES 6,H", None),
-	new_cb_instruction!("RES 6,L", None),
-	new_cb_instruction!("RES 6,(HL)", None),
-	new_cb_instruction!("RES 6,A", None),
+	new_cb_instruction!("RES 6,B", Some(&res!(6, b))),
+	new_cb_instruction!("RES 6,C", Some(&res!(6, c))),
+	new_cb_instruction!("RES 6,D", Some(&res!(6, d))),
+	new_cb_instruction!("RES 6,E", Some(&res!(6, e))),
+	new_cb_instruction!("RES 6,H", Some(&res!(6, h))),
+	new_cb_instruction!("RES 6,L", Some(&res!(6, l))),
+	new_cb_instruction!("RES 6,(HL)", Some(&res!(6, hl))),
+	new_cb_instruction!("RES 6,A", Some(&res!(6, a))),
 	//0xB8
-	new_cb_instruction!("RES 7,B", None),
-	new_cb_instruction!("RES 7,C", None),
-	new_cb_instruction!("RES 7,D", None),
-	new_cb_instruction!("RES 7,E", None),
-	new_cb_instruction!("RES 7,H", None),
-	new_cb_instruction!("RES 7,L", None),
-	new_cb_instruction!("RES 7,(HL)", None),
-	new_cb_instruction!("RES 7,A", None),
+	new_cb_instruction!("RES 7,B", Some(&res!(7, b))),
+	new_cb_instruction!("RES 7,C", Some(&res!(7, c))),
+	new_cb_instruction!("RES 7,D", Some(&res!(7, d))),
+	new_cb_instruction!("RES 7,E", Some(&res!(7, e))),
+	new_cb_instruction!("RES 7,H", Some(&res!(7, h))),
+	new_cb_instruction!("RES 7,L", Some(&res!(7, l))),
+	new_cb_instruction!("RES 7,(HL)", Some(&res!(7, hl))),
+	new_cb_instruction!("RES 7,A", Some(&res!(7, a))),
 	//0xC0
 	new_cb_instruction!("SET 0,B", Some(&set!(0, b))),
 	new_cb_instruction!("SET 0,C", Some(&set!(0, c))),
@@ -408,15 +427,15 @@ mod test {
 	fn test_set() {
 		let mut emu = Emulator::new();
 		unsafe{
-			*emu.regs.hl() = 2049;
-			assert_eq!(*emu.regs.hl(), 2049);
+			*emu.regs.hl() = 0xFFB5;
+			assert_eq!(*emu.regs.hl(), 0xFFB5);
 		}
-		assert_eq!(*emu.regs.h(), 8);
-		assert_eq!(*emu.regs.l(), 1);
-		let orig = emu.mem.rb(2049);
+		assert_eq!(*emu.regs.h(), 0xFF);
+		assert_eq!(*emu.regs.l(), 0xB5);
+		let orig = emu.mem.rb(0xFFB5);
 		let set_3_hl = CB_INSTRUCTIONS[0xDE].func.unwrap();
 		set_3_hl(&mut emu);
-		assert_eq!(emu.mem.rb(2049), orig | 8);
+		assert_eq!(emu.mem.rb(0xFFB5), orig | 8);
 	}
 	#[test]
 	fn test_rl() {
@@ -431,5 +450,13 @@ mod test {
 		rl_a(&mut emu);
 		assert_eq!(*emu.regs.a(), 0);
 		assert_eq!(*emu.regs.f(), ZERO_FLAG | CARRY_FLAG);
+	}
+	#[test]
+	fn test_res() {
+		let mut emu = Emulator::new();
+		*emu.regs.c() = 0x18;
+		let res_4_c = CB_INSTRUCTIONS[0xA1].func.unwrap();
+		res_4_c(&mut emu);
+		assert_eq!(*emu.regs.c(), 0x08);
 	}
 }
