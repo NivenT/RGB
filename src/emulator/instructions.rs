@@ -286,6 +286,17 @@ macro_rules! sub {
 }
 
 macro_rules! and {
+	() => {
+		|emu, operand| {
+			let (a,b) = (*emu.regs.a(), operand as u8);
+			*emu.regs.a() &= b;
+    		emu.regs.update_flags(ZERO_FLAG, (a & b) == 0);
+    		emu.regs.clear_flags(NEGATIVE_FLAG | CARRY_FLAG);
+    		emu.regs.set_flags(HALFCARRY_FLAG);
+    		8
+		}
+	};
+
 	(hl) => {
     	|emu, _| {
 	    	unsafe {
@@ -633,7 +644,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("PUSH HL", 0, Some(&push!(hl))),
-	new_instruction!("AND d8", 1, None),
+	new_instruction!("AND d8", 1, Some(&and!())),
 	new_instruction!("RST 20H", 0, Some(&rst!(0x0020))),
 	//0xE8
 	new_instruction!("ADD SP,r8", 1, None),			
