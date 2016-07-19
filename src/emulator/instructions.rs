@@ -629,7 +629,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0xE0
 	new_instruction!("LDH (a8),A", 1, Some(&ldh_a8_a)),		
 	new_instruction!("POP HL", 0, Some(&pop!(hl))),
-	new_instruction!("LD (C),A", 1, Some(&ld!(c, mem, a))), //Doesn't use operand
+	new_instruction!("LD (C),A", 0, Some(&ld!(c, mem, a))),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("PUSH HL", 0, Some(&push!(hl))),
@@ -647,7 +647,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0xF0
 	new_instruction!("LDH A,(a8)", 1, Some(&ldh_a_a8)),		
 	new_instruction!("POP AF", 0, Some(&pop!(af))),
-	new_instruction!("LD A,(C)", 1, Some(&ld!(a, c, mem))), //Doesn't use operand
+	new_instruction!("LD A,(C)", 0, Some(&ld!(a, c, mem))),
 	new_instruction!("DI", 0, Some(&di)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("PUSH AF", 0, Some(&push!(af))),
