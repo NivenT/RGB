@@ -25,7 +25,7 @@ impl InterruptManager {
 					mem.ww(regs.sp-2, regs.pc);
 					regs.sp -= 2;
 
-					println!("Servicing interrupt {}", i);
+					//println!("Servicing interrupt {}", i);
 					regs.pc = 0x40 + 0x08*i;
 				}
 			}

@@ -139,11 +139,6 @@ impl Emulator {
 
 		let cycles: u64;
 		if let Some(func) = instruction.func {
-			if address == 0x0254 {
-				state.debug = true;
-				state.paused = true;
-			}
-
 			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}\n",
 								opcode, instruction.name, instruction.operand_length, operand, address, self);
 			if state.debug {println!("{}", debug_info);}
@@ -164,6 +159,19 @@ impl Emulator {
 		
 		if self.regs.pc == 0x100 {
 			self.mem.finished_with_bios();
+			/*
+			unsafe {
+				println!("AF = {:#X}", *self.regs.af());
+				println!("BC = {:#X}", *self.regs.bc());
+				println!("DE = {:#X}", *self.regs.de());
+				println!("HL = {:#X}", *self.regs.hl());
+				println!("SP = {:#X}",  self.regs.sp);
+				for i in vec![0xFF05, 0xFF06, 0xFF07, 0xFF10, 0xFF11, 0xFF12, 0xFF14, 0xFF16, 0xFF17, 0xFF19, 0xFF1A, 0xFF1B, 0xFF1C, 0xFF1E, 0xFF20, 0xFF21, 0xFF22, 0xFF23, 0xFF24, 0xFF25, 0xFF26, 0xFF40, 0xFF42, 0xFF43, 0xFF45, 0xFF47, 0xFF48, 0xFF49, 0xFF4A, 0xFF4B, 0xFFFF] {
+					println!("[{:#X}] = {:#X}", i, self.mem.rb(i));
+				}
+			}
+			panic!("check for correctness");
+			*/
 		}
 		cycles
 	}

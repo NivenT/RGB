@@ -619,7 +619,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("RST 10H", 0, Some(&rst!(0x0010))),
 	//0xD8
 	new_instruction!("RET C", 0, Some(&ret_c)),				
-	new_instruction!("RETI", 0, None),
+	new_instruction!("RETI", 0, Some(&reti)),
 	new_instruction!("JP C,a16", 2, Some(&jp_c)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("CALL C,a16", 2, Some(&call_c_a16)),
@@ -889,6 +889,12 @@ fn ret_c(emu: &mut Emulator, operand: u16) -> u64 {
 		return ret(emu, operand)+4;
 	}
 	8
+}
+
+//0xD9
+fn reti(emu: &mut Emulator, _: u16) -> u64 {
+	emu.enable_interrupts();
+	ret(emu, 0)
 }
 
 //0xDA
