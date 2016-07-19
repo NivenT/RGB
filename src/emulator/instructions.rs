@@ -351,7 +351,7 @@ macro_rules! add {
     	|emu, _| {
     		unsafe {
     			let (a,b) = (*emu.regs.a(), emu.mem.rb(*emu.regs.hl()));
-	    		*emu.regs.a() = (*emu.regs.a()).wrapping_add(b);
+	    		*emu.regs.a() = a.wrapping_add(b);
 	    		emu.regs.update_flags(ZERO_FLAG, a.wrapping_add(b) == 0);
 				emu.regs.clear_flags(NEGATIVE_FLAG);
 				emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) > 0xF);
@@ -364,12 +364,38 @@ macro_rules! add {
     ($reg:ident) => {
     	|emu, _| {
     		let (a,b) = (*emu.regs.a(), *emu.regs.$reg());
-    		*emu.regs.a() = (*emu.regs.a()).wrapping_add(b);
+    		*emu.regs.a() = a.wrapping_add(b);
     		emu.regs.update_flags(ZERO_FLAG, a.wrapping_add(b) == 0);
 			emu.regs.clear_flags(NEGATIVE_FLAG);
 			emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) > 0xF);
 			emu.regs.update_flags(CARRY_FLAG, a as u16 + b as u16 > 255);
     		4
+    	}
+    };
+
+    (hl, sp) => {
+    	|emu, _| {
+    		unsafe {
+    			let (a,b) = (*emu.regs.hl(), emu.regs.sp);
+    			*emu.regs.hl() = a.wrapping_add(b);
+				emu.regs.clear_flags(NEGATIVE_FLAG);
+				emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) > 0xF);
+				emu.regs.update_flags(CARRY_FLAG, a as u32 + b as u32 > 0xFFFF);
+	    		8
+    		}
+    	}
+    };
+
+    (hl, $reg:ident) => {
+    	|emu, _| {
+    		unsafe {
+    			let (a,b) = (*emu.regs.hl(), *emu.regs.$reg());
+    			*emu.regs.hl() = a.wrapping_add(b);
+				emu.regs.clear_flags(NEGATIVE_FLAG);
+				emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) > 0xF);
+				emu.regs.update_flags(CARRY_FLAG, a as u32 + b as u32 > 0xFFFF);
+	    		8
+    		}
     	}
     }
 }
@@ -396,7 +422,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("RLCA", 0, Some(&rlca)),
 	//0x08
 	new_instruction!("LD (a16),SP", 2, Some(&ld_a16p_sp)),
-	new_instruction!("ADD HL,BC", 0, None),
+	new_instruction!("ADD HL,BC", 0, Some(&add!(hl, bc))),
 	new_instruction!("LD A,(BC)", 0, Some(&ld!(a, bc, mem, 0))),
 	new_instruction!("DEC BC", 0, Some(&dec!(bc, 16))),
 	new_instruction!("INC C", 0, Some(&inc!(c, 8))),
@@ -414,7 +440,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("RLA", 0, Some(&rla)),
 	//0x18
 	new_instruction!("JR r8", 1, Some(&jr)),				
-	new_instruction!("ADD HL,DE", 0, None),
+	new_instruction!("ADD HL,DE", 0, Some(&add!(hl, de))),
 	new_instruction!("LD A,(DE)", 0, Some(&ld!(a, de, mem, 0))),
 	new_instruction!("DEC DE", 0, Some(&dec!(de, 16))),
 	new_instruction!("INC E", 0, Some(&inc!(e, 8))),
@@ -432,7 +458,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("DAA", 0, None),
 	//0x28
 	new_instruction!("JR Z,r8", 1, Some(&jr_z)),			
-	new_instruction!("ADD HL,HL", 0, None),
+	new_instruction!("ADD HL,HL", 0, Some(&add!(hl, hl))),
 	new_instruction!("LD A,(HL+)", 0, Some(&ld!(a, hl, mem, 1))),
 	new_instruction!("DEC HL", 0, Some(&dec!(hl, 16))),
 	new_instruction!("INC L", 0, Some(&inc!(l, 8))),
@@ -450,7 +476,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("SCF", 0, Some(&scf)),
 	//0x38
 	new_instruction!("JR C,r8", 1, Some(&jr_c)),			
-	new_instruction!("ADD HL,SP", 0, None),
+	new_instruction!("ADD HL,SP", 0, Some(&add!(hl, sp))),
 	new_instruction!("LD A,(HL-)", 0, Some(&ld!(a, hl, mem, -1))),
 	new_instruction!("DEC SP", 0, Some(&dec!(sp, 16))),
 	new_instruction!("INC A", 0, Some(&inc!(a, 8))),
@@ -1159,5 +1185,17 @@ mod test {
 		rla(&mut emu, 0);
 		assert_eq!(*emu.regs.a(), 0xFC);
 		assert_eq!(*emu.regs.f(), CARRY_FLAG);
+	}
+	#[test]
+	fn test_add_hl_sp() {
+		let mut emu = Emulator::new();
+		unsafe {
+			*emu.regs.hl() = 0x1001;
+			emu.regs.sp = 0xFF00;
+			let add_hl_sp = INSTRUCTIONS[0x39].func.unwrap();
+			add_hl_sp(&mut emu, 0);
+			assert_eq!(*emu.regs.hl(), 0x0F01);
+			assert_eq!(*emu.regs.f(), CARRY_FLAG);
+		}
 	}
 }
