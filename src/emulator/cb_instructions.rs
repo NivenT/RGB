@@ -103,6 +103,32 @@ macro_rules! res {
     }
 }
 
+macro_rules! swap {
+	(hl) => {
+		|emu| {
+			unsafe {
+				let val = emu.mem.rb(*emu.regs.hl());
+				emu.mem.wb(*emu.regs.hl(), ((val & 0x0F) << 4) | ((val & 0xF0) >> 4));
+
+				emu.regs.update_flags(ZERO_FLAG, val == 0);
+    			emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG | CARRY_FLAG);
+    			16
+			}
+		}
+	};
+
+    ($reg:ident) => {
+    	|emu| {
+    		let val = *emu.regs.$reg();
+    		*emu.regs.$reg() = ((val & 0x0F) << 4) | ((val & 0xF0) >> 4);
+
+    		emu.regs.update_flags(ZERO_FLAG, val == 0);
+    		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG | CARRY_FLAG);
+    		8
+    	}
+    }
+}
+
 pub type CBInstructionFunc = Option<&'static Fn(&mut Emulator) -> u64>;
 
 #[derive(Copy, Clone)]
@@ -167,14 +193,14 @@ pub const CB_INSTRUCTIONS: [CBInstruction; 256] = [
 	new_cb_instruction!("SRA (HL)", None),
 	new_cb_instruction!("SRA A", None),
 	//0x30
-	new_cb_instruction!("SWAP B", None),
-	new_cb_instruction!("SWAP C", None),
-	new_cb_instruction!("SWAP D", None),
-	new_cb_instruction!("SWAP E", None),
-	new_cb_instruction!("SWAP H", None),
-	new_cb_instruction!("SWAP L", None),
-	new_cb_instruction!("SWAP (HL)", None),
-	new_cb_instruction!("SWAP A", None),
+	new_cb_instruction!("SWAP B", Some(&swap!(b))),
+	new_cb_instruction!("SWAP C", Some(&swap!(c))),
+	new_cb_instruction!("SWAP D", Some(&swap!(d))),
+	new_cb_instruction!("SWAP E", Some(&swap!(e))),
+	new_cb_instruction!("SWAP H", Some(&swap!(h))),
+	new_cb_instruction!("SWAP L", Some(&swap!(l))),
+	new_cb_instruction!("SWAP (HL)", Some(&swap!(hl))),
+	new_cb_instruction!("SWAP A", Some(&swap!(a))),
 	//0x38
 	new_cb_instruction!("SRL B", None),
 	new_cb_instruction!("SRL C", None),
@@ -458,5 +484,13 @@ mod test {
 		let res_4_c = CB_INSTRUCTIONS[0xA1].func.unwrap();
 		res_4_c(&mut emu);
 		assert_eq!(*emu.regs.c(), 0x08);
+	}
+	#[test]
+	fn test_swap() {
+		let mut emu = Emulator::new();
+		*emu.regs.l() = 0xFA;
+		let swap_l = CB_INSTRUCTIONS[0x35].func.unwrap();
+		swap_l(&mut emu);
+		assert_eq!(*emu.regs.l(), 0xAF);
 	}
 }

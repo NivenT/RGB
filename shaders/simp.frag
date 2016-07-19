@@ -6,7 +6,6 @@ in vec2 fragUV;
 
 out vec4 finalColor;
 
-void main()
-{
+void main() {
     finalColor = texture(sampler, fragUV);
 }
