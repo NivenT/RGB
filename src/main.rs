@@ -35,16 +35,16 @@ fn main() {
 	let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let display = video_subsystem.window("Rust Gameboy", 800, 600)
-                                 .resizable()
-                                 .build_glium()
-                                 .unwrap();
+    let mut display = video_subsystem.window("Rust Gameboy", 800, 600)
+                                     .resizable()
+                                     .build_glium()
+                                     .unwrap();
 
     let mut cycles_this_frame = 0;
     let mut event_pump = sdl_context.event_pump().unwrap();
     let renderer = Renderer::new(&display);
     while !state.done {
-        handle_input(&mut event_pump, &mut state, &emu.mem);
+        handle_input(&mut event_pump, &mut display, &mut state, &emu.mem);
         //SDL Automatically caps FPS to the refresh rate of the screen
         //This makes sure enough cycles are emulated to keep the emulator
         //consistent with a real gameboy
