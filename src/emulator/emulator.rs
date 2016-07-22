@@ -195,7 +195,7 @@ impl Emulator {
 
 		let cycles: u64;
 		if let Some(func) = instruction.func {
-			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}",
+			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}\n",
 								opcode, instruction.name, instruction.operand_length, operand, address, self);
 			if state.debug {println!("{}", debug_info);}
 			//self.update_debug_file(debug_info); //store debug info in a file

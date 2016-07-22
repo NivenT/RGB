@@ -120,11 +120,41 @@ macro_rules! swap {
     ($reg:ident) => {
     	|emu| {
     		let val = *emu.regs.$reg();
-    		*emu.regs.$reg() = ((val & 0x0F) << 4) | ((val & 0xF0) >> 4);
+    		*emu.regs.$reg() = (val << 4) | (val >> 4);
 
     		emu.regs.update_flags(ZERO_FLAG, val == 0);
     		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG | CARRY_FLAG);
     		8
+    	}
+    }
+}
+
+macro_rules! sla {
+    (hl) => {
+    	|emu| {
+    		unsafe {
+	    		let val = emu.mem.rb(*emu.regs.hl());
+		    	let carry = (val & 0x80) > 0;
+		    	emu.mem.wb(*emu.regs.hl(), val << 1);
+
+		    	emu.regs.update_flags(ZERO_FLAG, val == 0);
+		    	emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
+		    	emu.regs.update_flags(CARRY_FLAG, carry);
+		    	16
+	    	}
+    	}
+    };
+
+    ($reg:ident) => {
+    	|emu| {
+    		let val = *emu.regs.$reg();
+	    	let carry = (val & 0x80) > 0;
+	    	*emu.regs.$reg() <<= 1;
+
+	    	emu.regs.update_flags(ZERO_FLAG, val == 0);
+	    	emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
+	    	emu.regs.update_flags(CARRY_FLAG, carry);
+	    	8
     	}
     }
 }
@@ -175,14 +205,14 @@ pub const CB_INSTRUCTIONS: [CBInstruction; 256] = [
 	new_cb_instruction!("RR (HL)", None),
 	new_cb_instruction!("RR A", None),
 	//0x20
-	new_cb_instruction!("SLA B", None),
-	new_cb_instruction!("SLA C", None),
-	new_cb_instruction!("SLA D", None),
-	new_cb_instruction!("SLA E", None),
-	new_cb_instruction!("SLA H", None),
-	new_cb_instruction!("SLA L", None),
-	new_cb_instruction!("SLA (HL)", None),
-	new_cb_instruction!("SLA A", None),
+	new_cb_instruction!("SLA B", Some(&sla!(b))),
+	new_cb_instruction!("SLA C", Some(&sla!(c))),
+	new_cb_instruction!("SLA D", Some(&sla!(d))),
+	new_cb_instruction!("SLA E", Some(&sla!(e))),
+	new_cb_instruction!("SLA H", Some(&sla!(h))),
+	new_cb_instruction!("SLA L", Some(&sla!(l))),
+	new_cb_instruction!("SLA (HL)", Some(&sla!(hl))),
+	new_cb_instruction!("SLA A", Some(&sla!(a))),
 	//0x28
 	new_cb_instruction!("SRA B", None),
 	new_cb_instruction!("SRA C", None),
@@ -492,5 +522,14 @@ mod test {
 		let swap_l = CB_INSTRUCTIONS[0x35].func.unwrap();
 		swap_l(&mut emu);
 		assert_eq!(*emu.regs.l(), 0xAF);
+	}
+	#[test]
+	fn test_sla() {
+		let mut emu = Emulator::new();
+		*emu.regs.e() = 0xC3;
+		let sla_e = CB_INSTRUCTIONS[0x23].func.unwrap();
+		sla_e(&mut emu);
+		assert_eq!(*emu.regs.e(), 0x86);
+		assert_eq!(*emu.regs.f(), CARRY_FLAG);
 	}
 }

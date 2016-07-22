@@ -1092,16 +1092,16 @@ mod test {
 	#[test]
 	fn test_ld_hld_a() {
 		let mut emu = Emulator::new();
-		*emu.regs.l() = 0;
+		*emu.regs.l() = 1;
 		*emu.regs.h() = 255;
 		*emu.regs.a() = 18;
 		unsafe{
-			assert_eq!(*emu.regs.hl(), 65280);
+			assert_eq!(*emu.regs.hl(), 65281);
 			assert_eq!(emu.mem.rb(5), BIOS[5]);
 			let ld_hld_a = INSTRUCTIONS[0x32].func.unwrap();
 			ld_hld_a(&mut emu, 0);
-			assert_eq!(*emu.regs.hl(), 65279);
-			assert_eq!(emu.mem.rb(65280), 18);
+			assert_eq!(*emu.regs.hl(), 65280);
+			assert_eq!(emu.mem.rb(65281), 18);
 		}
 	}
 	#[test]
