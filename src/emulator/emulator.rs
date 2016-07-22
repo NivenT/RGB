@@ -90,14 +90,14 @@ impl Emulator {
 		let header = &self.mem.cart[..0x150];
 		let title = String::from_utf8_lossy(&header[0x134..0x144]);
 		println!("The title of the game is {}", title);
-
+		/*
 		let sgb_flag = header[0x146];
 		if sgb_flag > 0 {
 			println!("{} supports Super GameBoy functions", title);
 		} else {
 			println!("{} does not support Super GameBoy functions", title);
 		}
-
+		*/
 		let cartridge_type = header[0x147];
 		let cartridge_type = match CartridgeType::from_code(cartridge_type) {
 			Some(t) => t,

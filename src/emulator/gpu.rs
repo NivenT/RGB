@@ -170,7 +170,7 @@ impl Gpu {
 			let line = mem.rb(0xFF44);
 
 			let y_size = if large_sprites {16} else {8};
-			if y_pos <= line && line <= y_pos + y_size {
+			if y_pos <= line && line < y_pos + y_size {
 				let line = line - y_pos;
 
 				let address = 0x8000 + tile_loc as u16*16 + line as u16*2;
@@ -188,7 +188,7 @@ impl Gpu {
 
 					if color != Color::WHITE {
 						let pixel = x_pos+7-color_bit;
-						self.screen_data[line as usize][pixel as usize] = color;
+						self.screen_data[(line+y_pos) as usize][pixel as usize] = color;
 					}
 				}
 			}

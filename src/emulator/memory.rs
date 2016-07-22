@@ -96,6 +96,7 @@ impl Memory {
 				let copy_val = self.rb(start + i);
 				self.wb(0xFE00 + i, copy_val);
 			}
+			return;
 		}
 		self.mem[address] = val;
 	}
