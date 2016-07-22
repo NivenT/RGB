@@ -159,6 +159,36 @@ macro_rules! sla {
     }
 }
 
+macro_rules! srl {
+    (hl) => {
+    	|emu| {
+    		unsafe {
+	    		let val = emu.mem.rb(*emu.regs.hl());
+		    	let carry = (val & 0x01) > 0;
+		    	emu.mem.wb(*emu.regs.hl(), val >> 1);
+
+		    	emu.regs.update_flags(ZERO_FLAG, val == 0);
+		    	emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
+		    	emu.regs.update_flags(CARRY_FLAG, carry);
+		    	16
+	    	}
+    	}
+    };
+
+    ($reg:ident) => {
+    	|emu| {
+    		let val = *emu.regs.$reg();
+	    	let carry = (val & 0x01) > 0;
+	    	*emu.regs.$reg() >>= 1;
+
+	    	emu.regs.update_flags(ZERO_FLAG, val == 0);
+	    	emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
+	    	emu.regs.update_flags(CARRY_FLAG, carry);
+	    	8
+    	}
+    }
+}
+
 pub type CBInstructionFunc = Option<&'static Fn(&mut Emulator) -> u64>;
 
 #[derive(Copy, Clone)]
@@ -232,14 +262,14 @@ pub const CB_INSTRUCTIONS: [CBInstruction; 256] = [
 	new_cb_instruction!("SWAP (HL)", Some(&swap!(hl))),
 	new_cb_instruction!("SWAP A", Some(&swap!(a))),
 	//0x38
-	new_cb_instruction!("SRL B", None),
-	new_cb_instruction!("SRL C", None),
-	new_cb_instruction!("SRL D", None),
-	new_cb_instruction!("SRL E", None),
-	new_cb_instruction!("SRL H", None),
-	new_cb_instruction!("SRL L", None),
-	new_cb_instruction!("SRL (HL)", None),
-	new_cb_instruction!("SRL A", None),
+	new_cb_instruction!("SRL B", Some(&srl!(b))),
+	new_cb_instruction!("SRL C", Some(&srl!(c))),
+	new_cb_instruction!("SRL D", Some(&srl!(d))),
+	new_cb_instruction!("SRL E", Some(&srl!(e))),
+	new_cb_instruction!("SRL H", Some(&srl!(h))),
+	new_cb_instruction!("SRL L", Some(&srl!(l))),
+	new_cb_instruction!("SRL (HL)", Some(&srl!(hl))),
+	new_cb_instruction!("SRL A", Some(&srl!(a))),
 	//0x40
 	new_cb_instruction!("BIT 0,B", Some(&bit!(0, b))),
 	new_cb_instruction!("BIT 0,C", Some(&bit!(0, c))),
@@ -531,5 +561,14 @@ mod test {
 		sla_e(&mut emu);
 		assert_eq!(*emu.regs.e(), 0x86);
 		assert_eq!(*emu.regs.f(), CARRY_FLAG);
+	}
+	#[test]
+	fn test_srl() {
+		let mut emu = Emulator::new();
+		*emu.regs.a() = 0x10;
+		let srl_a = CB_INSTRUCTIONS[0x3F].func.unwrap();
+		srl_a(&mut emu);
+		assert_eq!(*emu.regs.a(), 0x08);
+		assert_eq!(*emu.regs.f(), 0);
 	}
 }
