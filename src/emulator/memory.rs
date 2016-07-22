@@ -90,6 +90,12 @@ impl Memory {
 		} else if 0xFF00 == address {
 			self.mem[address] = (val & 0x30) | (self.mem[address] & 0xF);
 			return;
+		} else if 0xFF46 == address {
+			let start = val as u16*0x100;
+			for i in 0..0xA0 {
+				let copy_val = self.rb(start + i);
+				self.wb(0xFE00 + i, copy_val);
+			}
 		}
 		self.mem[address] = val;
 	}

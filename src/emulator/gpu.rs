@@ -171,8 +171,6 @@ impl Gpu {
 
 			let y_size = if large_sprites {16} else {8};
 			if y_pos <= line && line <= y_pos + y_size {
-				panic!("Drawing sprite {}", sprite);
-
 				let line = line - y_pos;
 
 				let address = 0x8000 + tile_loc as u16*16 + line as u16*2;
