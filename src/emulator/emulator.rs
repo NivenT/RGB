@@ -139,7 +139,7 @@ impl Emulator {
 		let mut key_state = self.mem.rb(0xFF00);
 		for i in 0..8 {
 			if self.controls[i] == key {
-				let col = if i < 4 {1 << 5} else {1 << 4};
+				let col = if i < 4 {1 << 4} else {1 << 5};
 				let row = 1 << i%4;
 				if key_state & col > 0 {
 					if pressed {

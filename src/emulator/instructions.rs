@@ -276,7 +276,7 @@ macro_rules! sub {
             emu.regs.set_flags(NEGATIVE_FLAG);
             emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) < (b & 0xF));
             emu.regs.update_flags(CARRY_FLAG, a < b);
-            4
+            8
         }
     };
 
