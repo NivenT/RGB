@@ -357,6 +357,18 @@ macro_rules! or {
 }
 
 macro_rules! add {
+    () => {
+        |emu, operand| {
+            let (a,b) = (*emu.regs.a(), operand as u8);
+            *emu.regs.a() = a.wrapping_add(b);
+            emu.regs.update_flags(ZERO_FLAG, a.wrapping_add(b) == 0);
+            emu.regs.clear_flags(NEGATIVE_FLAG);
+            emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) > 0xF);
+            emu.regs.update_flags(CARRY_FLAG, a as u16 + b as u16 > 255);
+            8
+        }
+    };
+
 	(hl) => {
     	|emu, _| {
     		unsafe {
@@ -683,7 +695,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("JP a16", 2, Some(&jp)),
 	new_instruction!("CALL NZ,a16", 2, Some(&call_nz_a16)),
 	new_instruction!("PUSH BC", 0, Some(&push!(bc))),
-	new_instruction!("ADD A,d8", 1, None),
+	new_instruction!("ADD A,d8", 1, Some(&add!())),
 	new_instruction!("RST 00H", 0, Some(&rst!(0x0000))),
 	//0xC8
 	new_instruction!("RET Z", 0, Some(&ret_z)),				
