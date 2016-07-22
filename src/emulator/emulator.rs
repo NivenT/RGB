@@ -17,10 +17,10 @@ pub struct Emulator {
 	debug_file:		File,
 	clock:			u64,
 	interrupts:		InterruptManager,
+	controls: 		[u8; 8],
 
 	pub mem:		Memory,
 	pub gpu:		Gpu,
-	pub controls: 	[u8; 8],
 	pub regs:		Registers,
 	pub halted:		bool
 }
@@ -29,21 +29,27 @@ impl fmt::Debug for Emulator {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		let _ = write!(f, "*****EMULATOR DEBUG INFO*****\n");
 		unsafe {
-			let _ = write!(f, "AF:        {:#X}\n", *self.regs.af_immut());
-			let _ = write!(f, "BC:        {:#X}\n", *self.regs.bc_immut());
-			let _ = write!(f, "DE:        {:#X}\n", *self.regs.de_immut());
-			let _ = write!(f, "HL:        {:#X}\n", *self.regs.hl_immut());
-			let _ = write!(f, "SP:        {:#X}\n",  self.regs.sp);
-			let _ = write!(f, "PC:        {:#X}\n",  self.regs.pc);
+			let _ = write!(f, "AF:           {:#X}\n", *self.regs.af_immut());
+			let _ = write!(f, "BC:           {:#X}\n", *self.regs.bc_immut());
+			let _ = write!(f, "DE:           {:#X}\n", *self.regs.de_immut());
+			let _ = write!(f, "HL:           {:#X}\n", *self.regs.hl_immut());
+			let _ = write!(f, "SP:           {:#X}\n",  self.regs.sp);
+			let _ = write!(f, "PC:           {:#X}\n",  self.regs.pc);
 			let _ = write!(f, "\n");
-			let _ = write!(f, "ZERO:      {}\n", self.regs.get_flag(ZERO_FLAG));
-			let _ = write!(f, "NEGATIVE:  {}\n", self.regs.get_flag(NEGATIVE_FLAG));
-			let _ = write!(f, "HALFCARRY: {}\n", self.regs.get_flag(HALFCARRY_FLAG));
-			let _ = write!(f, "CARRY:     {}\n", self.regs.get_flag(CARRY_FLAG));
+			let _ = write!(f, "ZERO:         {}\n", self.regs.get_flag(ZERO_FLAG));
+			let _ = write!(f, "NEGATIVE:     {}\n", self.regs.get_flag(NEGATIVE_FLAG));
+			let _ = write!(f, "HALFCARRY:    {}\n", self.regs.get_flag(HALFCARRY_FLAG));
+			let _ = write!(f, "CARRY:        {}\n", self.regs.get_flag(CARRY_FLAG));
 			let _ = write!(f, "\n");
-			let _ = write!(f, "IF:        {:#X}\n", self.mem.rb(0xFF0F));
-			let _ = write!(f, "IE:        {:#X}\n", self.mem.rb(0xFFFF));
-			let _ = write!(f, "IME:       {}\n", self.interrupts.ime);
+			let _ = write!(f, "IF:           {:#X}\n", self.mem.rb(0xFF0F));
+			let _ = write!(f, "IE:           {:#X}\n", self.mem.rb(0xFFFF));
+			let _ = write!(f, "IME:          {}\n", self.interrupts.ime);
+			let _ = write!(f, "\n");
+			let _ = write!(f, "SL_COUNT:     {}\n", self.gpu.get_scanline_count());
+			let _ = write!(f, "LCD STATUS:   {:#b}\n", self.mem.rb(0xFF41));
+			let _ = write!(f, "LCD CONTROL:  {:#b}\n", self.mem.rb(0xFF40));
+			let _ = write!(f, "\n");
+			let _ = write!(f, "JOYPAD STATE: {:#b}\n", self.mem.rb(0xFF00));
 		}
 		write!(f, "*****************************")
 	}
@@ -72,13 +78,14 @@ impl Emulator {
 			self.controls[i] = controls[i];
 		}
 	}
+	#[allow(unused_variables)]
 	pub fn load_game(&mut self, path: String) {
 		println!("Loading game from \"{}\"...", path);
 		let mut game_file = File::open(path).unwrap();
-
+		
 		let size = game_file.read(&mut self.mem.cart).unwrap();
-		println!("Game has a size of {} bytes ({} KiB)", size, size/1024);
-
+		//println!("Game has a size of {} bytes ({} KiB)", size, size/1024);
+		
 		let header = &self.mem.cart[..0x150];
 		let title = String::from_utf8_lossy(&header[0x134..0x144]);
 		println!("The title of the game is {}", title);
@@ -111,13 +118,14 @@ impl Emulator {
 		};
 		println!("{} has {} bytes ({} KiB) of external RAM", title, ram_size, ram_size/1024);
 
+		/*
 		let destination_code = header[0x14A];
 		if destination_code > 0 {
 			println!("This is the non-Japanese version of {}", title);
 		} else {
 			println!("This is the Japanese version of {}", title);
 		}
-
+		*/
 		println!("Successfully loaded {}\n", title);
 	}
 	pub fn enable_interrupts(&mut self) {
@@ -126,13 +134,33 @@ impl Emulator {
 	pub fn disable_interrupts(&mut self) {
 		self.interrupts.ime = false;
 	}
+	pub fn update_keys(&mut self, key: u8, pressed: bool) {
+		let mut key_state = self.mem.rb(0xFF00);
+		for i in 0..8 {
+			if self.controls[i] == key {
+				let col = if i < 4 {1 << 5} else {1 << 4};
+				let row = 1 << i%4;
+				if key_state & col > 0 {
+					if pressed {
+						if key_state & row > 0 {
+							self.interrupts.request_interrupt(&mut self.mem, 4);
+						}
+						key_state &= !row;
+					} else {
+						key_state |= row;
+					}
+				}
+			}
+		}
+		self.mem.wb(0xFF00, key_state);
+	}
 	pub fn step(&mut self, state: &mut ProgramState) -> u64 {
 		let cycles = if !self.halted {self.emulate_cycle(state)} else {4};
 		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16);
 		if self.interrupts.step(&mut self.mem, &mut self.regs) {
 			self.halted = false;
 		}
-		
+
 		if self.regs.pc == 0x100 {
 			self.mem.finished_with_bios();
 			/*

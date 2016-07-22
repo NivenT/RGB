@@ -9,7 +9,7 @@ use sdl2::keyboard::Keycode;
 use glium_sdl2::SDL2Facade;
 
 use programstate::*;
-use emulator::memory::Memory;
+use emulator::emulator::Emulator;
 
 fn prompt_for_val<T: FromStr>(prompt: &str) -> Result<T, T::Err> {
     print!("{}", prompt);
@@ -21,7 +21,7 @@ fn prompt_for_val<T: FromStr>(prompt: &str) -> Result<T, T::Err> {
     input.lines().last().unwrap().trim().parse()
 }
 
-pub fn handle_input(events: &mut EventPump, disp: &mut SDL2Facade, state: &mut ProgramState, mem: &Memory) {
+pub fn handle_input(events: &mut EventPump, disp: &mut SDL2Facade, state: &mut ProgramState, emu: &mut Emulator) {
 	for event in events.poll_iter() {
         match event {
             Event::Quit{..} => {
@@ -29,15 +29,21 @@ pub fn handle_input(events: &mut EventPump, disp: &mut SDL2Facade, state: &mut P
             },
             Event::KeyDown{keycode: key, ..} => {
             	if let Some(key) = key {
-                    handle_keydown(key, disp, state, mem);
+                    handle_keydown(key, disp, state, emu);
+                    emu.update_keys(key as u8, true);
             	}
-            }
+            },
+            Event::KeyUp{keycode: key, ..} => {
+                if let Some(key) = key {
+                    emu.update_keys(key as u8, false);
+                }
+            },
             _ => ()
         }
     }
 }
 
-fn handle_keydown(key: Keycode, disp: &mut SDL2Facade, state: &mut ProgramState, mem: &Memory) {
+fn handle_keydown(key: Keycode, disp: &mut SDL2Facade, state: &mut ProgramState, emu: &Emulator) {
 	match key {
 		Keycode::D => {state.debug = !state.debug},
         Keycode::F => {state.adv_frame = true},
@@ -60,7 +66,7 @@ fn handle_keydown(key: Keycode, disp: &mut SDL2Facade, state: &mut ProgramState,
                 print!("{:#X}: ", row*16 + start);
                 let end = if (diff - row*16) < 16 {diff - row*16} else {16};
                 for col in 0..end {
-                    print!("{:#X} ", mem.rb(row*16 + col + start));
+                    print!("{:#X} ", emu.mem.rb(row*16 + col + start));
                 }
                 println!("");
             }

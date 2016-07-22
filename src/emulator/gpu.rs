@@ -40,6 +40,9 @@ impl Gpu {
 	pub fn get_screen(&self) -> &[[Color; 160]; 144] {
 		&self.screen_data
 	}
+	pub fn get_scanline_count(&self) -> i16 {
+		self.sl_count
+	}
 	pub fn step(&mut self, mem: &mut Memory, im: &InterruptManager, cycles: i16) {
 		self.set_lcd_status(mem, im);
 		if self.is_lcd_enabled(mem) {
@@ -168,7 +171,7 @@ impl Gpu {
 
 			let y_size = if large_sprites {16} else {8};
 			if y_pos <= line && line <= y_pos + y_size {
-				println!("Drawing sprite {}", sprite);
+				panic!("Drawing sprite {}", sprite);
 
 				let line = line - y_pos;
 

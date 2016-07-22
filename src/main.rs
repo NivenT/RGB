@@ -23,7 +23,7 @@ fn main() {
 
 	let config = Ini::from_file("settings.ini").unwrap();
 	let game_path: String = config.get("game", "game").unwrap();
-	let buttons = ["up", "down", "left", "right", "a", "b", "start", "select"];
+	let buttons = ["right", "left", "up", "down", "a", "b", "select", "start"];
 	let controls: Vec<u8> = buttons.iter()
 								   .map(|a| config.get("controls", a).unwrap())
 								   .collect();
@@ -44,7 +44,7 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
     let renderer = Renderer::new(&display);
     while !state.done {
-        handle_input(&mut event_pump, &mut display, &mut state, &emu.mem);
+        handle_input(&mut event_pump, &mut display, &mut state, &mut emu);
         //SDL Automatically caps FPS to the refresh rate of the screen
         //This makes sure enough cycles are emulated to keep the emulator
         //consistent with a real gameboy

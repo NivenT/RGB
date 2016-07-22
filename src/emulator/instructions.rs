@@ -361,6 +361,17 @@ macro_rules! add {
     	}
     };
 
+    (sp) => {
+        |emu, operand| {
+            let (a,b) = (emu.regs.sp as i32, operand as i8 as i32);
+            emu.regs.sp = ((a+b) & 0xFFFF) as u16;
+            emu.regs.clear_flags(ZERO_FLAG | NEGATIVE_FLAG);
+            emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) > 0xF);
+            emu.regs.update_flags(CARRY_FLAG, a + b > 0xFFFF);
+            16
+        }
+    };
+
     ($reg:ident) => {
     	|emu, _| {
     		let (a,b) = (*emu.regs.a(), *emu.regs.$reg());
@@ -701,7 +712,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("AND d8", 1, Some(&and!())),
 	new_instruction!("RST 20H", 0, Some(&rst!(0x0020))),
 	//0xE8
-	new_instruction!("ADD SP,r8", 1, None),			
+	new_instruction!("ADD SP,r8", 1, Some(&add!(sp))),			
 	new_instruction!("JP HL", 0, Some(&jp_hl)),
 	new_instruction!("LD (a16),A", 2, Some(&ld_a16_a)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
