@@ -168,7 +168,7 @@ impl Gpu {
 
 			let y_size = if large_sprites {16} else {8};
 			if y_pos <= line && line <= y_pos + y_size {
-				panic!("Drawing sprite {}", sprite);
+				println!("Drawing sprite {}", sprite);
 
 				let line = line - y_pos;
 

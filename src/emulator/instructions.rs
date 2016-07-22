@@ -400,6 +400,34 @@ macro_rules! add {
     }
 }
 
+macro_rules! adc {
+    (hl) => {
+    	|emu, _| {
+    		unsafe {
+    			let (a,b,c) = (*emu.regs.a(), emu.mem.rb(*emu.regs.hl()), emu.regs.get_flag(CARRY_FLAG) as u8);
+	    		*emu.regs.a() = a.wrapping_add(b).wrapping_add(c);
+	    		emu.regs.update_flags(ZERO_FLAG, a.wrapping_add(b).wrapping_add(c) == 0);
+				emu.regs.clear_flags(NEGATIVE_FLAG);
+				emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) + c > 0xF);
+				emu.regs.update_flags(CARRY_FLAG, a as u16 + b as u16 + c as u16 > 255);
+	    		4
+    		}
+    	}
+    };
+
+    ($reg:ident) => {
+   		|emu, _| {
+   			let (a,b,c) = (*emu.regs.a(), *emu.regs.$reg(), emu.regs.get_flag(CARRY_FLAG) as u8);
+    		*emu.regs.a() = a.wrapping_add(b).wrapping_add(c);
+    		emu.regs.update_flags(ZERO_FLAG, a.wrapping_add(b).wrapping_add(c) == 0);
+			emu.regs.clear_flags(NEGATIVE_FLAG);
+			emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) + c > 0xF);
+			emu.regs.update_flags(CARRY_FLAG, a as u16 + b as u16 + c as u16 > 255);
+    		4
+   		}	
+    }
+}
+
 //Returns the number of cycles the instruction takes
 pub type InstructionFunc = Option<&'static Fn(&mut Emulator, u16) -> u64>;
 
@@ -565,14 +593,14 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("ADD A,(HL)", 0, Some(&add!(hl))),
 	new_instruction!("ADD A,A", 0, Some(&add!(a))),
 	//0x88
-	new_instruction!("ADC A,B", 0, None),			
-	new_instruction!("ADC A,C", 0, None),
-	new_instruction!("ADC A,D", 0, None),
-	new_instruction!("ADC A,E", 0, None),
-	new_instruction!("ADC A,H", 0, None),
-	new_instruction!("ADC A,L", 0, None),
-	new_instruction!("ADC A,(HL)", 0, None),
-	new_instruction!("ADC A,A", 0, None),
+	new_instruction!("ADC A,B", 0, Some(&adc!(b))),			
+	new_instruction!("ADC A,C", 0, Some(&adc!(c))),
+	new_instruction!("ADC A,D", 0, Some(&adc!(d))),
+	new_instruction!("ADC A,E", 0, Some(&adc!(e))),
+	new_instruction!("ADC A,H", 0, Some(&adc!(h))),
+	new_instruction!("ADC A,L", 0, Some(&adc!(l))),
+	new_instruction!("ADC A,(HL)", 0, Some(&adc!(hl))),
+	new_instruction!("ADC A,A", 0, Some(&adc!(a))),
 	//0x90
 	new_instruction!("SUB B", 0, Some(&sub!(b))),				
 	new_instruction!("SUB C", 0, Some(&sub!(c))),
@@ -698,7 +726,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("CP d8", 1, Some(&cp!())),
-	new_instruction!("RST 38H", 0, Some(&rst!(0x0038))),
+	new_instruction!("RST 38H", 0, Some(&rst!(0x0038)))
 ];
 
 //0x08
