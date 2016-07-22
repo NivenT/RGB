@@ -538,7 +538,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("INC H", 0, Some(&inc!(h, 8))),
 	new_instruction!("DEC H", 0, Some(&dec!(h, 8))),
 	new_instruction!("LD H,d8", 1, Some(&ld!(h, 8))),
-	new_instruction!("DAA", 0, None),
+	new_instruction!("DAA", 0, Some(&daa)),
 	//0x28
 	new_instruction!("JR Z,r8", 1, Some(&jr_z)),			
 	new_instruction!("ADD HL,HL", 0, Some(&add!(hl, hl))),
@@ -834,6 +834,24 @@ fn jr_nz(emu: &mut Emulator, operand: u16) -> u64 {
 		return jr(emu, operand);
 	}
 	8
+}
+
+//0x27
+//Not 100% sure this is implemented correctly
+fn daa(emu: &mut Emulator, _: u16) -> u64 {
+    let mut val = *emu.regs.a();
+    if (val & 0x0F) > 0x09 || emu.regs.get_flag(HALFCARRY_FLAG) {
+        val += 0x06;
+    }
+    if (val & 0xF0) > 0x90 || emu.regs.get_flag(CARRY_FLAG) {
+        val += 0x60;
+        emu.regs.set_flags(CARRY_FLAG);
+    }
+    *emu.regs.a() = val;
+
+    emu.regs.update_flags(ZERO_FLAG, val == 0);
+    emu.regs.clear_flags(HALFCARRY_FLAG);
+    4
 }
 
 //0x28
@@ -1287,4 +1305,18 @@ mod test {
 			assert_eq!(*emu.regs.f(), CARRY_FLAG);
 		}
 	}
+    #[test]
+    fn test_daa() {
+        let mut emu = Emulator::new();
+        *emu.regs.a() = 0x15;
+        *emu.regs.b() = 0x27;
+        let add_a_b = INSTRUCTIONS[0x80].func.unwrap();
+        let daa = INSTRUCTIONS[0x27].func.unwrap();
+        add_a_b(&mut emu, 0);
+        assert_eq!(*emu.regs.a(), 0x3C);
+        assert_eq!(*emu.regs.f(), 0);
+        daa(&mut emu, 0);
+        assert_eq!(*emu.regs.a(), 0x42);
+        assert_eq!(*emu.regs.f(), 0);
+    }
 }
