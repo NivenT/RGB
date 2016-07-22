@@ -87,6 +87,9 @@ impl Memory {
 			self.mem[address - 0x2000] = val;
 		} else if 0xFF44 == address {
 			panic!("Attempted to overwrite scanline position")
+		} else if 0xFF00 == address {
+			self.mem[address] = (val & 0x30) | (self.mem[address] & 0xF);
+			return;
 		}
 		self.mem[address] = val;
 	}
@@ -98,5 +101,9 @@ impl Memory {
 	//write line (sets the current scanline)
 	pub fn wl(&mut self, val: u8) {
 		self.mem[0xFF44] = val;
+	}
+	//write keys
+	pub fn wk(&mut self, val: u8) {
+		self.mem[0xFF00] = (val & 0xF) | (self.mem[0xFF00] & 0x30);
 	}
 }

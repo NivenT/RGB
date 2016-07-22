@@ -62,6 +62,7 @@ impl Emulator {
 		for i in 0..256 {
 			memory.wb(i, BIOS[i as usize]);
 		}
+		memory.wk(0xF);
 
 		let debug_file = OpenOptions::new().read(true)
 									  	   .write(true)
@@ -152,7 +153,7 @@ impl Emulator {
 				}
 			}
 		}
-		self.mem.wb(0xFF00, key_state);
+		self.mem.wk(key_state);
 	}
 	pub fn step(&mut self, state: &mut ProgramState) -> u64 {
 		let cycles = if !self.halted {self.emulate_cycle(state)} else {4};
