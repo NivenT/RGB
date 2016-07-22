@@ -10,6 +10,16 @@ macro_rules! new_instruction {
 }
 
 macro_rules! xor {
+    () => {
+        |emu, operand| {
+            let (a,b) = (*emu.regs.a(), operand as u8);
+            *emu.regs.a() ^= b;
+            emu.regs.update_flags(ZERO_FLAG, (a ^ b) == 0);
+            emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG | CARRY_FLAG);
+            8
+        }
+    };
+
 	(hl) => {
     	|emu, _| {
 	    	unsafe {
@@ -718,7 +728,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("NO_INSTRUCTION", 0, None),
-	new_instruction!("XOR d8", 1, None),
+	new_instruction!("XOR d8", 1, Some(&xor!())),
 	new_instruction!("RST 28H", 0, Some(&rst!(0x0028))),
 	//0xF0
 	new_instruction!("LDH A,(a8)", 1, Some(&ldh_a_a8)),		
