@@ -71,7 +71,7 @@ macro_rules! ld {
 
     ($reg1:ident, mem, $reg2:ident, $shift:expr) => {
     	|emu, _| {
-    		unsafe{
+    		unsafe {
     			emu.mem.wb(*emu.regs.$reg1(), *emu.regs.$reg2());
     			*emu.regs.$reg1() = (*emu.regs.$reg1() as i32 + $shift) as u16;
     		}
@@ -111,7 +111,7 @@ macro_rules! rst {
 macro_rules! inc {
     ($reg:ident, 8) => {
     	|emu, _| {
-    		*emu.regs.$reg() += 1;
+    		*emu.regs.$reg() = (*emu.regs.$reg()).wrapping_add(1);
 
     		let val = *emu.regs.$reg();
     		emu.regs.update_flags(ZERO_FLAG, val == 0);
@@ -123,7 +123,7 @@ macro_rules! inc {
 
     (sp, 16) => {
     	|emu, _| {
-    		emu.regs.sp += 1;
+    		emu.regs.sp = (emu.regs.sp).wrapping_add(1);
     		8
     	}
     };
@@ -131,7 +131,7 @@ macro_rules! inc {
     ($reg:ident, 16) => {
     	|emu, _| {
     		unsafe {
-    			*emu.regs.$reg() += 1;
+    			*emu.regs.$reg() = (*emu.regs.$reg()).wrapping_add(1);
     			8
     		}
     	}
@@ -140,7 +140,7 @@ macro_rules! inc {
     ($reg:ident, mem) => {
     	|emu, _| {
     		unsafe {
-    			let val = emu.mem.rb(*emu.regs.$reg())+1;
+    			let val = emu.mem.rb(*emu.regs.$reg()).wrapping_add(1);
     			emu.mem.wb(*emu.regs.$reg(), val);
 
     			emu.regs.update_flags(ZERO_FLAG, val == 0);
@@ -544,7 +544,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD (HL),E", 0, Some(&ld!(hl, mem, e, 0))),
 	new_instruction!("LD (HL),H", 0, Some(&ld!(hl, mem, h, 0))),
 	new_instruction!("LD (HL),L", 0, Some(&ld!(hl, mem, l, 0))),
-	new_instruction!("HALT", 0, None),
+	new_instruction!("HALT", 0, Some(&halt)),
 	new_instruction!("LD (HL),A", 0, Some(&ld!(hl, mem, a, 0))),
 	//0x78
 	new_instruction!("LD A,B", 0, Some(&ld!(a, b))),			
@@ -812,6 +812,12 @@ fn rlca(emu: &mut Emulator, _: u16) -> u64 {
 
 	*emu.regs.a() = (*emu.regs.a() << 1) | (carry >> 7);
 	emu.regs.clear_flags(ZERO_FLAG | NEGATIVE_FLAG | HALFCARRY_FLAG);
+	4
+}
+
+//0x76
+fn halt(emu: &mut Emulator, _: u16) -> u64 {
+	emu.halted = true;
 	4
 }
 

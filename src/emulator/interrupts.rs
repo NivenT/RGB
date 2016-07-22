@@ -13,7 +13,8 @@ impl InterruptManager {
 		let interrupt_request_register = mem.rb(0xFF0F);
 		mem.wb(0xFF0F, interrupt_request_register | (1 << id));
 	}
-	pub fn step(&mut self, mem: &mut Memory, regs: &mut Registers) {
+	//Returns true if an interrupt has occured
+	pub fn step(&mut self, mem: &mut Memory, regs: &mut Registers) -> bool {
 		if self.ime {
 			for i in 0..5 {
 				if (mem.rb(0xFFFF) & mem.rb(0xFF0F) & (1 << i)) > 0 {
@@ -25,10 +26,11 @@ impl InterruptManager {
 					mem.ww(regs.sp-2, regs.pc);
 					regs.sp -= 2;
 
-					//println!("Servicing interrupt {}...", i);
 					regs.pc = 0x40 + 0x08*i;
+					return true;
 				}
 			}
 		}
+		false
 	}
 }

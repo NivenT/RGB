@@ -21,7 +21,8 @@ pub struct Emulator {
 	pub mem:		Memory,
 	pub gpu:		Gpu,
 	pub controls: 	[u8; 8],
-	pub regs:		Registers
+	pub regs:		Registers,
+	pub halted:		bool
 }
 
 impl fmt::Debug for Emulator {
@@ -63,7 +64,7 @@ impl Emulator {
 							   			   .open("debug.txt")
 									       .unwrap();
 		Emulator{debug_file: debug_file, clock: 0, mem: memory, gpu: Gpu::new(), 
-					controls: [0; 8], regs: Registers::new(), 
+					controls: [0; 8], regs: Registers::new(), halted: false,
 					interrupts: InterruptManager::new()}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
@@ -92,7 +93,7 @@ impl Emulator {
 		let cartridge_type = header[0x147];
 		let cartridge_type = match CartridgeType::from_code(cartridge_type) {
 			Some(t) => t,
-			None  	=> panic!("Unknown cartridge type: {}", cartridge_type)
+			None  	=> panic!("Unknown cartridge type: {:?}", cartridge_type)
 		};
 		println!("The cartridge type is {:?}", cartridge_type);
 
@@ -126,36 +127,11 @@ impl Emulator {
 		self.interrupts.ime = false;
 	}
 	pub fn step(&mut self, state: &mut ProgramState) -> u64 {
-		let address = self.regs.pc;
-		let opcode = self.mem.rb(self.regs.pc); self.regs.pc += 1;
-		let instruction = INSTRUCTIONS[opcode as usize];
-
-		let operand = if instruction.operand_length == 1 {
-			self.mem.rb(self.regs.pc) as u16
-		} else {
-			self.mem.rw(self.regs.pc)
-		};
-		self.regs.pc += instruction.operand_length;
-
-		let cycles: u64;
-		if let Some(func) = instruction.func {
-			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}\n",
-								opcode, instruction.name, instruction.operand_length, operand, address, self);
-			if state.debug {println!("{}", debug_info);}
-			//self.update_debug_file(debug_info); //store debug info in a file
-
-			cycles = func(self, operand);
-		} else {
-			let debug_info = format!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
-				address, opcode, instruction.name, instruction.operand_length, operand);
-			println!("{}", debug_info);
-			self.update_debug_file(debug_info);
-			panic!("");
-		}
-		
-		self.clock += cycles;
+		let cycles = if !self.halted {self.emulate_cycle(state)} else {4};
 		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16);
-		self.interrupts.step(&mut self.mem, &mut self.regs);
+		if self.interrupts.step(&mut self.mem, &mut self.regs) {
+			self.halted = false;
+		}
 		
 		if self.regs.pc == 0x100 {
 			self.mem.finished_with_bios();
@@ -176,6 +152,37 @@ impl Emulator {
 		cycles
 	}
 
+	fn emulate_cycle(&mut self, state: &mut ProgramState) -> u64 {
+		let address = self.regs.pc;
+		let opcode = self.mem.rb(self.regs.pc); self.regs.pc += 1;
+		let instruction = INSTRUCTIONS[opcode as usize];
+
+		let operand = if instruction.operand_length == 1 {
+			self.mem.rb(self.regs.pc) as u16
+		} else {
+			self.mem.rw(self.regs.pc)
+		};
+		self.regs.pc += instruction.operand_length;
+
+		let cycles: u64;
+		if let Some(func) = instruction.func {
+			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}",
+								opcode, instruction.name, instruction.operand_length, operand, address, self);
+			if state.debug {println!("{}", debug_info);}
+			//self.update_debug_file(debug_info); //store debug info in a file
+
+			cycles = func(self, operand);
+		} else {
+			let debug_info = format!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
+				address, opcode, instruction.name, instruction.operand_length, operand);
+			println!("{}", debug_info);
+			self.update_debug_file(debug_info);
+			panic!("");
+		}
+		
+		self.clock += cycles;
+		cycles
+	}
 	fn update_debug_file(&mut self, msg: String) {
 		const MAX_SIZE: usize = 1024 * 1024; //File at most 1MiB
 		let mut buf = vec![];

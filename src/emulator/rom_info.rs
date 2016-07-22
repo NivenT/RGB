@@ -20,15 +20,8 @@ impl CartridgeType {
 
 //returns size of ROM in KiB
 pub fn get_rom_size(code: u8) -> Option<usize> {
-	match code {
-		0 => Some(32),
-		1 => Some(64),
-		2 => Some(128),
-		3 => Some(256),
-		4 => Some(512),
-		5 => Some(1024),
-		6 => Some(2048),
-		7 => Some(4096),
+	match code as u32 {
+		n @ 0...7 => Some(2usize.pow(n+5)),
 		_ => None
 	}
 }

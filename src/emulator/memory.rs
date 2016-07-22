@@ -80,12 +80,14 @@ impl Memory {
 	pub fn wb(&mut self, address: u16, val: u8) {
 		let address = address as usize;
 		if 0xFEA0 <= address && address < 0xFF00 {
-			//panic!("Attempted to write data to unaddressable memory address ({:#X})", address);
+			return;
+		} else if 0xC000 <= address && address < 0xDE00 {
+			self.mem[address + 0x2000] = val;
 		} else if 0xE000 <= address && address < 0xFE00 {
 			self.mem[address - 0x2000] = val;
 		} else if 0xFF44 == address {
 			panic!("Attempted to overwrite scanline position")
-		} 
+		}
 		self.mem[address] = val;
 	}
 	//write word
