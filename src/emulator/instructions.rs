@@ -456,6 +456,18 @@ macro_rules! add {
 }
 
 macro_rules! adc {
+    () => {
+        |emu, operand| {
+            let (a,b,c) = (*emu.regs.a(), operand as u8, emu.regs.get_flag(CARRY_FLAG) as u8);
+            *emu.regs.a() = a.wrapping_add(b).wrapping_add(c);
+            emu.regs.update_flags(ZERO_FLAG, a.wrapping_add(b).wrapping_add(c) == 0);
+            emu.regs.clear_flags(NEGATIVE_FLAG);
+            emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) + c > 0xF);
+            emu.regs.update_flags(CARRY_FLAG, a as u16 + b as u16 + c as u16 > 255);
+            8
+        }   
+    };
+
     (hl) => {
     	|emu, _| {
     		unsafe {
@@ -465,7 +477,7 @@ macro_rules! adc {
 				emu.regs.clear_flags(NEGATIVE_FLAG);
 				emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) + (b & 0xF) + c > 0xF);
 				emu.regs.update_flags(CARRY_FLAG, a as u16 + b as u16 + c as u16 > 255);
-	    		4
+	    		8
     		}
     	}
     };
@@ -726,7 +738,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("PREFIX CB", 1, Some(&cb)),
 	new_instruction!("CALL Z,a16", 2, Some(&call_z_a16)),
 	new_instruction!("CALL a16", 2, Some(&call_a16)),
-	new_instruction!("ADC A,d8", 1, None),
+	new_instruction!("ADC A,d8", 1, Some(&adc!())),
 	new_instruction!("RST 08H", 0, Some(&rst!(0x0008))),
 	//0xD0
 	new_instruction!("RET NC", 0, Some(&ret_nc)),			

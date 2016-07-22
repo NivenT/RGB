@@ -38,7 +38,7 @@ Certain keys are special, and the emulator has built in responses for when they 
 
 ###GPU
 - [X] Can display tiles
-- [ ] Can display sprites
+- [X] Can display sprites
 
 ###Memory
 - [X] 32KB ROMs without banking
@@ -46,7 +46,11 @@ Certain keys are special, and the emulator has built in responses for when they 
 - [ ] RAM banking
 
 ###Input
-- [ ] Accepts input
+- [X] Accepts input
 
 ###Sound
 - [ ] Produces sound
+
+##Known Issues
+* Sprites can not be flipped horizontally or vertically
+* Emulator seems to be unable to distinguish between direction keys and button keys
