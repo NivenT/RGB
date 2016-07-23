@@ -6,3 +6,4 @@ mod cb_instructions;
 pub mod gpu;
 pub mod memory;
 mod interrupts;
+mod timers;
