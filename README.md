@@ -12,7 +12,7 @@ cargo build
 ````
 
 ##How to Use
-Before running the program, make sure to setup the settings.ini file. This is where you supply a path to the game to be loaded, and tell the emulator which keyboard keys map to which gameboy buttons. RGB uses SDL2 for window management and input handling, so check [here](https://github.com/AngryLawyer/rust-sdl2/blob/master/sdl2-sys/src/keycode.rs) for the values of each key.
+Before running the program, make sure to setup the settings.ini file. This is where you supply a path to the game to be loaded, tell the emulator which keyboard keys map to which gameboy buttons, and specify what hex colors the emulator should use for graphics. RGB uses SDL2 for window management and input handling, so check [here](https://github.com/AngryLawyer/rust-sdl2/blob/master/sdl2-sys/src/keycode.rs) for the values of each key.
 
 Once settings.ini has been set up, start the program by running the following command from the project's main directory
 ```
@@ -32,13 +32,14 @@ Certain keys are special, and the emulator has built in responses for when they 
 
 ##Emulation Progress
 ###CPU
-- [ ] Implemented all normal instructions
-- [ ] Implemented all CB instructions
+- [X] Implemented all normal instructions
+- [X] Implemented all CB instructions
 - [X] Implemented interrupts
 
 ###GPU
 - [X] Can display tiles
 - [X] Can display sprites
+- [ ] Flips sprites
 
 ###Memory
 - [X] 32KB ROMs without banking
@@ -50,7 +51,3 @@ Certain keys are special, and the emulator has built in responses for when they 
 
 ###Sound
 - [ ] Produces sound
-
-##Known Issues
-* Sprites can not be flipped horizontally or vertically
-* Emulator seems to be unable to distinguish between direction keys and button keys
