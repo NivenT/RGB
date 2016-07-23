@@ -45,6 +45,7 @@ impl fmt::Debug for Emulator {
 			/* */
 			let _ = write!(f, "\n");
 			let _ = write!(f, "SL_COUNT:     {}\n", self.gpu.get_scanline_count());
+			let _ = write!(f, "SCANLINE:     {}\n", self.mem.rb(0xFF44));
 			let _ = write!(f, "LCD STATUS:   {:#b}\n", self.mem.rb(0xFF41));
 			let _ = write!(f, "LCD CONTROL:  {:#b}\n", self.mem.rb(0xFF40));
 			let _ = write!(f, "\n");

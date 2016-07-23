@@ -28,6 +28,11 @@ fn main() {
 	let controls: Vec<u8> = buttons.iter()
 								   .map(|a| config.get("controls", a).unwrap())
 								   .collect();
+    let white: String = config.get("screen", "white").unwrap();
+    let black: String = config.get("screen", "black").unwrap();
+
+    let white = u32::from_str_radix(&white, 16).unwrap();
+    let black = u32::from_str_radix(&black, 16).unwrap();
 
 	let mut emu = Emulator::new();
 	emu.set_controls(controls);
@@ -46,7 +51,7 @@ fn main() {
     let mut cycles_this_frame = 0;
     let mut cycles_per_second = 0;
     let mut event_pump = sdl_context.event_pump().unwrap();
-    let renderer = Renderer::new(&display);
+    let renderer = Renderer::new(&display, white, black);
     while !state.done {
         if start.to(PreciseTime::now()).num_seconds() >= 1 {
             //Gameboy should execute 4194304 cycles each second

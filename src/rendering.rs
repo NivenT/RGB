@@ -17,11 +17,13 @@ struct Vertex {
 pub struct Renderer {
 	vert_buffer: 	VertexBuffer<Vertex>,
 	index_buffer:	IndexBuffer<u8>,
-	program:		Program
+	program:		Program,
+	white:			(f32, f32, f32),
+	black:			(f32, f32, f32)
 }
 
 impl Renderer {
-	pub fn new(display: &SDL2Facade) -> Renderer {
+	pub fn new(display: &SDL2Facade, white: u32, black: u32) -> Renderer {
 		implement_vertex!(Vertex, pos, uv);
 
 		let mut vert_shader_src = String::new();
@@ -44,15 +46,24 @@ impl Renderer {
 		let index_buffer = IndexBuffer::new(display,
 										 	index::PrimitiveType::TrianglesList,
 										 	&[0u8,1,2, 2,3,0]).unwrap();
+		//Extract RGB information from hex colors
+		let white = (((white >> 16) & 0xFF) as f32, ((white >> 8) & 0xFF) as f32, (white & 0xFF) as f32);
+		let black = (((black >> 16) & 0xFF) as f32, ((black >> 8) & 0xFF) as f32, (black & 0xFF) as f32);
+		println!("Using {:?} and {:?} as white and black, respectively.", white, black);
 
-		Renderer{vert_buffer: vertex_buffer, index_buffer: index_buffer, program: program}
+		Renderer{vert_buffer: vertex_buffer, index_buffer: index_buffer, program: program,
+					white: white, black: black}
 	}
-	fn make_texture(display: &SDL2Facade, screen: &[[Color; 160]; 144]) -> Texture2d {
+	fn make_texture(&self, display: &SDL2Facade, screen: &[[Color; 160]; 144]) -> Texture2d {
 	    let raw = screen.into_iter()
 	    				.flat_map(|row| {
 	    					row.into_iter()
 	    					   .map(|&col| {
-	    					   		(col as u8, col as u8, col as u8)
+	    					   		let mix = col as u8 as f32/255f32;
+	    					   		let (white, black) = (self.white, self.black);
+	    					   		((white.0*mix + black.0*(1f32-mix)) as u8,
+	    					   		 (white.1*mix + black.1*(1f32-mix)) as u8,
+	    					   		 (white.2*mix + black.2*(1f32-mix)) as u8)
 	    					   })
 	    				})
 	    				.collect::<Vec<_>>();
@@ -61,7 +72,7 @@ impl Renderer {
 	}
 
 	pub fn render(&self, display: &SDL2Facade, screen: &[[Color; 160]; 144]) {
-		let texture = Renderer::make_texture(display, screen);
+		let texture = self.make_texture(display, screen);
 
 		let mut target = display.draw();
 		target.draw(&self.vert_buffer, &self.index_buffer, &self.program,

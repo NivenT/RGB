@@ -17,27 +17,6 @@ pub const BIOS: [u8; 0x100] = [
 	0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50
 ];
 
-/* This level of detail may not be needed
-pub struct Memory {
-	rom_bank0:		[u8; 0x4000], //0x0000-0x3FFF
-	rom_bankn:		[u8; 0x4000], //0x4000-0x7FFF
-	vram:			[u8; 0x2000], //0x8000-0x9FFF
-	external_ram:	[u8; 0x2000], //0xA000-0xBFFF
-	wram_bank0:		[u8; 0x1000], //0xC000-0xCFFF
-	//switchiable bank 1-7
-	wram_bankn:		[u8; 0x1000], //0xD000-0xDFFF
-	//Same data as 0xC000-0xDDFF (wram)
-	echo:			[u8; 0x1E00], //0xE000-0xFDFF
-	//Sprite Attribute Table
-	oam:			[u8; 0x00A0], //0xFE00-0xFE9F
-								  //0xFEA0-0xFEFF is not used
-	io:				[u8; 0x0080], //0xFF00-0xFF7F
-	hram:			[u8; 0x0079], //0xFF7F-0xFFFE
-	//Interrupt Enable Register
-	ier:			u8			  //0xFFFF
-}
-*/
-
 pub struct Memory {
 	pub cart:		[u8; 0x08000], //Largest possible cartridge size is 4096 KiB. Only 32 KiB supported right now
 	
@@ -91,7 +70,7 @@ impl Memory {
 			self.mem[address] = (val & 0x30) | (self.mem[address] & 0xF);
 			return;
 		} else if 0xFF46 == address {
-			let start = val as u16*0x100;
+			let start = (val as u16) << 8;
 			for i in 0..0xA0 {
 				let copy_val = self.rb(start + i);
 				self.wb(0xFE00 + i, copy_val);
