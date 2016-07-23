@@ -249,6 +249,36 @@ macro_rules! rrc {
     }
 }
 
+macro_rules! rr {
+    (hl) => {
+    	|emu| {
+    		unsafe {
+    			let val = emu.mem.rb(*emu.regs.hl());
+	    		let carry = emu.regs.get_flag(CARRY_FLAG) as u8;
+	    		emu.mem.wb(*emu.regs.hl(), (val >> 1) | (carry << 7));
+
+	    		emu.regs.update_flags(ZERO_FLAG, val < 2 && carry == 0);
+	    		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
+	    		emu.regs.update_flags(CARRY_FLAG, val & 0x01 > 0);
+	    		16
+    		}
+    	}
+    };
+
+    ($reg:ident) => {
+    	|emu| {
+    		let val = *emu.regs.$reg();
+    		let carry = emu.regs.get_flag(CARRY_FLAG) as u8;
+    		*emu.regs.$reg() = (val >> 1) | (carry << 7);
+
+    		emu.regs.update_flags(ZERO_FLAG, val < 2 && carry == 0);
+    		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
+    		emu.regs.update_flags(CARRY_FLAG, val & 0x01 > 0);
+    		8
+    	}
+    }
+}
+
 pub type CBInstructionFunc = Option<&'static Fn(&mut Emulator) -> u64>;
 
 #[derive(Copy, Clone)]
@@ -286,14 +316,14 @@ pub const CB_INSTRUCTIONS: [CBInstruction; 256] = [
 	new_cb_instruction!("RL (HL)", Some(&rl!(hl))),
 	new_cb_instruction!("RL A", Some(&rl!(a))),
 	//0x18
-	new_cb_instruction!("RR B", None),
-	new_cb_instruction!("RR C", None),
-	new_cb_instruction!("RR D", None),
-	new_cb_instruction!("RR E", None),
-	new_cb_instruction!("RR H", None),
-	new_cb_instruction!("RR L", None),
-	new_cb_instruction!("RR (HL)", None),
-	new_cb_instruction!("RR A", None),
+	new_cb_instruction!("RR B", Some(&rr!(b))),
+	new_cb_instruction!("RR C", Some(&rr!(c))),
+	new_cb_instruction!("RR D", Some(&rr!(d))),
+	new_cb_instruction!("RR E", Some(&rr!(e))),
+	new_cb_instruction!("RR H", Some(&rr!(h))),
+	new_cb_instruction!("RR L", Some(&rr!(l))),
+	new_cb_instruction!("RR (HL)", Some(&rr!(hl))),
+	new_cb_instruction!("RR A", Some(&rr!(a))),
 	//0x20
 	new_cb_instruction!("SLA B", Some(&sla!(b))),
 	new_cb_instruction!("SLA C", Some(&sla!(c))),
@@ -652,5 +682,14 @@ mod test {
 		rrc_d(&mut emu);
 		assert_eq!(*emu.regs.d(), 0xC7);
 		assert_eq!(*emu.regs.f(), CARRY_FLAG);
+	}
+	#[test]
+	fn test_rr() {
+		let mut emu = Emulator::new();
+		*emu.regs.b() = 0x01;
+		let rr_b = CB_INSTRUCTIONS[0x18].func.unwrap();
+		rr_b(&mut emu);
+		assert_eq!(*emu.regs.b(), 0);
+		assert_eq!(*emu.regs.f(), ZERO_FLAG | CARRY_FLAG);
 	}
 }
