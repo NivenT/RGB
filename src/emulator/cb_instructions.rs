@@ -189,6 +189,36 @@ macro_rules! srl {
     }
 }
 
+macro_rules! rlc {
+    (hl) => {
+    	|emu| {
+    		unsafe {
+	    		let val = emu.mem.rb(*emu.regs.hl());
+	    		let carry = (val & 0x80) >> 7;
+	    		emu.mem.wb(*emu.regs.hl(), (val << 1) | carry);
+
+	    		emu.regs.update_flags(ZERO_FLAG, val == 0);
+	    		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
+	    		emu.regs.update_flags(CARRY_FLAG, carry > 0);
+	    		16
+    		}
+    	}
+    };
+
+    ($reg:ident) => {
+    	|emu| {
+    		let val = *emu.regs.$reg();
+    		let carry = (val & 0x80) >> 7;
+    		*emu.regs.$reg() = (val << 1) | carry;
+
+    		emu.regs.update_flags(ZERO_FLAG, val == 0);
+    		emu.regs.clear_flags(NEGATIVE_FLAG | HALFCARRY_FLAG);
+    		emu.regs.update_flags(CARRY_FLAG, carry > 0);
+    		8
+    	}
+    };
+}
+
 pub type CBInstructionFunc = Option<&'static Fn(&mut Emulator) -> u64>;
 
 #[derive(Copy, Clone)]
@@ -199,14 +229,14 @@ pub struct CBInstruction {
 
 pub const CB_INSTRUCTIONS: [CBInstruction; 256] = [
 	//0x00
-	new_cb_instruction!("RLC B", None),
-	new_cb_instruction!("RLC C", None),
-	new_cb_instruction!("RLC D", None),
-	new_cb_instruction!("RLC E", None),
-	new_cb_instruction!("RLC H", None),
-	new_cb_instruction!("RLC L", None),
-	new_cb_instruction!("RLC (HL)", None),
-	new_cb_instruction!("RLC A", None),
+	new_cb_instruction!("RLC B", Some(&rlc!(b))),
+	new_cb_instruction!("RLC C", Some(&rlc!(c))),
+	new_cb_instruction!("RLC D", Some(&rlc!(d))),
+	new_cb_instruction!("RLC E", Some(&rlc!(e))),
+	new_cb_instruction!("RLC H", Some(&rlc!(h))),
+	new_cb_instruction!("RLC L", Some(&rlc!(l))),
+	new_cb_instruction!("RLC (HL)", Some(&rlc!(hl))),
+	new_cb_instruction!("RLC A", Some(&rlc!(a))),
 	//0x08
 	new_cb_instruction!("RRC B", None),
 	new_cb_instruction!("RRC C", None),
@@ -570,5 +600,18 @@ mod test {
 		srl_a(&mut emu);
 		assert_eq!(*emu.regs.a(), 0x08);
 		assert_eq!(*emu.regs.f(), 0);
+	}
+	#[test]
+	fn test_rlc() {
+		let mut emu = Emulator::new();
+		unsafe {
+			*emu.regs.hl() = 0xFF1A;
+			emu.mem.wb(0xFF1A, 0x7A);
+			let rlc_hl = CB_INSTRUCTIONS[0x06].func.unwrap();
+			rlc_hl(&mut emu);
+			assert_eq!(*emu.regs.hl(), 0xFF1A);
+			assert_eq!(emu.mem.rb(0xFF1A), 0xF4);
+			assert_eq!(*emu.regs.f(), 0);
+		}
 	}
 }
