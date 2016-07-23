@@ -174,7 +174,7 @@ impl Gpu {
 				let sprite_line = line - y_pos;
 				let address = 0x8000 + sprite_loc as u16*16 + sprite_line as u16*2;
 				let data = [mem.rb(address), mem.rb(address+1)];
-				for color_bit in 0..7 {
+				for color_bit in 0..8 {
 					let color_id = if color_bit == 0 {
 						((data[1] & 1) << 1) | (data[0] & 1)
 					} else {

@@ -42,14 +42,14 @@ impl fmt::Debug for Emulator {
 			let _ = write!(f, "IF:           {:#X}\n", self.mem.rb(0xFF0F));
 			let _ = write!(f, "IE:           {:#X}\n", self.mem.rb(0xFFFF));
 			let _ = write!(f, "IME:          {}\n", self.interrupts.ime);
-			/*
+			/* */
 			let _ = write!(f, "\n");
 			let _ = write!(f, "SL_COUNT:     {}\n", self.gpu.get_scanline_count());
 			let _ = write!(f, "LCD STATUS:   {:#b}\n", self.mem.rb(0xFF41));
 			let _ = write!(f, "LCD CONTROL:  {:#b}\n", self.mem.rb(0xFF40));
 			let _ = write!(f, "\n");
 			let _ = write!(f, "JOYPAD STATE: {:#b}\n", self.mem.rb(0xFF00));
-			*/
+			/* */
 		}
 		write!(f, "*****************************")
 	}
