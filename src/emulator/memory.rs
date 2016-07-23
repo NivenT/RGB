@@ -21,12 +21,13 @@ pub struct Memory {
 	pub cart:		[u8; 0x08000], //Largest possible cartridge size is 4096 KiB. Only 32 KiB supported right now
 	
 	mem:			[u8; 0x10000],
+	key_state:		u8,
 	running_bios:	bool
 }
 
 impl Memory {
 	pub fn new() -> Memory {
-	    Memory{mem: [0; 0x10000], cart: [0; 0x08000], running_bios: true}
+	    Memory{mem: [0; 0x10000], cart: [0; 0x08000], key_state: 0xFF, running_bios: true}
 	}
 	pub fn finished_with_bios(&mut self) {
 		self.running_bios = false;
@@ -47,6 +48,12 @@ impl Memory {
 		} else if 0xD000 <= address && address < 0xE000 {
 			//Work RAM banking - Not Implemented
 			self.mem[address]
+		} else if 0xFF00 == address {
+			match self.mem[0xFF00] & 0x30 {
+				0x10 => 0x10 | (self.key_state >> 4),
+				0x20 => 0x20 | (self.key_state & 0xF),
+				_ => 0
+			}
 		} else {
 			self.mem[address]
 		}
@@ -66,9 +73,6 @@ impl Memory {
 			self.mem[address - 0x2000] = val;
 		} else if 0xFF44 == address {
 			panic!("Attempted to overwrite scanline position")
-		} else if 0xFF00 == address {
-			self.mem[address] = (val & 0x30) | (self.mem[address] & 0xF);
-			return;
 		} else if 0xFF46 == address {
 			let start = (val as u16) << 8;
 			for i in 0..0xA0 {
@@ -89,7 +93,11 @@ impl Memory {
 		self.mem[0xFF44] = val;
 	}
 	//write keys
-	pub fn wk(&mut self, val: u8) {
-		self.mem[0xFF00] = (val & 0xF) | (self.mem[0xFF00] & 0x30);
+	pub fn wk(&mut self, key: u8, pressed: bool) {
+		if pressed {
+			self.key_state &= !(1 << key);
+		} else {
+			self.key_state |= 1 << key;
+		}
 	}
 }

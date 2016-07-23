@@ -42,15 +42,11 @@ impl fmt::Debug for Emulator {
 			let _ = write!(f, "IF:           {:#X}\n", self.mem.rb(0xFF0F));
 			let _ = write!(f, "IE:           {:#X}\n", self.mem.rb(0xFFFF));
 			let _ = write!(f, "IME:          {}\n", self.interrupts.ime);
-			/* */
 			let _ = write!(f, "\n");
 			let _ = write!(f, "SL_COUNT:     {}\n", self.gpu.get_scanline_count());
 			let _ = write!(f, "SCANLINE:     {}\n", self.mem.rb(0xFF44));
 			let _ = write!(f, "LCD STATUS:   {:#b}\n", self.mem.rb(0xFF41));
 			let _ = write!(f, "LCD CONTROL:  {:#b}\n", self.mem.rb(0xFF40));
-			let _ = write!(f, "\n");
-			let _ = write!(f, "JOYPAD STATE: {:#b}\n", self.mem.rb(0xFF00));
-			/* */
 		}
 		write!(f, "*****************************")
 	}
@@ -63,7 +59,6 @@ impl Emulator {
 		for i in 0..256 {
 			memory.wb(i, BIOS[i as usize]);
 		}
-		memory.wk(0xF);
 
 		Emulator{clock: 0, mem: memory, gpu: Gpu::new(), controls: [0; 8], 
 					regs: Registers::new(), halted: false,
@@ -131,24 +126,16 @@ impl Emulator {
 		self.interrupts.ime = false;
 	}
 	pub fn update_keys(&mut self, key: u8, pressed: bool) {
-		let mut key_state = self.mem.rb(0xFF00);
+		let old_state = self.mem.rb(0xFF00);
 		for i in 0..8 {
 			if self.controls[i] == key {
-				let col = if i < 4 {1 << 4} else {1 << 5};
-				let row = 1 << i%4;
-				if key_state & col > 0 {
-					if pressed {
-						if key_state & row > 0 {
-							self.interrupts.request_interrupt(&mut self.mem, 4);
-						}
-						key_state &= !row;
-					} else {
-						key_state |= row;
-					}
+				self.mem.wk(i as u8, pressed);
+				let new_state = self.mem.rb(0xFF00);
+				if (!new_state & old_state & (1 << i%4)) > 0 {
+					self.interrupts.request_interrupt(&mut self.mem, 4);
 				}
 			}
 		}
-		self.mem.wk(key_state);
 	}
 	pub fn step(&mut self, state: &mut ProgramState) -> u64 {
 		let cycles = if !self.halted {self.emulate_cycle(state)} else {4};
