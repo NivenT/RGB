@@ -495,6 +495,46 @@ macro_rules! adc {
     }
 }
 
+macro_rules! sbc {
+    () => {
+        |emu, operand| {
+            let (a,b,c) = (*emu.regs.a(), operand as u8, emu.regs.get_flag(CARRY_FLAG) as u8);
+            *emu.regs.a() = a.wrapping_sub(b).wrapping_sub(c);
+            emu.regs.update_flags(ZERO_FLAG, a.wrapping_sub(b).wrapping_sub(c) == 0);
+            emu.regs.set_flags(NEGATIVE_FLAG);
+            emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) < (b & 0xF) + c);
+            emu.regs.update_flags(CARRY_FLAG, (a as u16) < b as u16 + c as u16);
+            8
+        }
+    };
+
+    (hl) => {
+        |emu, _| {
+            unsafe {
+                let (a,b,c) = (*emu.regs.a(), emu.mem.rb(*emu.regs.hl()), emu.regs.get_flag(CARRY_FLAG) as u8);
+                *emu.regs.a() = a.wrapping_sub(b).wrapping_sub(c);
+                emu.regs.update_flags(ZERO_FLAG, a.wrapping_sub(b).wrapping_sub(c) == 0);
+                emu.regs.set_flags(NEGATIVE_FLAG);
+                emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) < (b & 0xF) + c);
+                emu.regs.update_flags(CARRY_FLAG, (a as u16) < b as u16 + c as u16);
+                8
+            }
+        }
+    };
+
+    ($reg:ident) => {
+        |emu, _| {
+            let (a,b,c) = (*emu.regs.a(), *emu.regs.$reg(), emu.regs.get_flag(CARRY_FLAG) as u8);
+            *emu.regs.a() = a.wrapping_sub(b).wrapping_sub(c);
+            emu.regs.update_flags(ZERO_FLAG, a.wrapping_sub(b).wrapping_sub(c) == 0);
+            emu.regs.set_flags(NEGATIVE_FLAG);
+            emu.regs.update_flags(HALFCARRY_FLAG, (a & 0xF) < (b & 0xF) + c);
+            emu.regs.update_flags(CARRY_FLAG, (a as u16) < b as u16 + c as u16);
+            4
+        }
+    }
+}
+
 //Returns the number of cycles the instruction takes
 pub type InstructionFunc = Option<&'static Fn(&mut Emulator, u16) -> u64>;
 
@@ -678,14 +718,14 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("SUB (HL)", 0, Some(&sub!(hl))),
 	new_instruction!("SUB A", 0, Some(&sub!(a))),
 	//0x98
-	new_instruction!("SBC A,B", 0, None),			
-	new_instruction!("SBC A,C", 0, None),
-	new_instruction!("SBC A,D", 0, None),
-	new_instruction!("SBC A,E", 0, None),
-	new_instruction!("SBC A,H", 0, None),
-	new_instruction!("SBC A,L", 0, None),
-	new_instruction!("SBC A,(HL)", 0, None),
-	new_instruction!("SBC A,A", 0, None),
+	new_instruction!("SBC A,B", 0, Some(&sbc!(b))),			
+	new_instruction!("SBC A,C", 0, Some(&sbc!(c))),
+	new_instruction!("SBC A,D", 0, Some(&sbc!(d))),
+	new_instruction!("SBC A,E", 0, Some(&sbc!(e))),
+	new_instruction!("SBC A,H", 0, Some(&sbc!(h))),
+	new_instruction!("SBC A,L", 0, Some(&sbc!(l))),
+	new_instruction!("SBC A,(HL)", 0, Some(&sbc!(hl))),
+	new_instruction!("SBC A,A", 0, Some(&sbc!(a))),
 	//0xA0
 	new_instruction!("AND B", 0, Some(&and!(b))),				
 	new_instruction!("AND C", 0, Some(&and!(c))),
@@ -756,7 +796,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("NO_INSTRUCTION", 0, None),
 	new_instruction!("CALL C,a16", 2, Some(&call_c_a16)),
 	new_instruction!("NO_INSTRUCTION", 0, None),
-	new_instruction!("SBC A,d8", 1, None),
+	new_instruction!("SBC A,d8", 1, Some(&sbc!())),
 	new_instruction!("RST 18H", 0, Some(&rst!(0x0018))),
 	//0xE0
 	new_instruction!("LDH (a8),A", 1, Some(&ldh_a8_a)),		
@@ -1336,5 +1376,16 @@ mod test {
         daa(&mut emu, 0);
         assert_eq!(*emu.regs.a(), 0x42);
         assert_eq!(*emu.regs.f(), 0);
+    }
+    #[test]
+    fn test_sbc() {
+        let mut emu = Emulator::new();
+        *emu.regs.a() = 23;
+        *emu.regs.f() = CARRY_FLAG;
+        *emu.regs.c() = 23;
+        let sbc_c = INSTRUCTIONS[0x99].func.unwrap();
+        sbc_c(&mut emu, 0);
+        assert_eq!(*emu.regs.a(), 0xFF);
+        assert_eq!(*emu.regs.f(), NEGATIVE_FLAG | HALFCARRY_FLAG | CARRY_FLAG);
     }
 }
