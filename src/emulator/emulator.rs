@@ -22,7 +22,8 @@ pub struct Emulator {
 	pub mem:		Memory,
 	pub gpu:		Gpu,
 	pub regs:		Registers,
-	pub halted:		bool
+	pub halted:		bool,
+	pub stopped:	bool
 }
 
 impl fmt::Debug for Emulator {
@@ -69,7 +70,7 @@ impl Emulator {
 
 		Emulator{clock: 0, mem: memory, gpu: Gpu::new(), controls: [0; 8], 
 					regs: Registers::new(), halted: false, timers: Timers::new(),
-					interrupts: InterruptManager::new()}
+					interrupts: InterruptManager::new(), stopped: false}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
 		for i in 0..8 {
@@ -145,7 +146,7 @@ impl Emulator {
 		}
 	}
 	pub fn step(&mut self, state: &mut ProgramState) -> u64 {
-		let cycles = if !self.halted {self.emulate_cycle(state)} else {4};
+		let cycles = if !self.halted && !self.stopped {self.emulate_cycle(state)} else {4};
 		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16);
 		self.timers.step(&mut self.mem, &self.interrupts, cycles as i16);
 		if self.interrupts.step(&mut self.mem, &mut self.regs) {

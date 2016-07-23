@@ -525,7 +525,7 @@ pub const INSTRUCTIONS: [Instruction; 256] = [
 	new_instruction!("LD C,d8", 1, Some(&ld!(c, 8))),
 	new_instruction!("RRCA", 0, Some(&rrca)),
 	//0x10
-	new_instruction!("STOP 0", 0, None),					//Maybe operand of length 1	
+	new_instruction!("STOP 0", 0, Some(&stop)),
 	new_instruction!("LD DE,d16", 2, Some(&ld!(de, 16))),
 	new_instruction!("LD (DE),A", 0, Some(&ld!(de, mem, a, 0))),
 	new_instruction!("INC DE", 0, Some(&inc!(de, 16))),
@@ -810,6 +810,12 @@ fn rrca(emu: &mut Emulator, _: u16) -> u64 {
 	*emu.regs.a() = (*emu.regs.a() >> 1) | (carry << 7);
 	emu.regs.clear_flags(ZERO_FLAG | NEGATIVE_FLAG | HALFCARRY_FLAG);
 	4
+}
+
+//0x10
+fn stop(emu: &mut Emulator, _: u16) -> u64 {
+    emu.stopped = true;
+    4
 }
 
 //0x17
