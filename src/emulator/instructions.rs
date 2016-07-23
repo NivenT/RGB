@@ -853,10 +853,10 @@ fn jr_nz(emu: &mut Emulator, operand: u16) -> u64 {
 fn daa(emu: &mut Emulator, _: u16) -> u64 {
     let mut val = *emu.regs.a();
     if (val & 0x0F) > 0x09 || emu.regs.get_flag(HALFCARRY_FLAG) {
-        val += 0x06;
+        val = val.wrapping_add(0x06);
     }
     if (val & 0xF0) > 0x90 || emu.regs.get_flag(CARRY_FLAG) {
-        val += 0x60;
+        val = val.wrapping_add(0x60);
         emu.regs.set_flags(CARRY_FLAG);
     }
     *emu.regs.a() = val;

@@ -1,6 +1,5 @@
 use std::fmt;
-use std::fs::{OpenOptions, File};
-use std::io::SeekFrom;
+use std::fs::File;
 use std::io::prelude::*;
 
 use emulator::gpu::Gpu;
@@ -14,7 +13,6 @@ use super::super::programstate::*;
 
 #[allow(dead_code)]
 pub struct Emulator {
-	debug_file:		File,
 	clock:			u64,
 	interrupts:		InterruptManager,
 	controls: 		[u8; 8],
@@ -66,14 +64,8 @@ impl Emulator {
 		}
 		memory.wk(0xF);
 
-		let debug_file = OpenOptions::new().read(true)
-									  	   .write(true)
-									  	   .truncate(true)
-										   .create(true)
-							   			   .open("debug.txt")
-									       .unwrap();
-		Emulator{debug_file: debug_file, clock: 0, mem: memory, gpu: Gpu::new(), 
-					controls: [0; 8], regs: Registers::new(), halted: false,
+		Emulator{clock: 0, mem: memory, gpu: Gpu::new(), controls: [0; 8], 
+					regs: Registers::new(), halted: false,
 					interrupts: InterruptManager::new()}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
@@ -197,41 +189,19 @@ impl Emulator {
 
 		let cycles: u64;
 		if let Some(func) = instruction.func {
-			let debug_info = format!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}\n",
-								opcode, instruction.name, instruction.operand_length, operand, address, self);
-			if state.debug {println!("{}", debug_info);}
-			//self.update_debug_file(debug_info); //store debug info in a file
+			if state.debug {
+				println!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}\n",
+							opcode, instruction.name, instruction.operand_length, operand, address, self);
+			}
 
 			cycles = func(self, operand);
 		} else {
-			let debug_info = format!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
+			println!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
 				address, opcode, instruction.name, instruction.operand_length, operand);
-			println!("{}", debug_info);
-			self.update_debug_file(debug_info);
 			panic!("");
 		}
 		
 		self.clock += cycles;
 		cycles
-	}
-	fn update_debug_file(&mut self, msg: String) {
-		const MAX_SIZE: usize = 1024 * 1024; //File at most 1MiB
-		let mut buf = vec![];
-
-		let _ = write!(self.debug_file, "{}\n", msg);
-
-		let _ = self.debug_file.seek(SeekFrom::Start(0));
-		let size = match self.debug_file.read_to_end(&mut buf) {
-			Ok(len)  => len,
-			Err(msg) => panic!("{}", msg)
-		};
-		if size > MAX_SIZE {
-			let _ = self.debug_file.set_len(0);
-			/*
-			let _ = self.debug_file.write(&buf[buf.len()-MAX_SIZE..]);
-			let _ = self.debug_file.set_len(MAX_SIZE as u64);
-			*/
-		}
-		let _ = self.debug_file.seek(SeekFrom::End(0));
 	}
 }
