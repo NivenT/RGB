@@ -1,8 +1,6 @@
 # RGB
 RGB (Rust Game Boy) is a simple emulator for the original game boy.
 
-![alt text](https://github.com/NivenT/RGB/blob/master/sample.gif "Emulator running Dr. Mario")
-
 ##How to Build
 Install [Rust](https://www.rust-lang.org/en-US/) and run the following commands in a terminal
 ````
