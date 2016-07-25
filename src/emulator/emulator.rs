@@ -3,15 +3,14 @@ use std::fs::File;
 use std::io::SeekFrom;
 use std::io::prelude::*;
 
+use emulator::memory::Memory;
 use emulator::gpu::Gpu;
 use emulator::interrupts::InterruptManager;
 use emulator::timers::Timers;
-use emulator::mbc::Mbc;
-use emulator::cartridge::Cartridge;
+use emulator::mbc::*;
 use emulator::instructions::*;
 use emulator::registers::*;
 use emulator::rom_info::*;
-use emulator::memory::*;
 
 use super::super::programstate::*;
 
@@ -66,12 +65,7 @@ impl fmt::Debug for Emulator {
 #[allow(dead_code)]
 impl Emulator {
 	pub fn new() -> Emulator {
-		let mut memory = Memory::new();
-		for i in 0..256 {
-			memory.wb(i, BIOS[i as usize]);
-		}
-
-		Emulator{clock: 0, mem: memory, gpu: Gpu::new(), controls: [0; 8], 
+		Emulator{clock: 0, mem: Memory::new(), gpu: Gpu::new(), controls: [0; 8], 
 					regs: Registers::new(), halted: false, timers: Timers::new(),
 					interrupts: InterruptManager::new(), stopped: false}
 	}
@@ -109,10 +103,7 @@ impl Emulator {
 		};
 		println!("The cartridge type is {:?}", cartridge_type);
 
-		self.mem.cart = match cartridge_type {
-			CartridgeType::ROM_ONLY => Mbc::NONE(Cartridge::new()),
-			_ 						=> panic!("Unimplemented cartridge type: {:?}", cartridge_type)
-		};
+		self.mem.cart = Mbc::new(cartridge_type);
 		self.mem.cart.load_game(&mut game_file);
 
 		let rom_size = header[0x148];

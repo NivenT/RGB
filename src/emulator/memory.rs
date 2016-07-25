@@ -29,7 +29,7 @@ pub struct Memory {
 
 impl Memory {
 	pub fn new() -> Memory {
-	    Memory{mem: [0; 0x10000], cart: Mbc::new(), key_state: 0xFF, running_bios: true}
+		Memory{mem: [0; 0x10000], cart: Mbc::EMPTY, key_state: 0xFF, running_bios: true}
 	}
 	pub fn finished_with_bios(&mut self) {
 		self.running_bios = false;
@@ -38,7 +38,7 @@ impl Memory {
 	pub fn rb(&self, address: u16) -> u8 {
 		let address = address as usize;
 		if address < 0x0100 {
-			if self.running_bios {self.mem[address]} else {self.cart.rb(address)}
+			if self.running_bios {BIOS[address]} else {self.cart.rb(address)}
 		} else if address < 0x8000 {
 			self.cart.rb(address)
 		} else if 0xA000 <= address && address < 0xC000 {
