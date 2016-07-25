@@ -166,12 +166,12 @@ impl Gpu {
 			let sprite_loc = mem.rb(0xFE00+offset+2);
 			let attributes = mem.rb(0xFE00+offset+3);
 
-			//let (x_flip, y_flip) = ((attributes & (1 << 5)) > 0, (attributes & (1 << 6)) > 0);
+			let (x_flip, y_flip) = ((attributes & (1 << 5)) > 0, (attributes & (1 << 6)) > 0);
 			let line = mem.rb(0xFF44);
 
 			let y_size = if large_sprites {16} else {8};
 			if y_pos <= line && line < y_pos + y_size && x_pos < 160 {
-				let sprite_line = line - y_pos;
+				let sprite_line = if y_flip {y_size+y_pos-line-1} else {line - y_pos};
 				let address = 0x8000 + sprite_loc as u16*16 + sprite_line as u16*2;
 				let data = [mem.rb(address), mem.rb(address+1)];
 				for color_bit in 0..8 {
@@ -186,7 +186,8 @@ impl Gpu {
 					let color = Color::from_palette(color_id, mem.rb(palette_address));
 
 					if color != Color::WHITE {
-						let pixel = (x_pos+7-color_bit)%160;
+						let pixel = if x_flip {x_pos+color_bit} else {x_pos+7-color_bit};
+						let pixel = pixel%160;
 						self.screen_data[line as usize][pixel as usize] = color;
 					}
 				}

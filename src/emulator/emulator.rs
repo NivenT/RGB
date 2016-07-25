@@ -111,14 +111,14 @@ impl Emulator {
 			Some(size) 	=> size * 1024,
 			None 		=> panic!("Unkown ROM size type: {}", rom_size)
 		};
-		println!("{} has {} bytes ({} KiB) used for ROM", title, rom_size, rom_size/1024);
+		println!("{} has {} bytes ({} KB) of ROM", title, rom_size, rom_size/1024);
 
 		let ram_size = header[0x149];
 		let ram_size = match get_ram_size(ram_size) {
 			Some(size)	=> size * 1024,
 			None		=> panic!("Unknown RAM size type: {}", ram_size)
 		};
-		println!("{} has {} bytes ({} KiB) of external RAM", title, ram_size, ram_size/1024);
+		println!("{} has {} bytes ({} KB) of external RAM", title, ram_size, ram_size/1024);
 
 		/*
 		let destination_code = header[0x14A];
@@ -149,7 +149,7 @@ impl Emulator {
 		}
 	}
 	pub fn step(&mut self, state: &mut ProgramState) -> u64 {
-		let cycles = if !self.halted && !self.stopped {self.emulate_cycle(state)} else {4};
+		let cycles = if !self.halted && !self.stopped {self.emulate_cycle(state)} else {40};
 		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16);
 		self.timers.step(&mut self.mem, &self.interrupts, cycles as i16);
 		if self.interrupts.step(&mut self.mem, &mut self.regs) {

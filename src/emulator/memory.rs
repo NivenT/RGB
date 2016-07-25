@@ -79,6 +79,8 @@ impl Memory {
 				self.wb(0xFE00 + i, copy_val);
 			}
 			return;
+		} else if 0xFF04 == address {
+			self.mem[0xFF04] = 0;
 		}
 		self.mem[address] = val;
 	}
