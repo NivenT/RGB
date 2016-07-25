@@ -43,7 +43,7 @@ Certain keys are special, and the emulator has built in responses for when they 
 ###GPU
 - [X] Can display tiles
 - [X] Can display sprites
-- [ ] Flips sprites
+- [X] Flips sprites
 
 ###Memory
 - [X] 32KB ROMs without banking
@@ -59,5 +59,4 @@ Certain keys are special, and the emulator has built in responses for when they 
 
 ##Known Bugs/Issues
 * Dr. Mario freezes on the screen after the title screen
-* Super Mario Land runs at 50% speed
-* Time in Super Mario Land never goes below 460
+* Time in Super Mario Land never goes below 640
