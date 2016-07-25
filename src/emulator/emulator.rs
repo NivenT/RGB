@@ -1,10 +1,13 @@
 use std::fmt;
 use std::fs::File;
+use std::io::SeekFrom;
 use std::io::prelude::*;
 
 use emulator::gpu::Gpu;
 use emulator::interrupts::InterruptManager;
 use emulator::timers::Timers;
+use emulator::mbc::Mbc;
+use emulator::cartridge::Cartridge;
 use emulator::instructions::*;
 use emulator::registers::*;
 use emulator::rom_info::*;
@@ -82,10 +85,13 @@ impl Emulator {
 		println!("Loading game from \"{}\"...", path);
 		let mut game_file = File::open(path).unwrap();
 		
-		let size = game_file.read(&mut self.mem.cart).unwrap();
+		//let size = game_file.read(&mut self.mem.cart).unwrap();
 		//println!("Game has a size of {} bytes ({} KiB)", size, size/1024);
 		
-		let header = &self.mem.cart[..0x150];
+		let mut header = [0; 0x150];
+		let _ = game_file.read(&mut header).unwrap();
+		let _ = game_file.seek(SeekFrom::Start(0));
+
 		let title = String::from_utf8_lossy(&header[0x134..0x144]);
 		println!("The title of the game is {}", title);
 		/*
@@ -102,6 +108,12 @@ impl Emulator {
 			None  	=> panic!("Unknown cartridge type: {:?}", cartridge_type)
 		};
 		println!("The cartridge type is {:?}", cartridge_type);
+
+		self.mem.cart = match cartridge_type {
+			CartridgeType::ROM_ONLY => Mbc::NONE(Cartridge::new()),
+			_ 						=> panic!("Unimplemented cartridge type: {:?}", cartridge_type)
+		};
+		self.mem.cart.load_game(&mut game_file);
 
 		let rom_size = header[0x148];
 		let rom_size = match get_rom_size(rom_size) {

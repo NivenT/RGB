@@ -7,3 +7,5 @@ pub mod gpu;
 pub mod memory;
 mod interrupts;
 mod timers;
+mod mbc;
+mod cartridge;

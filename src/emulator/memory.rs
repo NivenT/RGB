@@ -1,3 +1,5 @@
+use emulator::mbc::Mbc;
+
 pub const BIOS: [u8; 0x100] = [
 	0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
 	0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3, 0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0,
@@ -18,7 +20,7 @@ pub const BIOS: [u8; 0x100] = [
 ];
 
 pub struct Memory {
-	pub cart:		[u8; 0x08000], //Largest possible cartridge size is 4096 KiB. Only 32 KiB supported right now
+	pub cart:		Mbc, //Largest possible cartridge size is 4096 KiB. Only 32 KiB supported right now
 	
 	mem:			[u8; 0x10000],
 	key_state:		u8,
@@ -27,7 +29,7 @@ pub struct Memory {
 
 impl Memory {
 	pub fn new() -> Memory {
-	    Memory{mem: [0; 0x10000], cart: [0; 0x08000], key_state: 0xFF, running_bios: true}
+	    Memory{mem: [0; 0x10000], cart: Mbc::new(), key_state: 0xFF, running_bios: true}
 	}
 	pub fn finished_with_bios(&mut self) {
 		self.running_bios = false;
@@ -36,18 +38,11 @@ impl Memory {
 	pub fn rb(&self, address: u16) -> u8 {
 		let address = address as usize;
 		if address < 0x0100 {
-			if self.running_bios {self.mem[address]} else {self.cart[address]}
-		} else if address < 0x4000 {
-			self.cart[address]
-		} else if 0x4000 <= address && address < 0x8000 {
-			//ROM banking - Not Implemented
-			self.cart[address]
+			if self.running_bios {self.mem[address]} else {self.cart.rb(address)}
+		} else if address < 0x8000 {
+			self.cart.rb(address)
 		} else if 0xA000 <= address && address < 0xC000 {
-			//External RAM banking - Not Implemented
-			self.cart[address]
-		} else if 0xD000 <= address && address < 0xE000 {
-			//Work RAM banking - Not Implemented
-			self.mem[address]
+			self.cart.rb(address)
 		} else if 0xFF00 == address {
 			match self.mem[0xFF00] & 0x30 {
 				0x10 => 0x10 | (self.key_state >> 4),
@@ -67,6 +62,10 @@ impl Memory {
 		let address = address as usize;
 		if 0xFEA0 <= address && address < 0xFF00 {
 			return;
+		} else if address < 0x8000 {
+			return self.cart.wb(address, val);
+		} else if 0xA000 <= address && address < 0xC000 {
+			return self.cart.wb(address, val);
 		} else if 0xC000 <= address && address < 0xDE00 {
 			self.mem[address + 0x2000] = val;
 		} else if 0xE000 <= address && address < 0xFE00 {

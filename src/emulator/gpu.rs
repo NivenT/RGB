@@ -170,7 +170,7 @@ impl Gpu {
 			let line = mem.rb(0xFF44);
 
 			let y_size = if large_sprites {16} else {8};
-			if y_pos <= line && line < y_pos + y_size {
+			if y_pos <= line && line < y_pos + y_size && x_pos < 160 {
 				let sprite_line = line - y_pos;
 				let address = 0x8000 + sprite_loc as u16*16 + sprite_line as u16*2;
 				let data = [mem.rb(address), mem.rb(address+1)];
