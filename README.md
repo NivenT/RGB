@@ -1,6 +1,12 @@
 # RGB
 RGB (Rust Game Boy) is a simple emulator for the original game boy.
 
+<img src="https://github.com/NivenT/RGB/blob/master/screenshots/img0.png" alt="Screenshot" width="400" height="300"/>
+<img src="https://github.com/NivenT/RGB/blob/master/screenshots/img1.png" alt="Screenshot" width="400" height="300"/>
+<img src="https://github.com/NivenT/RGB/blob/master/screenshots/img2.png" alt="Screenshot" width="400" height="300"/>
+<img src="https://github.com/NivenT/RGB/blob/master/screenshots/img3.png" alt="Screenshot" width="400" height="300"/>
+<img src="https://github.com/NivenT/RGB/blob/master/screenshots/img4.png" alt="Screenshot" width="800" height="200"/>
+
 ##How to Build
 Install [Rust](https://www.rust-lang.org/en-US/) and run the following commands in a terminal
 ````
@@ -41,11 +47,17 @@ Certain keys are special, and the emulator has built in responses for when they 
 
 ###Memory
 - [X] 32KB ROMs without banking
-- [ ] ROM banking
-- [ ] RAM banking
+- [X] MBC1 memory  banking
+- [ ] MBC2 memory  banking
+- [ ] MBC3 memory  banking
 
 ###Input
 - [X] Accepts input
 
 ###Sound
 - [ ] Produces sound
+
+##Known Bugs/Issues
+* Dr. Mario freezes on the screen after the title screen
+* Super Mario Land runs at 50% speed
+* Time in Super Mario Land never goes below 460
