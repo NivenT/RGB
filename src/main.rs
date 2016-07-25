@@ -56,10 +56,14 @@ fn main() {
         if start.to(PreciseTime::now()).num_seconds() >= 1 {
             //Gameboy should execute 4194304 cycles each second
             //println!("{} cycles emulated in the last second", cycles_per_second);
+            let acc = 100f64*(cycles_per_second as f64/4194304f64);
+            let title = if state.paused {"Paused"} else {"Rust Gameboy"};
+            let _ = display.window_mut().set_title(&format!("{} ({:.2}%)", title, acc));
+
             cycles_per_second = 0;
             start = PreciseTime::now();
         }
-        handle_input(&mut event_pump, &mut display, &mut state, &mut emu);
+        handle_input(&mut event_pump, &mut state, &mut emu);
         //SDL Automatically caps FPS to the refresh rate of the screen
         //This makes sure enough cycles are emulated to keep the emulator
         //consistent with a real gameboy (assuming 60 FPS)

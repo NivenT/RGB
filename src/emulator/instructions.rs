@@ -194,7 +194,7 @@ macro_rules! dec {
     ($reg:ident, mem) => {
     	|emu, _| {
     		unsafe {
-    			let val = emu.mem.rb(*emu.regs.$reg())-1;
+    			let val = emu.mem.rb(*emu.regs.$reg()).wrapping_sub(1);
     			emu.mem.wb(*emu.regs.$reg(), val);
 
     			emu.regs.update_flags(ZERO_FLAG, val == 0);

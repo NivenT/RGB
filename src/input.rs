@@ -6,8 +6,6 @@ use sdl2::EventPump;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
-use glium_sdl2::SDL2Facade;
-
 use programstate::*;
 use emulator::emulator::Emulator;
 
@@ -21,7 +19,7 @@ fn prompt_for_val<T: FromStr>(prompt: &str) -> Result<T, T::Err> {
     input.lines().last().unwrap().trim().parse()
 }
 
-pub fn handle_input(events: &mut EventPump, disp: &mut SDL2Facade, state: &mut ProgramState, emu: &mut Emulator) {
+pub fn handle_input(events: &mut EventPump, state: &mut ProgramState, emu: &mut Emulator) {
 	for event in events.poll_iter() {
         match event {
             Event::Quit{..} => {
@@ -29,7 +27,7 @@ pub fn handle_input(events: &mut EventPump, disp: &mut SDL2Facade, state: &mut P
             },
             Event::KeyDown{keycode: key, ..} => {
             	if let Some(key) = key {
-                    handle_keydown(key, disp, state, emu);
+                    handle_keydown(key, state, emu);
                     emu.update_keys(key as u8, true);
             	}
             },
@@ -43,18 +41,11 @@ pub fn handle_input(events: &mut EventPump, disp: &mut SDL2Facade, state: &mut P
     }
 }
 
-fn handle_keydown(key: Keycode, disp: &mut SDL2Facade, state: &mut ProgramState, emu: &Emulator) {
+fn handle_keydown(key: Keycode, state: &mut ProgramState, emu: &Emulator) {
 	match key {
 		Keycode::D => {state.debug = !state.debug},
         Keycode::F => {state.adv_frame = true},
-        Keycode::P => {
-            state.paused = !state.paused;
-            if state.paused {
-                let _ = disp.window_mut().set_title("Paused");
-            } else {
-                let _ = disp.window_mut().set_title("Rust Gameboy");
-            }
-        },
+        Keycode::P => {state.paused = !state.paused},
         Keycode::M => {
             //Prompt use for range of memory and then dump memory
             let start: u16 = prompt_for_val("Enter the starting memory address: ").unwrap();

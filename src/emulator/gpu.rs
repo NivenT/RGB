@@ -125,8 +125,8 @@ impl Gpu {
 		let y_offset = if using_window {line - window_y} else {scroll_y.wrapping_add(line)};
 		let tile_row = y_offset/8;
 
-		for pixel in 0..160 {
-			let mut x_offset = pixel + scroll_x;
+		for pixel in 0..160u8 {
+			let mut x_offset = pixel.wrapping_add(scroll_x);
 			if using_window && pixel >= window_x {
 				x_offset = pixel - window_x;
 			}
@@ -186,7 +186,7 @@ impl Gpu {
 					let color = Color::from_palette(color_id, mem.rb(palette_address));
 
 					if color != Color::WHITE {
-						let pixel = x_pos+7-color_bit;
+						let pixel = (x_pos+7-color_bit)%160;
 						self.screen_data[line as usize][pixel as usize] = color;
 					}
 				}
