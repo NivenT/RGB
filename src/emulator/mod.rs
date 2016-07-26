@@ -10,3 +10,4 @@ mod timers;
 mod mbc;
 mod cartridge;
 mod mbc1;
+mod mbc2;

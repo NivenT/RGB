@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::Read;
 
-//Simply cartridge with no memory banking
 pub struct Mbc1 {
 	rom:		[u8; 0x200000], //2MB ROM
 	ram:		[u8; 0x008000], //32KB RAM
@@ -13,7 +12,7 @@ pub struct Mbc1 {
 
 impl Mbc1 {
 	pub fn new() -> Mbc1 {
-		Mbc1{rom: [0; 0x200000], ram: [0; 0x008000], rom_bank: 0, ram_bank: 0, 
+		Mbc1{rom: [0; 0x200000], ram: [0; 0x008000], rom_bank: 1, ram_bank: 0, 
 				using_ram: false, mode: false}
 	}
 	pub fn rb(&self, address: usize) -> u8 {
@@ -23,7 +22,7 @@ impl Mbc1 {
 			self.rom[(self.rom_bank as usize-1)*0x4000 + address]
 		} else if 0xA000 <= address && address < 0xC000 {
 			if self.using_ram {
-				self.ram[self.ram_bank as usize*0x1000 + address] 
+				self.ram[self.ram_bank as usize*0x2000 + address%0x2000] 
 			} else {
 				0
 			}
@@ -55,7 +54,7 @@ impl Mbc1 {
 			}
 		} else if 0xA000 <= address && address < 0xC000 {
 			if self.using_ram {
-				self.ram[self.ram_bank as usize*0x1000 + address] = val;
+				self.ram[self.ram_bank as usize*0x2000 + address%0x2000] = val;
 			}
 		} else {
 			panic!("Attempting to write to invalid MBC1 memory address: {:#X}", address);
