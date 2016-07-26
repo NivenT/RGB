@@ -48,8 +48,9 @@ Certain keys are special, and the emulator has built in responses for when they 
 ###Memory
 - [X] 32KB ROMs without banking
 - [X] MBC1 memory  banking
-- [ ] MBC2 memory  banking
-- [ ] MBC3 memory  banking
+- [X] MBC2 memory  banking
+- [X] MBC3 memory  banking
+- [ ] Can save games
 
 ###Input
 - [X] Accepts input
@@ -60,3 +61,5 @@ Certain keys are special, and the emulator has built in responses for when they 
 ##Known Bugs/Issues
 * Dr. Mario freezes on the screen after the title screen
 * Time in Super Mario Land never goes below 460
+* Emulator is slow at times
+* Overlapping sprites are not always displayed correctly

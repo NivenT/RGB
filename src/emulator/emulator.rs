@@ -152,6 +152,7 @@ impl Emulator {
 		let cycles = if !self.halted && !self.stopped {self.emulate_cycle(state)} else {40};
 		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16);
 		self.timers.step(&mut self.mem, &self.interrupts, cycles as i16);
+		self.mem.cart.step(cycles as i16);
 		if self.interrupts.step(&mut self.mem, &mut self.regs) {
 			self.halted = false;
 		}
