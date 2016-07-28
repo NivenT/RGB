@@ -183,12 +183,15 @@ impl Gpu {
 					};
 
 					let palette_address = if (attributes & (1 << 4)) > 0 {0xFF49} else {0xFF48};
+					let behind_bg = attributes & (1 << 7) > 0;
 					let color = Color::from_palette(color_id, mem.rb(palette_address));
 
 					if color != Color::WHITE {
 						let pixel = if x_flip {x_pos+color_bit} else {x_pos+7-color_bit};
 						let pixel = pixel%160;
-						self.screen_data[line as usize][pixel as usize] = color;
+						if !behind_bg || self.screen_data[line as usize][pixel as usize] == Color::WHITE {
+							self.screen_data[line as usize][pixel as usize] = color;
+						} 
 					}
 				}
 			}
