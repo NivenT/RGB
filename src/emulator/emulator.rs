@@ -14,7 +14,6 @@ use emulator::rom_info::*;
 
 use super::super::programstate::*;
 
-#[allow(dead_code)]
 pub struct Emulator {
 	clock:			u64,
 	interrupts:		InterruptManager,
@@ -62,7 +61,6 @@ impl fmt::Debug for Emulator {
 	}
 }
 
-#[allow(dead_code)]
 impl Emulator {
 	pub fn new() -> Emulator {
 		Emulator{clock: 0, mem: Memory::new(), gpu: Gpu::new(), controls: [0; 8], 
@@ -74,13 +72,9 @@ impl Emulator {
 			self.controls[i] = controls[i];
 		}
 	}
-	#[allow(unused_variables)]
 	pub fn load_game(&mut self, path: String) {
 		println!("Loading game from \"{}\"...", path);
 		let mut game_file = File::open(path).unwrap();
-		
-		//let size = game_file.read(&mut self.mem.cart).unwrap();
-		//println!("Game has a size of {} bytes ({} KiB)", size, size/1024);
 		
 		let mut header = [0; 0x150];
 		let _ = game_file.read(&mut header).unwrap();
@@ -88,14 +82,7 @@ impl Emulator {
 
 		let title = String::from_utf8_lossy(&header[0x134..0x144]);
 		println!("The title of the game is {}", title);
-		/*
-		let sgb_flag = header[0x146];
-		if sgb_flag > 0 {
-			println!("{} supports Super GameBoy functions", title);
-		} else {
-			println!("{} does not support Super GameBoy functions", title);
-		}
-		*/
+		
 		let cartridge_type = header[0x147];
 		let cartridge_type = match CartridgeType::from_code(cartridge_type) {
 			Some(t) => t,
@@ -120,14 +107,6 @@ impl Emulator {
 		};
 		println!("{} has {} bytes ({} KB) of external RAM", title, ram_size, ram_size/1024);
 
-		/*
-		let destination_code = header[0x14A];
-		if destination_code > 0 {
-			println!("This is the non-Japanese version of {}", title);
-		} else {
-			println!("This is the Japanese version of {}", title);
-		}
-		*/
 		println!("Successfully loaded {}\n", title);
 	}
 	pub fn enable_interrupts(&mut self) {

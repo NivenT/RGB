@@ -23,19 +23,16 @@ impl Color {
 	}
 }
 
-#[allow(dead_code)]
 pub struct Gpu {
 	//Screen is 160x144 pixels
 	screen_data:	[[Color; 160]; 144],
 	//scanline counter
-	sl_count:		i16,
-	//Background Palette Register
-	bp:				u8,
+	sl_count:		i16
 }
 
 impl Gpu {
 	pub fn new() -> Gpu {
-	    Gpu{screen_data: [[Color::BLACK; 160]; 144], sl_count: 0, bp: 0}
+	    Gpu{screen_data: [[Color::BLACK; 160]; 144], sl_count: 0}
 	}
 	pub fn get_screen(&self) -> &[[Color; 160]; 144] {
 		&self.screen_data
@@ -100,7 +97,6 @@ impl Gpu {
 	fn is_lcd_enabled(&self, mem: &Memory) -> bool {
 		(mem.rb(0xFF40) & (1 << 7)) > 0
 	}
-
 	fn draw_line(&mut self, mem: &mut Memory) {
 		let control = mem.rb(0xFF40);
 		if (control & 1) > 0 {
@@ -159,7 +155,7 @@ impl Gpu {
 		let control = mem.rb(0xFF40);
 		let large_sprites = (control & (1 << 2)) > 0;
 
-		for sprite in 0..40 {
+		for sprite in (0..40).rev() {
 			let offset = sprite*4;
 			let (x_pos, y_pos) = (mem.rb(0xFE00+offset+1).wrapping_sub(8),
 								  mem.rb(0xFE00+offset).wrapping_sub(16));
@@ -188,8 +184,7 @@ impl Gpu {
 
 					if color != Color::WHITE {
 						let pixel = if x_flip {x_pos+color_bit} else {x_pos+7-color_bit};
-						let pixel = pixel%160;
-						if !behind_bg || self.screen_data[line as usize][pixel as usize] == Color::WHITE {
+						if pixel < 160 && (!behind_bg || self.screen_data[line as usize][pixel as usize] == Color::WHITE) {
 							self.screen_data[line as usize][pixel as usize] = color;
 						} 
 					}

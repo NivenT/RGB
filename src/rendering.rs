@@ -14,6 +14,8 @@ struct Vertex {
     uv:     [f32; 2]
 }
 
+implement_vertex!(Vertex, pos, uv);
+
 pub struct Renderer {
 	vert_buffer: 	VertexBuffer<Vertex>,
 	index_buffer:	IndexBuffer<u8>,
@@ -24,8 +26,6 @@ pub struct Renderer {
 
 impl Renderer {
 	pub fn new(display: &SDL2Facade, white: u32, black: u32) -> Renderer {
-		implement_vertex!(Vertex, pos, uv);
-
 		let mut vert_shader_src = String::new();
 		let mut frag_shader_src = String::new();
 
