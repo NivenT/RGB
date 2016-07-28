@@ -18,9 +18,6 @@ impl InterruptManager {
 		if self.ime {
 			for i in 0..5 {
 				if (mem.rb(0xFFFF) & mem.rb(0xFF0F) & (1 << i)) > 0 {
-					if i == 4 {
-						panic!("Button pressed");
-					}
 					//Interrupt both requested and enabled
 					self.ime = false;
 					let request = mem.rb(0xFF0F);
