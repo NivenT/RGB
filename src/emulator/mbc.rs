@@ -4,6 +4,7 @@ use emulator::cartridge::Cartridge;
 use emulator::mbc1::Mbc1;
 use emulator::mbc2::Mbc2;
 use emulator::mbc3::Mbc3;
+use emulator::mbc5::Mbc5;
 
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug)]
@@ -20,6 +21,7 @@ impl CartridgeType {
 			1...3 	=> Some(CartridgeType::MBC1),
 			5 | 6	=> Some(CartridgeType::MBC2),
 			15...19	=> Some(CartridgeType::MBC3),
+			25...30 => Some(CartridgeType::MBC5),
 			_ 		=> None
 		}
 	}
@@ -30,7 +32,8 @@ pub enum Mbc {
 	NONE(Cartridge),
 	MBC1(Mbc1),
 	MBC2(Mbc2),
-	MBC3(Mbc3)
+	MBC3(Mbc3),
+	MBC5(Mbc5)
 }
 
 impl Mbc {
@@ -40,6 +43,7 @@ impl Mbc {
 			CartridgeType::MBC1 	=> Mbc::MBC1(Mbc1::new()),
 			CartridgeType::MBC2 	=> Mbc::MBC2(Mbc2::new()),
 			CartridgeType::MBC3 	=> Mbc::MBC3(Mbc3::new()),
+			CartridgeType::MBC5 	=> Mbc::MBC5(Mbc5::new()),
 			_						=> panic!("Unimplemented cartridge type: {:?}", cartridge_type)
 		}
 	}
@@ -49,7 +53,8 @@ impl Mbc {
 			Mbc::NONE(ref cart) => cart.rb(address),
 			Mbc::MBC1(ref cart) => cart.rb(address),
 			Mbc::MBC2(ref cart) => cart.rb(address),
-			Mbc::MBC3(ref cart) => cart.rb(address)
+			Mbc::MBC3(ref cart) => cart.rb(address),
+			Mbc::MBC5(ref cart) => cart.rb(address)
 		}
 	}
 	pub fn wb(&mut self, address: usize, val: u8) {
@@ -58,7 +63,8 @@ impl Mbc {
 			Mbc::NONE(ref mut cart) => cart.wb(address, val),
 			Mbc::MBC1(ref mut cart) => cart.wb(address, val),
 			Mbc::MBC2(ref mut cart) => cart.wb(address, val),
-			Mbc::MBC3(ref mut cart) => cart.wb(address, val)
+			Mbc::MBC3(ref mut cart) => cart.wb(address, val),
+			Mbc::MBC5(ref mut cart) => cart.wb(address, val)
 		}
 	}
 	pub fn load_game(&mut self, game_file: &mut File) -> usize {
@@ -67,7 +73,8 @@ impl Mbc {
 			Mbc::NONE(ref mut cart) => cart.load_game(game_file),
 			Mbc::MBC1(ref mut cart) => cart.load_game(game_file),
 			Mbc::MBC2(ref mut cart) => cart.load_game(game_file),
-			Mbc::MBC3(ref mut cart) => cart.load_game(game_file)
+			Mbc::MBC3(ref mut cart) => cart.load_game(game_file),
+			Mbc::MBC5(ref mut cart) => cart.load_game(game_file)
 		}
 	}
 	pub fn step(&mut self, cycles: i16) {

@@ -99,7 +99,7 @@ impl Emulator {
 		let cartridge_type = header[0x147];
 		let cartridge_type = match CartridgeType::from_code(cartridge_type) {
 			Some(t) => t,
-			None  	=> panic!("Unknown cartridge type: {:?}", cartridge_type)
+			None  	=> panic!("Unknown cartridge type: {:#X}", cartridge_type)
 		};
 		println!("The cartridge type is {:?}", cartridge_type);
 
