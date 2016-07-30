@@ -898,12 +898,22 @@ fn jr_nz(emu: &mut Emulator, operand: u16) -> u64 {
 //Not 100% sure this is implemented correctly
 fn daa(emu: &mut Emulator, _: u16) -> u64 {
     let mut val = *emu.regs.a();
-    if (val & 0x0F) > 0x09 || emu.regs.get_flag(HALFCARRY_FLAG) {
-        val = val.wrapping_add(0x06);
-    }
-    if (val & 0xF0) > 0x90 || emu.regs.get_flag(CARRY_FLAG) {
-        val = val.wrapping_add(0x60);
-        emu.regs.set_flags(CARRY_FLAG);
+    if emu.regs.get_flag(NEGATIVE_FLAG) {
+        if emu.regs.get_flag(HALFCARRY_FLAG) && !emu.regs.get_flag(CARRY_FLAG) {
+            val = val.wrapping_add(0xFA);
+        } else if !emu.regs.get_flag(HALFCARRY_FLAG) && emu.regs.get_flag(CARRY_FLAG) {
+            val = val.wrapping_add(0xA0);
+        } else if emu.regs.get_flag(HALFCARRY_FLAG) && emu.regs.get_flag(CARRY_FLAG) {
+            val = val.wrapping_add(0x9A);
+        }
+    } else {
+        if (val & 0x0F) > 0x09 || emu.regs.get_flag(HALFCARRY_FLAG) {
+            val = val.wrapping_add(0x06);
+        }
+        if (val & 0xF0) > 0x90 || emu.regs.get_flag(CARRY_FLAG) {
+            val = val.wrapping_add(0x60);
+            emu.regs.set_flags(CARRY_FLAG);
+        }
     }
     *emu.regs.a() = val;
 

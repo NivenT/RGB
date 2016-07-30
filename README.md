@@ -60,6 +60,5 @@ Certain keys are special, and the emulator has built in responses for when they 
 
 ##Known Bugs/Issues
 * Dr. Mario freezes on the screen after the title screen
-* Time in Super Mario Land never goes below 460
 * Emulator is slow at times
 * Overlapping sprites are not always displayed correctly
