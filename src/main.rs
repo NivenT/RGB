@@ -23,7 +23,8 @@ fn main() {
     let mut state = ProgramState::new();
 
 	let config = Ini::from_file("settings.ini").unwrap();
-	let game_path: String = config.get("game", "path").unwrap();
+	let game_path: String = config.get("system", "game").unwrap();
+    let bios_path: String = config.get("system", "bios").unwrap();
 	let buttons = ["right", "left", "up", "down", "a", "b", "select", "start"];
 	let controls: Vec<u8> = buttons.iter()
 								   .map(|a| config.get("controls", a).unwrap())
@@ -36,7 +37,8 @@ fn main() {
 
 	let mut emu = Emulator::new();
 	emu.set_controls(controls);
-    emu.load_game(game_path.clone());
+    emu.load_bios(bios_path);
+    emu.load_game(game_path);
 
 	let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();

@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
-//Simply cartridge with no memory banking
+//Simple cartridge with no memory banking
 pub struct Cartridge {
 	rom:	[u8; 0x8000] //32KB ROM
 }

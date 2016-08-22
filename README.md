@@ -16,7 +16,7 @@ cargo build
 ````
 
 ##How to Use
-Before running the program, make sure to setup the settings.ini file. This is where you supply a path to the game to be loaded, tell the emulator which keyboard keys map to which gameboy buttons, and specify what hex colors the emulator should use for graphics. RGB uses SDL2 for window management and input handling, so check [here](https://github.com/AngryLawyer/rust-sdl2/blob/master/sdl2-sys/src/keycode.rs) for the values of each key.
+Before running the program, make sure to setup the settings.ini file. This is where you supply a path to the game to be loaded, tell the emulator which keyboard keys map to which gameboy buttons, and specify what hex colors the emulator should use for graphics. You can also supply a path to a binary file containg the gameboy BIOS. Even if you do not have a copy of the gameboy's BIOS (you supply a path to a nonexistent file), the emulator will still run. RGB uses SDL2 for window management and input handling, so check [here](https://github.com/AngryLawyer/rust-sdl2/blob/master/sdl2-sys/src/keycode.rs) for the values of each key.
 
 Once settings.ini has been set up, start the program by running the following command from the project's main directory
 ```
