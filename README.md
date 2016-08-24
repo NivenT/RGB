@@ -1,5 +1,5 @@
 # RGB
-RGB (Rust Game Boy) is a simple emulator for the original game boy.
+RGB (Rust Game Boy) is a simple emulator for the original game boy and the color game boy.
 
 <img src="https://github.com/NivenT/RGB/blob/master/screenshots/img0.png" alt="Screenshot" width="400" height="300"/>
 <img src="https://github.com/NivenT/RGB/blob/master/screenshots/img1.png" alt="Screenshot" width="400" height="300"/>
@@ -44,12 +44,15 @@ Certain keys are special, and the emulator has built in responses for when they 
 - [X] Can display tiles
 - [X] Can display sprites
 - [X] Flips sprites
+- [ ] CGB tiles
+- [ ] CGB sprites
 
 ###Memory
 - [X] 32KB ROMs without banking
-- [X] MBC1 memory  banking
-- [X] MBC2 memory  banking
-- [X] MBC3 memory  banking
+- [X] MBC1 memory banking
+- [X] MBC2 memory banking
+- [X] MBC3 memory banking
+- [X] MBC5 memory banking
 - [ ] Can save games
 
 ###Input
@@ -62,3 +65,4 @@ Certain keys are special, and the emulator has built in responses for when they 
 * Dr. Mario freezes on the screen after the title screen
 * Emulator is slow at times
 * Overlapping sprites are not always displayed correctly
+* CGB support is still a work in progress, and the code for it is messy
