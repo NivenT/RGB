@@ -19,6 +19,7 @@ pub struct Emulator {
 	interrupts:		InterruptManager,
 	controls: 		[u8; 8],
 	timers:			Timers,
+	cgb_mode:		bool,
 
 	pub mem:		Memory,
 	pub gpu:		Gpu,
@@ -65,7 +66,7 @@ impl Emulator {
 	pub fn new() -> Emulator {
 		Emulator{clock: 0, mem: Memory::new(), gpu: Gpu::new(), controls: [0; 8], 
 					regs: Registers::new(), halted: false, timers: Timers::new(),
-					interrupts: InterruptManager::new(), stopped: false}
+					interrupts: InterruptManager::new(), stopped: false, cgb_mode: false}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
 		for i in 0..8 {
@@ -126,6 +127,7 @@ impl Emulator {
 				self.mem.wb(0xFFFF, 0x00);
 
 				self.mem.finished_with_bios();
+				self.cgb_mode = *self.regs.a() == 0x11;
 				println!("Emulator initialized\n");
 			}
 		}
@@ -166,6 +168,9 @@ impl Emulator {
 		println!("{} has {} bytes ({} KB) of external RAM", title, ram_size, ram_size/1024);
 
 		println!("Successfully loaded {}\n", title);
+
+		self.cgb_mode = header[0x143] == 0xC0; //Could have wrong value if CGB bios are used and header[0x143] == 0x80 (e.g. Pokemon Silver)
+		println!("Emulator running in {}CGB mode", if self.cgb_mode {""} else {"Non-"});
 	}
 	pub fn enable_interrupts(&mut self) {
 		self.interrupts.ime = true;
@@ -187,7 +192,7 @@ impl Emulator {
 	}
 	pub fn step(&mut self, state: &mut ProgramState) -> u64 {
 		let cycles = if !self.halted && !self.stopped {self.emulate_cycle(state)} else {40};
-		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16);
+		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16, self.cgb_mode);
 		self.timers.step(&mut self.mem, &self.interrupts, cycles as i16);
 		self.mem.cart.step(cycles as i16);
 		if self.interrupts.step(&mut self.mem, &mut self.regs) {

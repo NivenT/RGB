@@ -59,11 +59,16 @@ impl Renderer {
 	    				.flat_map(|row| {
 	    					row.into_iter()
 	    					   .map(|&col| {
-	    					   		let mix = col as u8 as f32/255f32;
-	    					   		let (white, black) = (self.white, self.black);
-	    					   		((white.0*mix + black.0*(1f32-mix)) as u8,
-	    					   		 (white.1*mix + black.1*(1f32-mix)) as u8,
-	    					   		 (white.2*mix + black.2*(1f32-mix)) as u8)
+	    					   		match col {
+	    					   			Color::CGB(red, green ,blue) => (red, green, blue),
+	    					   			_ => {
+	    					   				let mix = col.to_f32().unwrap()/255f32;
+			    					   		let (white, black) = (self.white, self.black);
+			    					   		((white.0*mix + black.0*(1f32-mix)) as u8,
+			    					   		 (white.1*mix + black.1*(1f32-mix)) as u8,
+			    					   		 (white.2*mix + black.2*(1f32-mix)) as u8)
+	    					   			}
+	    					   		}
 	    					   })
 	    				})
 	    				.collect::<Vec<_>>();

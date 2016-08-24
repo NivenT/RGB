@@ -7,9 +7,21 @@ const SCANLINE_MODE3_OVER: i16 = 456-80-172;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Color{WHITE = 255, LIGHT_GRAY = 192, DARK_GRAY = 96, BLACK = 0}
+pub enum Color {
+	WHITE , LIGHT_GRAY , DARK_GRAY, BLACK,
+	CGB(u8, u8, u8)
+}
 
 impl Color {
+	pub fn to_f32(&self) -> Option<f32> {
+		match *self {
+			Color::WHITE => Some(255f32),
+			Color::LIGHT_GRAY => Some(192f32),
+			Color::DARK_GRAY => Some(96f32),
+			Color::BLACK => Some(0f32),
+			_ => None,
+		}
+	}
 	fn from_palette(id: u8, palette: u8) -> Color {
 		let (hi, lo) = (2*id+1, 2*id);
 		let color = ((palette & (1 << hi)) >> (hi-1)) | ((palette & (1 << lo)) >> lo);
@@ -20,6 +32,21 @@ impl Color {
 			3 => Color::BLACK,
 			_ => panic!("Invalid color: {}", color)
 		}
+	}
+	fn from_cgb_palette(id: u8, number: u8, mem: &mut Memory) -> Color {
+		let index = (8*number + 2*id) as usize;
+		let data = mem.read_bgpn(index) as u16 | (mem.read_bgpn(index+1) as u16) << 8;
+		let (red, green, blue) = (
+			data & 0x1F,
+			(data & 0x3E0) >> 5,
+			(data & 0x7C00) >> 10
+		);
+
+		let scale = (0xFF as f32)/(0x1F as f32);
+		//println!("scale = {}", scale);
+		Color::CGB((red as f32 * scale) as u8,
+				   (green as f32 * scale) as u8,
+				   (blue as f32 * scale) as u8)
 	}
 }
 
@@ -40,7 +67,7 @@ impl Gpu {
 	pub fn get_scanline_count(&self) -> i16 {
 		self.sl_count
 	}
-	pub fn step(&mut self, mem: &mut Memory, im: &InterruptManager, cycles: i16) {
+	pub fn step(&mut self, mem: &mut Memory, im: &InterruptManager, cycles: i16, cgb_mode: bool) {
 		self.set_lcd_status(mem, im);
 		if self.is_lcd_enabled(mem) {
 			self.sl_count -= cycles;
@@ -52,7 +79,7 @@ impl Gpu {
 				if line == 144 {
 					im.request_interrupt(mem, 0);
 				} else if line < 144 {
-					self.draw_line(mem);
+					self.draw_line(mem, cgb_mode);
 				}
 			}
 		}
@@ -97,16 +124,16 @@ impl Gpu {
 	fn is_lcd_enabled(&self, mem: &Memory) -> bool {
 		(mem.rb(0xFF40) & (1 << 7)) > 0
 	}
-	fn draw_line(&mut self, mem: &mut Memory) {
+	fn draw_line(&mut self, mem: &mut Memory, cgb_mode: bool) {
 		let control = mem.rb(0xFF40);
 		if (control & 1) > 0 {
-			self.draw_background(mem);
+			self.draw_background(mem, cgb_mode);
 		}
 		if (control & 2) > 0 {
-			self.draw_sprites(mem);
+			self.draw_sprites(mem, cgb_mode);
 		}
 	}
-	fn draw_background(&mut self, mem: &mut Memory) {
+	fn draw_background(&mut self, mem: &mut Memory, cgb_mode: bool) {
 		let (scroll_y, scroll_x) = (mem.rb(0xFF42), mem.rb(0xFF43));
 		let (window_y, window_x) = (mem.rb(0xFF4A), mem.rb(0xFF4B).wrapping_sub(7));
 
@@ -137,9 +164,10 @@ impl Gpu {
 			};
 			let tile_line = (y_offset%8) as u16;
 
-			let tile_data = [mem.rb(tile_loc+tile_line*2), mem.rb(tile_loc+tile_line*2+1)];
+			let tile_data = [mem.read_vram0(tile_loc+tile_line*2), 
+							 mem.read_vram0(tile_loc+tile_line*2+1)];
 			let color_bit = 7 - x_offset%8;
-			//There has to be a way to do this in one line without the if
+
 			let color_id = if color_bit == 0 {
 				((tile_data[1] & 1) << 1) | (tile_data[0] & 1)
 			} else {
@@ -147,11 +175,17 @@ impl Gpu {
 				((tile_data[0] & (1 << color_bit)) >> color_bit)
 			};
 
-			self.screen_data[line as usize][pixel as usize] = 
-				Color::from_palette(color_id, mem.rb(0xFF47));
+			self.screen_data[line as usize][pixel as usize] = if cgb_mode {
+				let tile_attributes = mem.read_vram1(tile_loc);
+
+				let palette_number = tile_attributes & 7;
+				Color::from_cgb_palette(color_id, palette_number, mem)
+			} else {
+				Color::from_palette(color_id, mem.rb(0xFF47))
+			}				
 		}
 	}
-	fn draw_sprites(&mut self, mem: &mut Memory) {
+	fn draw_sprites(&mut self, mem: &mut Memory, cgb_mode: bool) {
 		let control = mem.rb(0xFF40);
 		let large_sprites = (control & (1 << 2)) > 0;
 

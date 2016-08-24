@@ -2,10 +2,12 @@ use emulator::mbc::Mbc;
 
 pub struct Memory {
 	pub cart:		Mbc,
-	pub bios:		Vec<u8>, //Size depends on GB/GBC
+	pub bios:		Vec<u8>, 	//Size depends on GB/GBC
 	
-	mem:			Vec<u8>, //64 KB
-	wram:			Vec<u8>, //32 KB
+	mem:			Vec<u8>, 	//64 KB
+	wram:			Vec<u8>, 	//32 KB (8 4KB banks)
+	vram:			Vec<u8>, 	//16 KB (2 8KB banks)
+	bgp:			[u8; 64], 	//Background Palette Memory
 	wram_bank:		u8,
 	key_state:		u8,
 	running_bios:	bool
@@ -13,8 +15,17 @@ pub struct Memory {
 
 impl Memory {
 	pub fn new() -> Memory {
-		Memory{mem: vec![0; 0x10000], wram: vec![0; 0x08000], bios: Vec::new(), cart: Mbc::EMPTY, 
-				wram_bank: 1, key_state: 0xFF, running_bios: true}
+		Memory {
+			mem: vec![0; 0x10000], 
+			wram: vec![0; 0x8000], 
+			vram: vec![0; 0x4000],
+			bgp: [0; 64], 
+			bios: Vec::new(), 
+			cart: Mbc::EMPTY, 
+			wram_bank: 1, 
+			key_state: 0xFF, 
+			running_bios: true
+		}
 	}
 	pub fn finished_with_bios(&mut self) {
 		self.running_bios = false;
@@ -26,6 +37,8 @@ impl Memory {
 			if self.running_bios {self.bios[address]} else {self.cart.rb(address)}
 		} else if address < 0x8000 {
 			self.cart.rb(address)
+		} else if 0x8000 <= address && address < 0xA000 {
+			self.vram[self.rb(0xFF4F) as usize*0x2000 + address%0x8000]
 		} else if 0xA000 <= address && address < 0xC000 {
 			self.cart.rb(address)
 		} else if 0xC000 <= address && address < 0xD000 {
@@ -38,6 +51,8 @@ impl Memory {
 				0x20 => 0x20 | (self.key_state & 0xF),
 				_ => 0
 			}
+		} else if 0xFF69 == address {
+			self.bgp[(self.rb(0xFF68) & 0x3F) as usize]
 		} else {
 			self.mem[address]
 		}
@@ -53,6 +68,9 @@ impl Memory {
 			return;
 		} else if address < 0x8000 {
 			return self.cart.wb(address, val);
+		} else if 0x8000 <= address && address < 0xA000 {
+			let bank = self.rb(0xFF4F);
+			self.vram[bank as usize*0x2000 + address%0x8000] = val;
 		} else if 0xA000 <= address && address < 0xC000 {
 			return self.cart.wb(address, val);
 		} else if 0xC000 <= address && address < 0xD000 {
@@ -76,6 +94,14 @@ impl Memory {
 				self.wb(0xFE00 + i, copy_val);
 			}
 			return;
+		} else if 0xFF4F == address {
+			return self.mem[address] = val & 1;
+		} else if 0xFF69 == address { //Background Palette Data
+			self.bgp[(self.rb(0xFF68) & 0x3F) as usize] = val;
+			if (self.rb(0xFF68) >> 7) > 0 {
+				let old_val = self.rb(0xFF68);
+				self.wb(0xFF68, (old_val + 1) | (1 << 7));
+			}
 		} else if 0xFF70 == address { //select wram bank
 			self.wram_bank = if (val & 7) == 0 {1} else {val & 7};
 		}
@@ -97,5 +123,14 @@ impl Memory {
 		} else {
 			self.key_state |= 1 << key;
 		}
+	}
+	pub fn read_vram0(&mut self, address: u16) -> u8 {
+		self.vram[(address%0x8000) as usize]
+	}
+	pub fn read_vram1(&mut self, address: u16) -> u8 {
+		self.vram[(0x2000 + address%0x8000) as usize]
+	}
+	pub fn read_bgpn(&mut self, n: usize) -> u8 {
+		self.bgp[n]
 	}
 }
