@@ -2,8 +2,8 @@ use std::fs::File;
 use std::io::Read;
 
 pub struct Mbc1 {
-	rom:		[u8; 0x200000], //2MB ROM
-	ram:		[u8; 0x008000], //32KB RAM
+	rom:		Vec<u8>, //2MB ROM
+	ram:		Vec<u8>, //32KB RAM
 	rom_bank:	u8,				
 	ram_bank:	u8,
 	using_ram:	bool,
@@ -12,7 +12,7 @@ pub struct Mbc1 {
 
 impl Mbc1 {
 	pub fn new() -> Mbc1 {
-		Mbc1{rom: [0; 0x200000], ram: [0; 0x008000], rom_bank: 1, ram_bank: 0, 
+		Mbc1{rom: vec![0; 0x200000], ram: vec![0; 0x008000], rom_bank: 1, ram_bank: 0, 
 				using_ram: false, mode: false}
 	}
 	pub fn rb(&self, address: usize) -> u8 {

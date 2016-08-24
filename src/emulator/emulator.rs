@@ -85,7 +85,7 @@ impl Emulator {
 				println!("Manually initializing emulator...");
 
 				unsafe {
-					*self.regs.af() = 0x01B0;
+					*self.regs.af() = 0x11B0; //CGB mode - 0x01B0 for GB
 					*self.regs.bc() = 0x0013;
 					*self.regs.de() = 0x00D8;
 					*self.regs.hl() = 0x014D;

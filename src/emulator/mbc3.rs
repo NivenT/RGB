@@ -4,9 +4,9 @@ use std::io::Read;
 const RTC_RESETS: [u8; 3] = [60, 60, 24];
 
 pub struct Mbc3 {
-	rom:		[u8; 0x200000], //2MB ROM
-	ram:		[u8; 0x008000], //32KB RAM
-	rtc:		[u8; 0x000005], //5 clock registers
+	rom:		Vec<u8>, //2MB ROM
+	ram:		Vec<u8>, //32KB RAM
+	rtc:		[u8; 5], //5 clock registers
 	rom_bank:	u8,				
 	ram_bank:	u8,
 	rtc_reg:	u8,
@@ -20,7 +20,7 @@ pub struct Mbc3 {
 
 impl Mbc3 {
 	pub fn new() -> Mbc3 {
-		Mbc3{rom: [0; 0x200000], ram: [0; 0x008000], rtc: [0; 0x000005],
+		Mbc3{rom: vec![0; 0x200000], ram: vec![0; 0x008000], rtc: [0; 5],
 				rom_bank: 1, ram_bank: 0, rtc_reg: 0,
 				using_ram: false, mode: false,
 				clock: 0, counter: 0, prev_val: 1, using_clk: true}
