@@ -3,6 +3,7 @@ use emulator::mbc::Mbc;
 pub struct Memory {
 	pub cart:		Mbc,
 	pub bios:		Vec<u8>, 	//Size depends on GB/GBC
+	pub cgb_mode: 	bool,
 	
 	mem:			Vec<u8>, 	//64 KB
 	wram:			Vec<u8>, 	//32 KB (8 4KB banks)
@@ -24,7 +25,8 @@ impl Memory {
 			cart: Mbc::EMPTY, 
 			wram_bank: 1, 
 			key_state: 0xFF, 
-			running_bios: true
+			running_bios: true,
+			cgb_mode: false
 		}
 	}
 	pub fn finished_with_bios(&mut self) {
@@ -38,7 +40,8 @@ impl Memory {
 		} else if address < 0x8000 {
 			self.cart.rb(address)
 		} else if 0x8000 <= address && address < 0xA000 {
-			self.vram[self.rb(0xFF4F) as usize*0x2000 + address%0x8000]
+			let bank = if self.cgb_mode {self.rb(0xFF4F)} else {0};
+			self.vram[bank as usize*0x2000 + address%0x8000]
 		} else if 0xA000 <= address && address < 0xC000 {
 			self.cart.rb(address)
 		} else if 0xC000 <= address && address < 0xD000 {
@@ -51,7 +54,7 @@ impl Memory {
 				0x20 => 0x20 | (self.key_state & 0xF),
 				_ => 0
 			}
-		} else if 0xFF69 == address {
+		} else if 0xFF69 == address { //Background Palette Data
 			self.bgp[(self.rb(0xFF68) & 0x3F) as usize]
 		} else {
 			self.mem[address]
@@ -69,7 +72,7 @@ impl Memory {
 		} else if address < 0x8000 {
 			return self.cart.wb(address, val);
 		} else if 0x8000 <= address && address < 0xA000 {
-			let bank = self.rb(0xFF4F);
+			let bank = if self.cgb_mode {self.rb(0xFF4F)} else {0};
 			self.vram[bank as usize*0x2000 + address%0x8000] = val;
 		} else if 0xA000 <= address && address < 0xC000 {
 			return self.cart.wb(address, val);
@@ -87,15 +90,29 @@ impl Memory {
 			self.mem[0xFF04] = 0;
 		} else if 0xFF44 == address { //scanline position
 			panic!("Attempted to overwrite scanline position")
-		} else if 0xFF46 == address { //DMA transfer
+		} else if 0xFF46 == address { //OAM DMA transfer
 			let start = (val as u16) << 8;
 			for i in 0..0xA0 {
 				let copy_val = self.rb(start + i);
 				self.wb(0xFE00 + i, copy_val);
 			}
 			return;
-		} else if 0xFF4F == address {
+		} else if 0xFF4F == address { //VRAM bank
 			return self.mem[address] = val & 1;
+		} else if 0xFF55 == address && self.cgb_mode { //VRAM DMA transfer
+			let source = (self.rb(0xFF52) as u16 | ((self.rb(0xFF51) as u16) << 8)) & 0xFFF0;
+			let dest   = (self.rb(0xFF54) as u16 | ((self.rb(0xFF53) as u16) << 8)) & 0x1FF0;
+			let length = 0x10*((val & 0x7F) as u16+1);
+			if (val & (1 << 7)) == 0 {
+				for i in 0..length {
+					let copy_val = self.rb(source + i);
+					self.wb(dest + i, copy_val);
+				}
+				self.mem[0xFF55] = 0xFF;
+			} else {
+				//H-Blank DMA
+			}
+			return;
 		} else if 0xFF69 == address { //Background Palette Data
 			self.bgp[(self.rb(0xFF68) & 0x3F) as usize] = val;
 			if (self.rb(0xFF68) >> 7) > 0 {
@@ -103,7 +120,7 @@ impl Memory {
 				self.wb(0xFF68, (old_val + 1) | (1 << 7));
 			}
 		} else if 0xFF70 == address { //select wram bank
-			self.wram_bank = if (val & 7) == 0 {1} else {val & 7};
+			self.wram_bank = if (val & 7) == 0 || !self.cgb_mode {1} else {val & 7};
 		}
 		self.mem[address] = val;
 	}
@@ -124,13 +141,10 @@ impl Memory {
 			self.key_state |= 1 << key;
 		}
 	}
-	pub fn read_vram0(&mut self, address: u16) -> u8 {
-		self.vram[(address%0x8000) as usize]
+	pub fn read_vram(&self, address: u16, bank: bool) -> u8 {
+		self.vram[bank as usize*0x2000 + address as usize%0x8000]
 	}
-	pub fn read_vram1(&mut self, address: u16) -> u8 {
-		self.vram[(0x2000 + address%0x8000) as usize]
-	}
-	pub fn read_bgpn(&mut self, n: usize) -> u8 {
+	pub fn read_bgp(&mut self, n: usize) -> u8 {
 		self.bgp[n]
 	}
 }

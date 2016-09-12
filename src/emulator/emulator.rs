@@ -127,7 +127,6 @@ impl Emulator {
 				self.mem.wb(0xFFFF, 0x00);
 
 				self.mem.finished_with_bios();
-				self.cgb_mode = *self.regs.a() == 0x11;
 				println!("Emulator initialized\n");
 			}
 		}
@@ -169,7 +168,8 @@ impl Emulator {
 
 		println!("Successfully loaded {}\n", title);
 
-		self.cgb_mode = header[0x143] == 0xC0; //Could have wrong value if CGB bios are used and header[0x143] == 0x80 (e.g. Pokemon Silver)
+		self.cgb_mode = self.mem.bios.len() != 0x100;
+		self.mem.cgb_mode = self.cgb_mode;
 		println!("Emulator running in {}CGB mode", if self.cgb_mode {""} else {"Non-"});
 	}
 	pub fn enable_interrupts(&mut self) {
@@ -199,7 +199,7 @@ impl Emulator {
 			self.halted = false;
 		}
 
-		if self.regs.pc == 0x100 {
+		if self.regs.pc == self.mem.bios.len() as u16 {
 			self.mem.finished_with_bios();
 		}
 		cycles

@@ -35,7 +35,7 @@ impl Color {
 	}
 	fn from_cgb_palette(id: u8, number: u8, mem: &mut Memory) -> Color {
 		let index = (8*number + 2*id) as usize;
-		let data = mem.read_bgpn(index) as u16 | (mem.read_bgpn(index+1) as u16) << 8;
+		let data = mem.read_bgp(index) as u16 | (mem.read_bgp(index+1) as u16) << 8;
 		let (red, green, blue) = (
 			data & 0x1F,
 			(data & 0x3E0) >> 5,
@@ -43,7 +43,6 @@ impl Color {
 		);
 
 		let scale = (0xFF as f32)/(0x1F as f32);
-		//println!("scale = {}", scale);
 		Color::CGB((red as f32 * scale) as u8,
 				   (green as f32 * scale) as u8,
 				   (blue as f32 * scale) as u8)
@@ -59,7 +58,7 @@ pub struct Gpu {
 
 impl Gpu {
 	pub fn new() -> Gpu {
-	    Gpu{screen_data: [[Color::BLACK; 160]; 144], sl_count: 0}
+	    Gpu{screen_data: [[Color::CGB(0,0,0); 160]; 144], sl_count: 0}
 	}
 	pub fn get_screen(&self) -> &[[Color; 160]; 144] {
 		&self.screen_data
@@ -164,8 +163,15 @@ impl Gpu {
 			};
 			let tile_line = (y_offset%8) as u16;
 
-			let tile_data = [mem.read_vram0(tile_loc+tile_line*2), 
-							 mem.read_vram0(tile_loc+tile_line*2+1)];
+			let tile_attributes = mem.read_vram(tile_loc, true);
+			let tile_data = if cgb_mode {
+				let bank = tile_attributes & (1 << 3) > 0;
+				[mem.read_vram(tile_loc+tile_line*2, bank),
+				 mem.read_vram(tile_loc+tile_line*2+1, bank)]
+			} else {
+				[mem.rb(tile_loc+tile_line*2), mem.rb(tile_loc+tile_line*2+1)]
+			};
+
 			let color_bit = 7 - x_offset%8;
 
 			let color_id = if color_bit == 0 {
@@ -176,8 +182,6 @@ impl Gpu {
 			};
 
 			self.screen_data[line as usize][pixel as usize] = if cgb_mode {
-				let tile_attributes = mem.read_vram1(tile_loc);
-
 				let palette_number = tile_attributes & 7;
 				Color::from_cgb_palette(color_id, palette_number, mem)
 			} else {
