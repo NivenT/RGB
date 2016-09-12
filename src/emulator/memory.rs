@@ -9,6 +9,7 @@ pub struct Memory {
 	wram:			Vec<u8>, 	//32 KB (8 4KB banks)
 	vram:			Vec<u8>, 	//16 KB (2 8KB banks)
 	bgp:			[u8; 64], 	//Background Palette Memory
+	sp:				[u8; 64],	//Sprite Palette Memory
 	wram_bank:		u8,
 	key_state:		u8,
 	running_bios:	bool
@@ -21,6 +22,7 @@ impl Memory {
 			wram: vec![0; 0x8000], 
 			vram: vec![0; 0x4000],
 			bgp: [0; 64], 
+			sp: [0; 64],
 			bios: Vec::new(), 
 			cart: Mbc::EMPTY, 
 			wram_bank: 1, 
@@ -56,6 +58,8 @@ impl Memory {
 			}
 		} else if 0xFF69 == address { //Background Palette Data
 			self.bgp[(self.rb(0xFF68) & 0x3F) as usize]
+		} else if 0xFF6B == address { //Sprite Palette Data
+			self.sp[(self.rb(0xFF6A) & 0x3F) as usize]
 		} else {
 			self.mem[address]
 		}
@@ -119,6 +123,12 @@ impl Memory {
 				let old_val = self.rb(0xFF68);
 				self.wb(0xFF68, (old_val + 1) | (1 << 7));
 			}
+		} else if 0xFF6B == address { //Sprite Palette Data 
+			self.sp[(self.rb(0xFF6A) & 0x3F) as usize] = val;
+			if (self.rb(0xFF6A) >> 7) > 0 {
+				let old_val = self.rb(0xFF6A);
+				self.wb(0xFF6A, (old_val + 1) | (1 << 7));
+			}
 		} else if 0xFF70 == address { //select wram bank
 			self.wram_bank = if (val & 7) == 0 || !self.cgb_mode {1} else {val & 7};
 		}
@@ -144,7 +154,10 @@ impl Memory {
 	pub fn read_vram(&self, address: u16, bank: bool) -> u8 {
 		self.vram[bank as usize*0x2000 + address as usize%0x8000]
 	}
-	pub fn read_bgp(&mut self, n: usize) -> u8 {
+	pub fn read_bgp(&self, n: usize) -> u8 {
 		self.bgp[n]
+	}
+	pub fn read_sp(&self, n: usize) -> u8 {
+		self.sp[n]
 	}
 }

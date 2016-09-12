@@ -22,7 +22,15 @@ impl Color {
 			_ => None,
 		}
 	}
-	fn from_palette(id: u8, palette: u8) -> Color {
+	fn is_white(&self) -> bool {
+		match *self {
+			Color::WHITE => true,
+			Color::CGB(255, 255, 255) => true,
+			_ => false
+		}
+	}
+
+	fn from_gb_palette(id: u8, palette: u8) -> Color {
 		let (hi, lo) = (2*id+1, 2*id);
 		let color = ((palette & (1 << hi)) >> (hi-1)) | ((palette & (1 << lo)) >> lo);
 		match color {
@@ -33,9 +41,23 @@ impl Color {
 			_ => panic!("Invalid color: {}", color)
 		}
 	}
-	fn from_cgb_palette(id: u8, number: u8, mem: &mut Memory) -> Color {
+	fn from_cgb_palette_bgp(id: u8, number: u8, mem: &mut Memory) -> Color {
 		let index = (8*number + 2*id) as usize;
 		let data = mem.read_bgp(index) as u16 | (mem.read_bgp(index+1) as u16) << 8;
+		let (red, green, blue) = (
+			data & 0x1F,
+			(data & 0x3E0) >> 5,
+			(data & 0x7C00) >> 10
+		);
+
+		let scale = (0xFF as f32)/(0x1F as f32);
+		Color::CGB((red as f32 * scale) as u8,
+				   (green as f32 * scale) as u8,
+				   (blue as f32 * scale) as u8)
+	}
+	fn from_cgb_palette_sp(id: u8, number: u8, mem: &mut Memory) -> Color {
+		let index = (8*number + 2*id) as usize;
+		let data = mem.read_sp(index) as u16 | (mem.read_sp(index+1) as u16) << 8;
 		let (red, green, blue) = (
 			data & 0x1F,
 			(data & 0x3E0) >> 5,
@@ -183,9 +205,9 @@ impl Gpu {
 
 			self.screen_data[line as usize][pixel as usize] = if cgb_mode {
 				let palette_number = tile_attributes & 7;
-				Color::from_cgb_palette(color_id, palette_number, mem)
+				Color::from_cgb_palette_bgp(color_id, palette_number, mem)
 			} else {
-				Color::from_palette(color_id, mem.rb(0xFF47))
+				Color::from_gb_palette(color_id, mem.rb(0xFF47))
 			}				
 		}
 	}
@@ -207,7 +229,12 @@ impl Gpu {
 			if y_pos <= line && line < y_pos + y_size {
 				let sprite_line = if y_flip {y_size+y_pos-line-1} else {line - y_pos};
 				let address = 0x8000 + sprite_loc as u16*16 + sprite_line as u16*2;
-				let data = [mem.rb(address), mem.rb(address+1)];
+				let data = if cgb_mode {
+					let bank = attributes & (1 << 3) > 0;
+					[mem.read_vram(address, bank), mem.read_vram(address+1, bank)]
+				} else {
+					[mem.rb(address), mem.rb(address+1)]
+				};
 				for color_bit in 0..8 {
 					let color_id = if color_bit == 0 {
 						((data[1] & 1) << 1) | (data[0] & 1)
@@ -218,17 +245,26 @@ impl Gpu {
 
 					let palette_address = if (attributes & (1 << 4)) > 0 {0xFF49} else {0xFF48};
 					let behind_bg = attributes & (1 << 7) > 0;
-					let color = Color::from_palette(color_id, mem.rb(palette_address));
+					let color = if cgb_mode {
+						let palette_number = attributes & 7;
+						Color::from_cgb_palette_sp(color_id, palette_number, mem)
+					} else {
+						Color::from_gb_palette(color_id, mem.rb(palette_address))
+					};
 
-					if color != Color::WHITE {
+					if !color.is_white() {
 						let pixel = if x_flip {
 							x_pos.wrapping_add(color_bit)
 						} else {
 							x_pos.wrapping_add(7-color_bit)
 						};
-						if pixel < 160 && (!behind_bg || self.screen_data[line as usize][pixel as usize] == Color::WHITE) {
-							self.screen_data[line as usize][pixel as usize] = color;
-						} 
+
+						if pixel < 160 {
+							let bg_color = self.screen_data[line as usize][pixel as usize];
+							if !behind_bg || bg_color.is_white() {
+								self.screen_data[line as usize][pixel as usize] = color;
+							}
+						}
 					}
 				}
 			}
