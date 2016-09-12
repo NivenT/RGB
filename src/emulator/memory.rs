@@ -1,4 +1,4 @@
-use emulator::mbc::Mbc;
+use emulator::Mbc;
 
 pub struct Memory {
 	pub cart:		Mbc,

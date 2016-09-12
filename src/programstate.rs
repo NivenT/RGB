@@ -6,11 +6,18 @@ pub struct ProgramState {
     pub debug:		bool,
     pub done:		bool,
     pub paused:		bool,
-    pub adv_frame:	bool
+    pub adv_frame:	bool,
+    pub speed:		u64,
 }
 
 impl ProgramState {
     pub fn new() -> ProgramState {
-    	ProgramState{debug: false, done: false, paused: false, adv_frame: false}
+    	ProgramState {
+    		debug: false, 
+    		done: false, 
+    		paused: false, 
+    		adv_frame: false,
+    		speed: 1
+    	}
     }
 }

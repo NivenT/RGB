@@ -6,7 +6,7 @@ use glium::texture::*;
 
 use glium_sdl2::SDL2Facade;
 
-use emulator::gpu::Color;
+use emulator::Color;
 
 #[derive(Debug, Clone, Copy)]
 struct Vertex {

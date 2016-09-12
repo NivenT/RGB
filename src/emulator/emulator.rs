@@ -3,10 +3,10 @@ use std::fs::File;
 use std::io::SeekFrom;
 use std::io::prelude::*;
 
-use emulator::memory::Memory;
-use emulator::gpu::Gpu;
-use emulator::interrupts::InterruptManager;
-use emulator::timers::Timers;
+use emulator::Memory;
+use emulator::Gpu;
+use emulator::InterruptManager;
+use emulator::Timers;
 use emulator::mbc::*;
 use emulator::instructions::*;
 use emulator::registers::*;
@@ -86,7 +86,7 @@ impl Emulator {
 				println!("Manually initializing emulator...");
 
 				unsafe {
-					*self.regs.af() = 0x11B0; //CGB mode - 0x01B0 for GB
+					*self.regs.af() = 0x11B0;
 					*self.regs.bc() = 0x0013;
 					*self.regs.de() = 0x00D8;
 					*self.regs.hl() = 0x014D;
@@ -168,7 +168,12 @@ impl Emulator {
 
 		println!("Successfully loaded {}\n", title);
 
-		self.cgb_mode = self.mem.bios.len() != 0x100;
+		self.cgb_mode = if self.mem.bios.len() == 0 && header[0x143] & 0x80 == 0 {
+			*self.regs.a() = 0x01;
+			false
+		} else {
+			self.mem.bios.len() != 0x100
+		};
 		self.mem.cgb_mode = self.cgb_mode;
 		println!("Emulator running in {}CGB mode", if self.cgb_mode {""} else {"Non-"});
 	}
@@ -199,7 +204,7 @@ impl Emulator {
 			self.halted = false;
 		}
 
-		if self.regs.pc == self.mem.bios.len() as u16 {
+		if self.regs.pc >= self.mem.bios.len() as u16 {
 			self.mem.finished_with_bios();
 		}
 		cycles
@@ -216,6 +221,10 @@ impl Emulator {
 			self.mem.rw(self.regs.pc)
 		};
 		self.regs.pc += instruction.operand_length;
+
+		if opcode == 0x20 && operand == 0xFE && !self.regs.get_flag(ZERO_FLAG) {
+			panic!("Error: Emulation caught in infinite loop");
+		}
 
 		let cycles: u64;
 		if let Some(func) = instruction.func {

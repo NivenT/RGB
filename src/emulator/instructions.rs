@@ -1,4 +1,4 @@
-use emulator::emulator::Emulator;
+use emulator::Emulator;
 use emulator::cb_instructions::*;
 use emulator::registers::*;
 

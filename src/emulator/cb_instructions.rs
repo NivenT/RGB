@@ -1,4 +1,4 @@
-use emulator::emulator::Emulator;
+use emulator::Emulator;
 use emulator::registers::*;
 
 macro_rules! new_cb_instruction {

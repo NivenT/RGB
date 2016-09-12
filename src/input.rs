@@ -7,7 +7,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
 use programstate::*;
-use emulator::emulator::Emulator;
+use emulator::Emulator;
 
 fn prompt_for_val<T: FromStr>(prompt: &str) -> Result<T, T::Err> {
     print!("{}", prompt);
@@ -43,6 +43,8 @@ pub fn handle_input(events: &mut EventPump, state: &mut ProgramState, emu: &mut 
 
 fn handle_keydown(key: Keycode, state: &mut ProgramState, emu: &Emulator) {
 	match key {
+        Keycode::Num1 => {state.speed = 1},
+        Keycode::Num2 => {state.speed = 10},
 		Keycode::D => {state.debug = !state.debug},
         Keycode::F => {state.adv_frame = true},
         Keycode::P => {state.paused = !state.paused},

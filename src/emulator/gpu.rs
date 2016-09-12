@@ -1,5 +1,5 @@
-use emulator::memory::Memory;
-use emulator::interrupts::InterruptManager;
+use emulator::Memory;
+use emulator::InterruptManager;
 
 const SCANLINE_TOTAL_TIME: i16 = 456;
 const SCANLINE_MODE2_OVER: i16 = 456-80;
@@ -8,7 +8,7 @@ const SCANLINE_MODE3_OVER: i16 = 456-80-172;
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {
-	WHITE , LIGHT_GRAY , DARK_GRAY, BLACK,
+	WHITE, LIGHT_GRAY, DARK_GRAY, BLACK,
 	CGB(u8, u8, u8)
 }
 
