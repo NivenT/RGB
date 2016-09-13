@@ -16,7 +16,7 @@ cargo build
 ````
 
 ##How to Use
-Before running the program, make sure to setup the settings.ini file. This is where you supply a path to the game to be loaded, tell the emulator which keyboard keys map to which gameboy buttons, and specify what hex colors the emulator should use for graphics. You can also supply a path to a binary file containg the gameboy BIOS. Even if you do not have a copy of the gameboy's BIOS (you supply a path to a nonexistent file), the emulator will still run. RGB uses SDL2 for window management and input handling, so check [here](https://github.com/AngryLawyer/rust-sdl2/blob/master/sdl2-sys/src/keycode.rs) for the values of each key.
+Before running the program, make sure to setup the settings.ini file. This is where you supply a path to the game to be loaded, tell the emulator which keyboard keys map to which gameboy buttons, and specify what hex colors the emulator should use for graphics. You can also supply a path to a binary file containg the gameboy BIOS. Even if you do not have a copy of the gameboy's BIOS (you supply a path to a nonexistent file), the emulator will still run. **If you supply a CGB BIOS file, the emulator will run as a gameboy color, but if you supply a monochrome gameboy BIOS file, the emulator will run as a monochrome gameboy. If no BIOS file is supplied, it will decide which to run as depending on if the loaded game was made for monochrome of color gameboys.** RGB uses SDL2 for window management and input handling, so check [here](https://github.com/AngryLawyer/rust-sdl2/blob/master/sdl2-sys/src/keycode.rs) for the values of each key.
 
 Once settings.ini has been set up, start the program by running the following command from the project's main directory
 ```
@@ -33,6 +33,8 @@ Certain keys are special, and the emulator has built in responses for when they 
 * F - Emulates a single CPU instruction if paused
 * M - Prompts for a starting and ending memory address. Emulator then prints the values stored in memory between those addresses (inclusive on starting and exclusive on ending)
 * Esc - Exits program
+* 1 - Runs emulator at normal speed
+* 2 - Speeds up emulation by only rendering every 10th frame
 
 ##Emulation Progress
 ###CPU
@@ -44,8 +46,8 @@ Certain keys are special, and the emulator has built in responses for when they 
 - [X] Can display tiles
 - [X] Can display sprites
 - [X] Flips sprites
-- [ ] CGB tiles
-- [ ] CGB sprites
+- [X] CGB tiles
+- [X] CGB sprites
 
 ###Memory
 - [X] 32KB ROMs without banking
@@ -62,7 +64,9 @@ Certain keys are special, and the emulator has built in responses for when they 
 - [ ] Produces sound
 
 ##Known Bugs/Issues
-* Dr. Mario freezes on the screen after the title screen
+* Some game behave strangly for unknown reasons
+  * Ex. Dr. Mario freezes on the screen after the title screen
+  * This is probably due to some instructions being implemented incorrectly or to other subtle errors in emulation
 * Emulator is slow at times
 * Overlapping sprites are not always displayed correctly
-* CGB support is still a work in progress, and the code for it is messy
+* CGB support is still a work in progress
