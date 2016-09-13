@@ -22,13 +22,6 @@ impl Color {
 			_ => None,
 		}
 	}
-	fn is_white(&self) -> bool {
-		match *self {
-			Color::WHITE => true,
-			Color::CGB(255, 255, 255) => true,
-			_ => false
-		}
-	}
 
 	fn from_gb_palette(id: u8, palette: u8) -> Color {
 		let (hi, lo) = (2*id+1, 2*id);
@@ -186,7 +179,7 @@ impl Gpu {
 
 		if !using_window && control & 1 == 0 {
 			for pixel in 0..160u8 {
-				self.screen_data[line as usize][pixel as usize] = Color::WHITE;
+				self.bg_priority[line as usize][pixel as usize] = 0;
 			}
 			return;
 		}
@@ -249,16 +242,10 @@ impl Gpu {
 			}				
 		}
 	}
-	fn get_bg_color_id(&self, line: usize, pixel: usize) -> u8 {
-		(self.bg_priority[line][pixel] & 0x06) >> 1
-	}
-	fn get_bg_priority(&self, line: usize, pixel: usize) -> bool {
-		self.bg_priority[line][pixel] & 1 > 0
-	}
 	fn bg_has_priority(&self, mem: &Memory, line: usize, pixel: usize, behind_bg: bool) -> bool {
 		mem.rb(0xFF40) & 1 > 0 &&
-		(self.get_bg_priority(line, pixel) ||
-			(behind_bg && self.get_bg_color_id(line, pixel) > 0))
+		(self.bg_priority[line][pixel] & 1 > 0 || behind_bg) &&
+		self.bg_priority[line][pixel] > 1
 	}
 	fn draw_sprites(&mut self, mem: &Memory, cgb_mode: bool) {
 		let control = mem.rb(0xFF40);
@@ -301,7 +288,7 @@ impl Gpu {
 					};
 
 					let behind_bg = attributes & (1 << 7) > 0;
-					if !color.is_white() {
+					if color_id != 0 {
 						let pixel = if x_flip {
 							x_pos.wrapping_add(color_bit)
 						} else {
