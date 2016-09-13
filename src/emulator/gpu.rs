@@ -140,32 +140,51 @@ impl Gpu {
 			}
 		}
 
+		let dma_info = mem.rb(0xFF55);
+		if (status & 3) == 0 && dma_info & (1 << 7) > 0 && dma_info != 0xFF {
+			//H-Blank DMA
+			let source = (mem.rb(0xFF52) as u16 | ((mem.rb(0xFF51) as u16) << 8)) & 0xFFF0;
+			let dest   = (mem.rb(0xFF54) as u16 | ((mem.rb(0xFF53) as u16) << 8)) & 0x1FF0;
+			let length = 0x10*((dma_info & 0x7F) as u16+1);
+
+			for i in 0..0x10 {
+				let copy_val = mem.rb(source + length - i);
+				mem.wb(dest + length - i, copy_val);
+			}
+
+			let length = (length/0x10 - 1) as u8;
+			mem.wb(0xFF55, length.wrapping_sub(1) | (1 << 7));
+		}
+
 		mem.wb(0xFF41, status);
 	}
 	fn is_lcd_enabled(&self, mem: &Memory) -> bool {
 		(mem.rb(0xFF40) & (1 << 7)) > 0
 	}
 	fn draw_line(&mut self, mem: &mut Memory, cgb_mode: bool) {
-		let control = mem.rb(0xFF40);
-		if (control & 1) > 0 {
-			self.draw_background(mem, cgb_mode);
-		}
-		if (control & 2) > 0 {
+		self.draw_tiles(mem, cgb_mode);
+		if (mem.rb(0xFF40) & 2) > 0 {
 			self.draw_sprites(mem, cgb_mode);
 		}
 	}
-	fn draw_background(&mut self, mem: &mut Memory, cgb_mode: bool) {
+	fn draw_tiles(&mut self, mem: &mut Memory, cgb_mode: bool) {
 		let (scroll_y, scroll_x) = (mem.rb(0xFF42), mem.rb(0xFF43));
 		let (window_y, window_x) = (mem.rb(0xFF4A), mem.rb(0xFF4B).wrapping_sub(7));
 
-		let control = mem.rb(0xFF40);
+		let (control, line) = (mem.rb(0xFF40), mem.rb(0xFF44));
 		let tile_data_loc   = if (control & (1 << 4)) > 0 {0x8000} else {0x8800};
 		let back_layout_loc = if (control & (1 << 3)) > 0 {0x9C00} else {0x9800};
 		let wind_layout_loc = if (control & (1 << 6)) > 0 {0x9C00} else {0x9800};
-		let using_window = (control & (1 << 5)) > 0 && window_y <= mem.rb(0xFF44);
+		let using_window = (control & (1 << 5)) > 0 && window_y <= line;
 		let background_loc: u16 = if using_window {wind_layout_loc} else {back_layout_loc}; 
 
-		let line = mem.rb(0xFF44);
+		if !using_window && control & 1 == 0 {
+			for pixel in 0..160u8 {
+				self.screen_data[line as usize][pixel as usize] = Color::WHITE;
+			}
+			return;
+		}
+
 		let y_offset = if using_window {line - window_y} else {scroll_y.wrapping_add(line)};
 		let tile_row = y_offset/8;
 
@@ -185,7 +204,7 @@ impl Gpu {
 			};
 			let tile_line = (y_offset%8) as u16;
 
-			let tile_attributes = mem.read_vram(tile_loc, true);
+			let tile_attributes = mem.read_vram(address, true);
 			let tile_data = if cgb_mode {
 				let bank = tile_attributes & (1 << 3) > 0;
 				[mem.read_vram(tile_loc+tile_line*2, bank),

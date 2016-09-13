@@ -11,10 +11,10 @@ pub struct Mbc3 {
 	ram_bank:	u8,
 	rtc_reg:	u8,
 	using_ram:	bool,
-	mode:		bool,			//false for ROM and true for RTC
-	clock:		u16,			//32,768 Hz (update every 4194304/32768=128 frames)
-	counter:	i16,			//increment clock when counter hits 0
-	prev_val:	u8,				//Last value written to 0x6000-0x7FFF
+	mode:		bool,	//false for ROM and true for RTC
+	clock:		u16,	//32,768 Hz (update every 4194304/32768=128 cycles)
+	counter:	i16,	//increment clock when counter hits 0
+	prev_val:	u8,		//Last value written to 0x6000-0x7FFF
 	using_clk:	bool
 }
 

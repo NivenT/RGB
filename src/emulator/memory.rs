@@ -104,19 +104,18 @@ impl Memory {
 		} else if 0xFF4F == address { //VRAM bank
 			return self.mem[address] = val & 1;
 		} else if 0xFF55 == address && self.cgb_mode { //VRAM DMA transfer
-			let source = (self.rb(0xFF52) as u16 | ((self.rb(0xFF51) as u16) << 8)) & 0xFFF0;
-			let dest   = (self.rb(0xFF54) as u16 | ((self.rb(0xFF53) as u16) << 8)) & 0x1FF0;
-			let length = 0x10*((val & 0x7F) as u16+1);
 			if (val & (1 << 7)) == 0 {
+				//General Purpose DMA
+				let source = (self.rb(0xFF52) as u16 | ((self.rb(0xFF51) as u16) << 8)) & 0xFFF0;
+				let dest   = (self.rb(0xFF54) as u16 | ((self.rb(0xFF53) as u16) << 8)) & 0x1FF0;
+				let length = 0x10*(val as u16 + 1);
+
 				for i in 0..length {
 					let copy_val = self.rb(source + i);
 					self.wb(dest + i, copy_val);
 				}
 				self.mem[0xFF55] = 0xFF;
-			} else {
-				//H-Blank DMA
 			}
-			return;
 		} else if 0xFF69 == address { //Background Palette Data
 			self.bgp[(self.rb(0xFF68) & 0x3F) as usize] = val;
 			if (self.rb(0xFF68) >> 7) > 0 {
