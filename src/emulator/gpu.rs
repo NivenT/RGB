@@ -75,7 +75,7 @@ pub struct Gpu {
 	//Screen is 160x144 pixels
 	screen_data:	[[Color; 160]; 144],
 	//background priority for each pixel
-	bg_priority:	[[bool; 160]; 144],
+	bg_priority:	[[u8; 160]; 144], //0b00000IIP where II is color id and P is priority (CGB only)
 	//scanline counter
 	sl_count:		i16
 }
@@ -84,7 +84,7 @@ impl Gpu {
 	pub fn new() -> Gpu {
 	    Gpu {
 	    	screen_data: [[Color::CGB(0,0,0); 160]; 144], 
-	    	bg_priority: [[false; 160]; 144],
+	    	bg_priority: [[0; 160]; 144],
 	    	sl_count: 0
 	    }
 	}
@@ -208,10 +208,10 @@ impl Gpu {
 			} else {
 				tile_data_loc + ((mem.rb(address) as i8 as i16 + 128) as u16 * 16)
 			};
-			let tile_attributes = mem.read_vram(address, true);
+			let tile_attributes = if cgb_mode {mem.read_vram(address, true)} else {0};
 
 			let (x_flip, y_flip) = (tile_attributes & (1 << 5) > 0, tile_attributes & (1 << 6) > 0);
-			self.bg_priority[line as usize][pixel as usize] = tile_attributes & (1 << 7) > 0;
+			self.bg_priority[line as usize][pixel as usize] = (tile_attributes & (1 << 7)) >> 7;
 
 			let tile_line = if y_flip {
 				7 - y_offset%8
@@ -239,10 +239,7 @@ impl Gpu {
 				((tile_data[1] & (1 << color_bit)) >> (color_bit-1)) | 
 				((tile_data[0] & (1 << color_bit)) >> color_bit)
 			};
-
-			if color_id == 0 {
-				self.bg_priority[line as usize][pixel as usize] = false;
-			}
+			self.bg_priority[line as usize][pixel as usize] |= color_id << 1;
 
 			self.screen_data[line as usize][pixel as usize] = if cgb_mode {
 				let palette_number = tile_attributes & 7;
@@ -252,8 +249,16 @@ impl Gpu {
 			}				
 		}
 	}
+	fn get_bg_color_id(&self, line: usize, pixel: usize) -> u8 {
+		(self.bg_priority[line][pixel] & 0x06) >> 1
+	}
+	fn get_bg_priority(&self, line: usize, pixel: usize) -> bool {
+		self.bg_priority[line][pixel] & 1 > 0
+	}
 	fn bg_has_priority(&self, mem: &Memory, line: usize, pixel: usize, behind_bg: bool) -> bool {
-		(self.bg_priority[line][pixel] || behind_bg) && mem.rb(0xFF40) & 1 == 1
+		mem.rb(0xFF40) & 1 > 0 &&
+		(self.get_bg_priority(line, pixel) ||
+			(behind_bg && self.get_bg_color_id(line, pixel) > 0))
 	}
 	fn draw_sprites(&mut self, mem: &Memory, cgb_mode: bool) {
 		let control = mem.rb(0xFF40);
@@ -287,15 +292,15 @@ impl Gpu {
 						((data[0] & (1 << color_bit)) >> color_bit)
 					};
 
-					let palette_address = if (attributes & (1 << 4)) > 0 {0xFF49} else {0xFF48};
-					let behind_bg = attributes & (1 << 7) > 0;
 					let color = if cgb_mode {
 						let palette_number = attributes & 7;
 						Color::from_cgb_palette_sp(color_id, palette_number, mem)
 					} else {
+						let palette_address = if (attributes & (1 << 4)) > 0 {0xFF49} else {0xFF48};
 						Color::from_gb_palette(color_id, mem.rb(palette_address))
 					};
 
+					let behind_bg = attributes & (1 << 7) > 0;
 					if !color.is_white() {
 						let pixel = if x_flip {
 							x_pos.wrapping_add(color_bit)
