@@ -41,7 +41,7 @@ impl Color {
 			_ => panic!("Invalid color: {}", color)
 		}
 	}
-	fn from_cgb_palette_bgp(id: u8, number: u8, mem: &mut Memory) -> Color {
+	fn from_cgb_palette_bgp(id: u8, number: u8, mem: &Memory) -> Color {
 		let index = (8*number + 2*id) as usize;
 		let data = mem.read_bgp(index) as u16 | (mem.read_bgp(index+1) as u16) << 8;
 		let (red, green, blue) = (
@@ -55,7 +55,7 @@ impl Color {
 				   (green as f32 * scale) as u8,
 				   (blue as f32 * scale) as u8)
 	}
-	fn from_cgb_palette_sp(id: u8, number: u8, mem: &mut Memory) -> Color {
+	fn from_cgb_palette_sp(id: u8, number: u8, mem: &Memory) -> Color {
 		let index = (8*number + 2*id) as usize;
 		let data = mem.read_sp(index) as u16 | (mem.read_sp(index+1) as u16) << 8;
 		let (red, green, blue) = (
@@ -74,13 +74,19 @@ impl Color {
 pub struct Gpu {
 	//Screen is 160x144 pixels
 	screen_data:	[[Color; 160]; 144],
+	//background priority for each pixel
+	bg_priority:	[[bool; 160]; 144],
 	//scanline counter
 	sl_count:		i16
 }
 
 impl Gpu {
 	pub fn new() -> Gpu {
-	    Gpu{screen_data: [[Color::CGB(0,0,0); 160]; 144], sl_count: 0}
+	    Gpu {
+	    	screen_data: [[Color::CGB(0,0,0); 160]; 144], 
+	    	bg_priority: [[false; 160]; 144],
+	    	sl_count: 0
+	    }
 	}
 	pub fn get_screen(&self) -> &[[Color; 160]; 144] {
 		&self.screen_data
@@ -161,13 +167,13 @@ impl Gpu {
 	fn is_lcd_enabled(&self, mem: &Memory) -> bool {
 		(mem.rb(0xFF40) & (1 << 7)) > 0
 	}
-	fn draw_line(&mut self, mem: &mut Memory, cgb_mode: bool) {
+	fn draw_line(&mut self, mem: &Memory, cgb_mode: bool) {
 		self.draw_tiles(mem, cgb_mode);
 		if (mem.rb(0xFF40) & 2) > 0 {
 			self.draw_sprites(mem, cgb_mode);
 		}
 	}
-	fn draw_tiles(&mut self, mem: &mut Memory, cgb_mode: bool) {
+	fn draw_tiles(&mut self, mem: &Memory, cgb_mode: bool) {
 		let (scroll_y, scroll_x) = (mem.rb(0xFF42), mem.rb(0xFF43));
 		let (window_y, window_x) = (mem.rb(0xFF4A), mem.rb(0xFF4B).wrapping_sub(7));
 
@@ -202,9 +208,17 @@ impl Gpu {
 			} else {
 				tile_data_loc + ((mem.rb(address) as i8 as i16 + 128) as u16 * 16)
 			};
-			let tile_line = (y_offset%8) as u16;
-
 			let tile_attributes = mem.read_vram(address, true);
+
+			let (x_flip, y_flip) = (tile_attributes & (1 << 5) > 0, tile_attributes & (1 << 6) > 0);
+			self.bg_priority[line as usize][pixel as usize] = tile_attributes & (1 << 7) > 0;
+
+			let tile_line = if y_flip {
+				7 - y_offset%8
+			} else {
+				y_offset%8
+			} as u16;
+
 			let tile_data = if cgb_mode {
 				let bank = tile_attributes & (1 << 3) > 0;
 				[mem.read_vram(tile_loc+tile_line*2, bank),
@@ -213,7 +227,11 @@ impl Gpu {
 				[mem.rb(tile_loc+tile_line*2), mem.rb(tile_loc+tile_line*2+1)]
 			};
 
-			let color_bit = 7 - x_offset%8;
+			let color_bit = if x_flip {
+				x_offset%8
+			} else {
+				7 - x_offset%8
+			};
 
 			let color_id = if color_bit == 0 {
 				((tile_data[1] & 1) << 1) | (tile_data[0] & 1)
@@ -221,6 +239,10 @@ impl Gpu {
 				((tile_data[1] & (1 << color_bit)) >> (color_bit-1)) | 
 				((tile_data[0] & (1 << color_bit)) >> color_bit)
 			};
+
+			if color_id == 0 {
+				self.bg_priority[line as usize][pixel as usize] = false;
+			}
 
 			self.screen_data[line as usize][pixel as usize] = if cgb_mode {
 				let palette_number = tile_attributes & 7;
@@ -230,7 +252,10 @@ impl Gpu {
 			}				
 		}
 	}
-	fn draw_sprites(&mut self, mem: &mut Memory, cgb_mode: bool) {
+	fn bg_has_priority(&self, mem: &Memory, line: usize, pixel: usize, behind_bg: bool) -> bool {
+		(self.bg_priority[line][pixel] || behind_bg) && mem.rb(0xFF40) & 1 == 1
+	}
+	fn draw_sprites(&mut self, mem: &Memory, cgb_mode: bool) {
 		let control = mem.rb(0xFF40);
 		let large_sprites = (control & (1 << 2)) > 0;
 
@@ -278,11 +303,8 @@ impl Gpu {
 							x_pos.wrapping_add(7-color_bit)
 						};
 
-						if pixel < 160 {
-							let bg_color = self.screen_data[line as usize][pixel as usize];
-							if !behind_bg || bg_color.is_white() {
-								self.screen_data[line as usize][pixel as usize] = color;
-							}
+						if pixel < 160 && !self.bg_has_priority(mem, line as usize, pixel as usize, behind_bg) {
+							self.screen_data[line as usize][pixel as usize] = color;
 						}
 					}
 				}
