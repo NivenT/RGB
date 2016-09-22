@@ -197,9 +197,9 @@ impl Gpu {
 			let address = background_loc + tile_row as u16*32 + tile_col as u16;
 
 			let tile_loc = if tile_data_loc == 0x8000 {
-				tile_data_loc + (mem.rb(address) as u16)*16
+				tile_data_loc + (mem.read_vram(address, false) as u16)*16
 			} else {
-				tile_data_loc + ((mem.rb(address) as i8 as i16 + 128) as u16 * 16)
+				tile_data_loc + ((mem.read_vram(address, false) as i8 as i16 + 128) as u16 * 16)
 			};
 			let tile_attributes = if cgb_mode {mem.read_vram(address, true)} else {0};
 
