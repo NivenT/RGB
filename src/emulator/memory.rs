@@ -93,7 +93,7 @@ impl Memory {
 		} else if 0xFF04 == address { //divider register (DIV)
 			self.mem[0xFF04] = 0;
 		} else if 0xFF44 == address { //scanline position
-			panic!("Attempted to overwrite scanline position")
+			self.mem[0xFF44] = 0;
 		} else if 0xFF46 == address { //OAM DMA transfer
 			let start = (val as u16) << 8;
 			for i in 0..0xA0 {

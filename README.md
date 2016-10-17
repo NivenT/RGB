@@ -70,3 +70,4 @@ Certain keys are special, and the emulator has built in responses for when they 
 * Emulator is slow at times
 * Overlapping sprites are not always displayed correctly
 * CGB support is still a work in progress
+  * CGB BIOS will get stuck in an infinite loop
