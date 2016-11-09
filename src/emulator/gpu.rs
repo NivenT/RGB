@@ -139,6 +139,7 @@ impl Gpu {
 			}
 		}
 
+		// Honestly not sure if this code affects anything or if it is even correct
 		let dma_info = mem.rb(0xFF55);
 		if (status & 3) == 0 && dma_info & (1 << 7) > 0 && dma_info != 0xFF {
 			//H-Blank DMA
@@ -147,8 +148,8 @@ impl Gpu {
 			let length = 0x10*((dma_info & 0x7F) as u16+1);
 
 			for i in 0..0x10 {
-				let copy_val = mem.rb(source + length - i);
-				mem.wb(dest + length - i, copy_val);
+				let copy_val = mem.rb(source + length - i - 1);
+				mem.wb(dest + length - i - 1, copy_val);
 			}
 
 			let length = (length/0x10 - 1) as u8;
@@ -209,7 +210,7 @@ impl Gpu {
 			let tile_line = if y_flip {
 				7 - y_offset%8
 			} else {
-				y_offset%8
+				y_offset%8 
 			} as u16;
 
 			let tile_data = if cgb_mode {

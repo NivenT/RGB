@@ -64,9 +64,18 @@ impl fmt::Debug for Emulator {
 
 impl Emulator {
 	pub fn new() -> Emulator {
-		Emulator{clock: 0, mem: Memory::new(), gpu: Gpu::new(), controls: [0; 8], 
-					regs: Registers::new(), halted: false, timers: Timers::new(),
-					interrupts: InterruptManager::new(), stopped: false, cgb_mode: false}
+		Emulator {
+			clock: 0, 
+			mem: Memory::new(), 
+			gpu: Gpu::new(), 
+			controls: [0; 8], 
+			regs: Registers::new(), 
+			halted: false, 
+			timers: Timers::new(),
+			interrupts: InterruptManager::new(), 
+			stopped: false, 
+			cgb_mode: false
+		}
 	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
 		for i in 0..8 {

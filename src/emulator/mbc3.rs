@@ -20,10 +20,20 @@ pub struct Mbc3 {
 
 impl Mbc3 {
 	pub fn new() -> Mbc3 {
-		Mbc3{rom: vec![0; 0x200000], ram: vec![0; 0x008000], rtc: [0; 5],
-				rom_bank: 1, ram_bank: 0, rtc_reg: 0,
-				using_ram: false, mode: false,
-				clock: 0, counter: 0, prev_val: 1, using_clk: true}
+		Mbc3 {
+			rom: vec![0; 0x200000], 
+			ram: vec![0; 0x008000], 
+			rtc: [0; 5],
+			rom_bank: 1, 
+			ram_bank: 0, 
+			rtc_reg: 0,
+			using_ram: false, 
+			mode: false,
+			clock: 0, 
+			counter: 0, 
+			prev_val: 1, 
+			using_clk: true
+		}
 	}
 	pub fn rb(&self, address: usize) -> u8 {
 		if address < 0x4000 {
@@ -41,7 +51,7 @@ impl Mbc3 {
 				0
 			}
 		} else {
-			panic!("Attempting to read from invalid MBC3 memory address: {:#X} ", address);
+			panic!("Attempting to read from invalid MBC3 memory address: {:#X}", address);
 		}
 	}
 	pub fn wb(&mut self, address: usize, val: u8) {
