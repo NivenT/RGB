@@ -7,6 +7,7 @@ pub struct Mbc3 {
 	rom:		Vec<u8>, //2MB ROM
 	ram:		Vec<u8>, //32KB RAM
 	rtc:		[u8; 5], //5 clock registers
+	latch:		[u8; 5], //"lateched" clock values
 	rom_bank:	u8,				
 	ram_bank:	u8,
 	rtc_reg:	u8,
@@ -24,6 +25,7 @@ impl Mbc3 {
 			rom: vec![0; 0x200000], 
 			ram: vec![0; 0x008000], 
 			rtc: [0; 5],
+			latch: [0; 5],
 			rom_bank: 1, 
 			ram_bank: 0, 
 			rtc_reg: 0,
@@ -43,7 +45,11 @@ impl Mbc3 {
 		} else if 0xA000 <= address && address < 0xC000 {
 			if self.using_ram {
 				if self.mode {
-					self.rtc[self.rtc_reg as usize]
+					if self.using_clk {
+						self.rtc[self.rtc_reg as usize]
+					} else {
+						self.latch[self.rtc_reg as usize]
+					}
 				} else {
 					self.ram[self.ram_bank as usize*0x2000 + address%0x2000]
 				} 
@@ -71,11 +77,16 @@ impl Mbc3 {
 			if self.prev_val == 0 && val == 1 {
 				self.using_clk = !self.using_clk;
 			}
+			if !self.using_clk {
+				self.latch = self.rtc;
+			}
 			self.prev_val = val;
 		} else if 0xA000 <= address && address < 0xC000 {
 			if self.using_ram {
 				if self.mode {
-					self.rtc[self.rtc_reg as usize] = val;
+					if self.using_clk {
+						self.rtc[self.rtc_reg as usize] = val;
+					}
 				} else {
 					self.ram[self.ram_bank as usize*0x2000 + address%0x2000] = val;
 				}
