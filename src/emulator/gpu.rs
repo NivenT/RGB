@@ -139,8 +139,11 @@ impl Gpu {
 			}
 		}
 
+		mem.wb(0xFF41, status);
+
 		let dma_info = mem.rb(0xFF55);
 		if (status & 3) == 0 && dma_info & (1 << 7) > 0 && dma_info != 0xFF && cgb_mode {
+			return; // Still buggy
 			//H-Blank DMA
 			let source =  (mem.rb(0xFF52) as u16 | ((mem.rb(0xFF51) as u16) << 8)) & 0xFFF0;
 			let dest   = ((mem.rb(0xFF54) as u16 | ((mem.rb(0xFF53) as u16) << 8)) & 0x1FF0) | 0x8000;
@@ -151,11 +154,9 @@ impl Gpu {
 				mem.wb(dest + length - i - 1, copy_val);
 			}
 
-			let length = (length/0x10 - 1) as u8;
+			let length = dma_info & 0x7F;
 			mem.wb(0xFF55, length.wrapping_sub(1) | (1 << 7));
 		}
-
-		mem.wb(0xFF41, status);
 	}
 	fn is_lcd_enabled(&self, mem: &Memory) -> bool {
 		(mem.rb(0xFF40) & (1 << 7)) > 0
