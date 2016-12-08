@@ -52,7 +52,7 @@ fn main() {
 
     let mut cycles_this_frame = 0;
     let mut cycles_per_second = 0;
-    let mut frames_since_render = 0;
+    let mut frames_until_render = 0;
     let mut event_pump = sdl_context.event_pump().unwrap();
     let renderer = Renderer::new(&display, white, black);
     while !state.done {
@@ -74,10 +74,10 @@ fn main() {
             cycles_this_frame += emu.step(&mut state);
             state.adv_frame = false;
         }
-        if frames_since_render == 0 {
+        if frames_until_render == 0 {
             renderer.render(&display, emu.gpu.get_screen());
         }
-        frames_since_render = (frames_since_render+1)%state.speed;
+        frames_until_render = (frames_until_render+1)%state.speed;
         cycles_per_second += cycles_this_frame;
         cycles_this_frame = 0;
     }
