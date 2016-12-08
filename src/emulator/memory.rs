@@ -106,8 +106,8 @@ impl Memory {
 		} else if 0xFF55 == address && self.cgb_mode { //VRAM DMA transfer
 			if (val & (1 << 7)) == 0 {
 				//General Purpose DMA
-				let source = (self.rb(0xFF52) as u16 | ((self.rb(0xFF51) as u16) << 8)) & 0xFFF0;
-				let dest   = (self.rb(0xFF54) as u16 | ((self.rb(0xFF53) as u16) << 8)) & 0x1FF0;
+				let source =  (self.rb(0xFF52) as u16 | ((self.rb(0xFF51) as u16) << 8)) & 0xFFF0;
+				let dest   = ((self.rb(0xFF54) as u16 | ((self.rb(0xFF53) as u16) << 8)) & 0x1FF0) | 0x8000;
 				let length = 0x10*(val as u16 + 1);
 
 				for i in 0..length {

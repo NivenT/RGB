@@ -88,7 +88,7 @@ impl Gpu {
 		self.sl_count
 	}
 	pub fn step(&mut self, mem: &mut Memory, im: &InterruptManager, cycles: i16, cgb_mode: bool) {
-		self.set_lcd_status(mem, im);
+		self.set_lcd_status(mem, im, cgb_mode);
 		if self.is_lcd_enabled(mem) {
 			self.sl_count -= cycles;
 			if self.sl_count <= 0 {
@@ -104,7 +104,7 @@ impl Gpu {
 			}
 		}
 	}
-	fn set_lcd_status(&mut self, mem: &mut Memory, im: &InterruptManager) {
+	fn set_lcd_status(&mut self, mem: &mut Memory, im: &InterruptManager, cgb_mode: bool) {
 		let mut status = mem.rb(0xFF41);
 		let line = mem.rb(0xFF44);
 		let mode = status & 3;
@@ -139,12 +139,11 @@ impl Gpu {
 			}
 		}
 
-		// Honestly not sure if this code affects anything or if it is even correct
 		let dma_info = mem.rb(0xFF55);
-		if (status & 3) == 0 && dma_info & (1 << 7) > 0 && dma_info != 0xFF {
+		if (status & 3) == 0 && dma_info & (1 << 7) > 0 && dma_info != 0xFF && cgb_mode {
 			//H-Blank DMA
-			let source = (mem.rb(0xFF52) as u16 | ((mem.rb(0xFF51) as u16) << 8)) & 0xFFF0;
-			let dest   = (mem.rb(0xFF54) as u16 | ((mem.rb(0xFF53) as u16) << 8)) & 0x1FF0;
+			let source =  (mem.rb(0xFF52) as u16 | ((mem.rb(0xFF51) as u16) << 8)) & 0xFFF0;
+			let dest   = ((mem.rb(0xFF54) as u16 | ((mem.rb(0xFF53) as u16) << 8)) & 0x1FF0) | 0x8000;
 			let length = 0x10*((dma_info & 0x7F) as u16+1);
 
 			for i in 0..0x10 {
