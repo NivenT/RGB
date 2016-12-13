@@ -14,6 +14,11 @@ use emulator::rom_info::*;
 
 use super::super::programstate::*;
 
+fn to_save(game: String) -> String {
+	let dot_pos = game.rfind('.').unwrap();
+	game[..dot_pos].to_string() + ".rsav" // Not sure how regular .sav files are saved so these are .rsav
+}
+
 pub struct Emulator {
 	clock:			u64,
 	interrupts:		InterruptManager,
@@ -142,7 +147,7 @@ impl Emulator {
 	}
 	pub fn load_game(&mut self, path: String) {
 		println!("Loading game from \"{}\"...", path);
-		let mut game_file = File::open(path).unwrap();
+		let mut game_file = File::open(path.clone()).unwrap();
 		
 		let mut header = [0; 0x150];
 		let _ = game_file.read(&mut header).unwrap();
@@ -160,6 +165,12 @@ impl Emulator {
 
 		self.mem.cart = Mbc::new(cartridge_type);
 		self.mem.cart.load_game(&mut game_file);
+		self.mem.save_file = to_save(path);
+
+		if let Ok(mut file) = File::open(self.mem.save_file.clone()) {
+			println!("Loading .rsav save file from {}", self.mem.save_file);
+			self.mem.cart.load_sav(&mut file);
+		}
 
 		let rom_size = header[0x148];
 		let rom_size = match get_rom_size(rom_size) {
@@ -217,6 +228,13 @@ impl Emulator {
 			self.mem.finished_with_bios();
 		}
 		cycles
+	}
+	pub fn save_game(&mut self) -> usize {
+		if let Ok(mut file) = File::create(self.mem.save_file.clone()) {
+			self.mem.cart.save_game(&mut file)
+		} else {
+			0
+		}
 	}
 
 	fn emulate_cycle(&mut self, state: &mut ProgramState) -> u64 {

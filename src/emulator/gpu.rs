@@ -104,6 +104,7 @@ impl Gpu {
 			}
 		}
 	}
+	#[allow(unreachable_code)]
 	fn set_lcd_status(&mut self, mem: &mut Memory, im: &InterruptManager, cgb_mode: bool) {
 		let mut status = mem.rb(0xFF41);
 		let line = mem.rb(0xFF44);
@@ -147,7 +148,7 @@ impl Gpu {
 			//H-Blank DMA
 			let source =  (mem.rb(0xFF52) as u16 | ((mem.rb(0xFF51) as u16) << 8)) & 0xFFF0;
 			let dest   = ((mem.rb(0xFF54) as u16 | ((mem.rb(0xFF53) as u16) << 8)) & 0x1FF0) | 0x8000;
-			let length = 0x10*((dma_info & 0x7F) as u16+1);
+			let length = 0x10*((dma_info & 0x7F) as u16 + 1);
 
 			for i in 0..0x10 {
 				let copy_val = mem.rb(source + length - i - 1);

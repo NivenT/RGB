@@ -65,8 +65,11 @@ fn main() {
 
             cycles_per_second = 0;
             start = PreciseTime::now();
+
+            emu.save_game();
         }
         handle_input(&mut event_pump, &mut state, &mut emu);
+
         //SDL Automatically caps FPS to the refresh rate of the screen
         //This makes sure enough cycles are emulated to keep the emulator
         //consistent with a real gameboy (assuming 60 FPS)
@@ -77,6 +80,7 @@ fn main() {
         if frames_until_render == 0 {
             renderer.render(&display, emu.gpu.get_screen());
         }
+
         frames_until_render = (frames_until_render+1)%state.speed;
         cycles_per_second += cycles_this_frame;
         cycles_this_frame = 0;

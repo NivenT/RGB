@@ -55,7 +55,7 @@ Certain keys are special, and the emulator has built in responses for when they 
 - [X] MBC2 memory banking
 - [X] MBC3 memory banking
 - [X] MBC5 memory banking
-- [ ] Can save games
+- [X] Can save games
 
 ###Input
 - [X] Accepts input
@@ -66,7 +66,6 @@ Certain keys are special, and the emulator has built in responses for when they 
 ##Known Bugs/Issues
 * Some game behave strangly for unknown reasons
   * Ex. Dr. Mario freezes on the screen after the title screen
-  * This is probably due to some instructions being implemented incorrectly or to other subtle errors in emulation
 * Emulator is slow at times
 * Overlapping sprites are not always displayed correctly
 * CGB support is still a work in progress

@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::Read;
+use std::io::{Write, Read};
 
 pub struct Mbc5 {
 	//Unknown error occurs when using an array instead of a Vec
@@ -49,5 +49,11 @@ impl Mbc5 {
 	}
 	pub fn load_game(&mut self, game_file: &mut File) -> usize {
 		game_file.read(&mut self.rom).unwrap()
+	}
+	pub fn load_sav(&mut self, save_file: &mut File) -> usize {
+		save_file.read(&mut self.ram).unwrap()
+	}
+	pub fn save_game(&mut self, save_file: &mut File) -> usize {
+		save_file.write(&self.ram).unwrap()
 	}
 }

@@ -27,6 +27,7 @@ impl CartridgeType {
 	}
 }
 
+// Consider replacing with trait at some point
 pub enum Mbc {
 	EMPTY,
 	NONE(Cartridge),
@@ -81,6 +82,26 @@ impl Mbc {
 		match *self {
 			Mbc::MBC3(ref mut cart) => cart.step(cycles),
 			_						=> {}
+		}
+	}
+	pub fn load_sav(&mut self, save_file: &mut File) -> usize {
+		match *self {
+			Mbc::EMPTY => panic!("Attempted to utilize empty cartridge"),
+			Mbc::NONE(ref mut cart) => cart.load_sav(save_file),
+			Mbc::MBC1(ref mut cart) => cart.load_sav(save_file),
+			Mbc::MBC2(ref mut cart) => cart.load_sav(save_file),
+			Mbc::MBC3(ref mut cart) => cart.load_sav(save_file),
+			Mbc::MBC5(ref mut cart) => cart.load_sav(save_file)
+		}
+	}
+	pub fn save_game(&mut self, save_file: &mut File) -> usize {
+		match *self {
+			Mbc::EMPTY => panic!("Attempted to utilize empty cartridge"),
+			Mbc::NONE(ref mut cart) => cart.save_game(save_file),
+			Mbc::MBC1(ref mut cart) => cart.save_game(save_file),
+			Mbc::MBC2(ref mut cart) => cart.save_game(save_file),
+			Mbc::MBC3(ref mut cart) => cart.save_game(save_file),
+			Mbc::MBC5(ref mut cart) => cart.save_game(save_file)
 		}
 	}
 }

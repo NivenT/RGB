@@ -3,6 +3,7 @@ use emulator::Mbc;
 pub struct Memory {
 	pub cart:		Mbc,
 	pub bios:		Vec<u8>, 	//Size depends on GB/GBC
+	pub save_file: 	String,
 	pub cgb_mode: 	bool,
 	
 	mem:			Vec<u8>, 	//64 KB
@@ -25,6 +26,7 @@ impl Memory {
 			sp: [0; 64],
 			bios: Vec::new(), 
 			cart: Mbc::EMPTY, 
+			save_file: "".to_string(),
 			wram_bank: 1, 
 			key_state: 0xFF, 
 			running_bios: true,
@@ -102,7 +104,7 @@ impl Memory {
 			}
 			return;
 		} else if 0xFF4F == address { //VRAM bank
-			return self.mem[address] = val & 1;
+			return self.mem[0xFF4F] = val & 1;
 		} else if 0xFF55 == address && self.cgb_mode { //VRAM DMA transfer
 			if (val & (1 << 7)) == 0 {
 				//General Purpose DMA
@@ -115,6 +117,7 @@ impl Memory {
 					self.wb(dest + i, copy_val);
 				}
 				self.mem[0xFF55] = 0xFF;
+				return;
 			}
 		} else if 0xFF69 == address { //Background Palette Data
 			self.bgp[(self.rb(0xFF68) & 0x3F) as usize] = val;

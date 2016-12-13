@@ -19,4 +19,10 @@ impl Cartridge {
 	pub fn load_game(&mut self, game_file: &mut File) -> usize {
 		game_file.read(&mut self.rom).unwrap()
 	}
+	pub fn load_sav(&mut self, _: &mut File) -> usize {
+		0
+	}
+	pub fn save_game(&mut self, _: &mut File) -> usize {
+		0
+	}
 }
