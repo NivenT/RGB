@@ -88,7 +88,7 @@ impl Gpu {
 		self.sl_count
 	}
 	pub fn step(&mut self, mem: &mut Memory, im: &InterruptManager, cycles: i16, cgb_mode: bool) {
-		self.set_lcd_status(mem, im, cgb_mode);
+		self.set_lcd_status(mem, im);
 		if self.is_lcd_enabled(mem) {
 			self.sl_count -= cycles;
 			if self.sl_count <= 0 {
@@ -100,12 +100,14 @@ impl Gpu {
 					im.request_interrupt(mem, 0);
 				} else if line < 144 {
 					self.draw_line(mem, cgb_mode);
+					if cgb_mode {
+						self.hblank_dma(mem);
+					}
 				}
 			}
 		}
 	}
-	#[allow(unreachable_code)]
-	fn set_lcd_status(&mut self, mem: &mut Memory, im: &InterruptManager, cgb_mode: bool) {
+	fn set_lcd_status(&mut self, mem: &mut Memory, im: &InterruptManager) {
 		let mut status = mem.rb(0xFF41);
 		let line = mem.rb(0xFF44);
 		let mode = status & 3;
@@ -141,10 +143,14 @@ impl Gpu {
 		}
 
 		mem.wb(0xFF41, status);
-
+	}
+	fn is_lcd_enabled(&self, mem: &Memory) -> bool {
+		(mem.rb(0xFF40) & (1 << 7)) > 0
+	}
+	fn hblank_dma(&self, mem: &mut Memory) {
+		let status = mem.rb(0xFF41);
 		let dma_info = mem.rb(0xFF55);
-		if (status & 3) == 0 && dma_info & (1 << 7) > 0 && dma_info != 0xFF && cgb_mode {
-			return; // Still buggy
+		if (status & 3) == 0 && dma_info & (1 << 7) > 0 && dma_info != 0xFF {
 			//H-Blank DMA
 			let source =  (mem.rb(0xFF52) as u16 | ((mem.rb(0xFF51) as u16) << 8)) & 0xFFF0;
 			let dest   = ((mem.rb(0xFF54) as u16 | ((mem.rb(0xFF53) as u16) << 8)) & 0x1FF0) | 0x8000;
@@ -158,9 +164,6 @@ impl Gpu {
 			let length = dma_info & 0x7F;
 			mem.wb(0xFF55, length.wrapping_sub(1) | (1 << 7));
 		}
-	}
-	fn is_lcd_enabled(&self, mem: &Memory) -> bool {
-		(mem.rb(0xFF40) & (1 << 7)) > 0
 	}
 	fn draw_line(&mut self, mem: &Memory, cgb_mode: bool) {
 		self.draw_tiles(mem, cgb_mode);
