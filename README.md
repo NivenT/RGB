@@ -17,6 +17,11 @@ cd RGB
 cargo build
 ````
 
+In order for it to build, you must have SDL2 installed. On Ubuntu, run
+````
+sudo apt-get install libsdl2-dev
+````
+
 ##How to Use
 Before running the program, make sure to setup the settings.ini file. This is where you supply a path to the game to be loaded, tell the emulator which keyboard keys map to which gameboy buttons, and specify what hex colors the emulator should use for graphics. You can also supply a path to a binary file containg the gameboy BIOS. Even if you do not have a copy of the gameboy's BIOS (you supply a path to a nonexistent file), the emulator will still run. **If you supply a CGB BIOS file, the emulator will run as a gameboy color, but if you supply a monochrome gameboy BIOS file, the emulator will run as a monochrome gameboy. If no BIOS file is supplied, it will decide which to run as depending on if the loaded game was made for monochrome of color gameboys.** RGB uses SDL2 for window management and input handling, so check [here](https://github.com/AngryLawyer/rust-sdl2/blob/master/sdl2-sys/src/keycode.rs) for the values of each key.
 
