@@ -43,14 +43,14 @@ impl Memory {
 			if self.running_bios {self.bios[address]} else {self.cart.rb(address)}
 		} else if address < 0x8000 {
 			self.cart.rb(address)
-		} else if 0x8000 <= address && address < 0xA000 {
+		} else if address < 0xA000 {
 			let bank = if self.cgb_mode {self.rb(0xFF4F)} else {0};
 			self.vram[bank as usize*0x2000 + address%0x8000]
-		} else if 0xA000 <= address && address < 0xC000 {
+		} else if address < 0xC000 {
 			self.cart.rb(address)
-		} else if 0xC000 <= address && address < 0xD000 {
+		} else if address < 0xD000 {
 			self.wram[address - 0xC000]
-		} else if 0xD000 <= address && address < 0xE000 {
+		} else if address < 0xE000 {
 			self.wram[self.wram_bank as usize*0x1000 + address%0xD000]
 		} else if 0xFF00 == address {
 			match self.mem[0xFF00] & 0x30 {

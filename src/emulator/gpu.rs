@@ -5,6 +5,8 @@ const SCANLINE_TOTAL_TIME: i16 = 456;
 const SCANLINE_MODE2_OVER: i16 = 456-80;
 const SCANLINE_MODE3_OVER: i16 = 456-80-172;
 
+const COLOR_SCALE: f32 = (0xFF as f32)/(0x1F as f32);
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {
@@ -43,10 +45,9 @@ impl Color {
 			(data & 0x7C00) >> 10
 		);
 
-		let scale = (0xFF as f32)/(0x1F as f32);
-		Color::CGB((red as f32 * scale) as u8,
-				   (green as f32 * scale) as u8,
-				   (blue as f32 * scale) as u8)
+		Color::CGB((red as f32 * COLOR_SCALE) as u8,
+				   (green as f32 * COLOR_SCALE) as u8,
+				   (blue as f32 * COLOR_SCALE) as u8)
 	}
 	fn from_cgb_palette_sp(id: u8, number: u8, mem: &Memory) -> Color {
 		let index = (8*number + 2*id) as usize;
@@ -57,26 +58,25 @@ impl Color {
 			(data & 0x7C00) >> 10
 		);
 
-		let scale = (0xFF as f32)/(0x1F as f32);
-		Color::CGB((red as f32 * scale) as u8,
-				   (green as f32 * scale) as u8,
-				   (blue as f32 * scale) as u8)
+		Color::CGB((red as f32 * COLOR_SCALE) as u8,
+				   (green as f32 * COLOR_SCALE) as u8,
+				   (blue as f32 * COLOR_SCALE) as u8)
 	}
 }
 
 pub struct Gpu {
-	//Screen is 160x144 pixels
+	// Screen is 160x144 pixels
 	screen_data:	[[Color; 160]; 144],
-	//background priority for each pixel
+	// background priority for each pixel
 	bg_priority:	[[u8; 160]; 144], //0b00000IIP where II is color id and P is priority (CGB only)
-	//scanline counter
+	// scanline counter
 	sl_count:		i16
 }
 
 impl Gpu {
 	pub fn new() -> Gpu {
 	    Gpu {
-	    	screen_data: [[Color::CGB(0,0,0); 160]; 144], 
+	    	screen_data: [[Color::CGB(0,0,0); 160]; 144],
 	    	bg_priority: [[0; 160]; 144],
 	    	sl_count: 0
 	    }
@@ -148,9 +148,8 @@ impl Gpu {
 		(mem.rb(0xFF40) & (1 << 7)) > 0
 	}
 	fn hblank_dma(&self, mem: &mut Memory) {
-		let status = mem.rb(0xFF41);
 		let dma_info = mem.rb(0xFF55);
-		if (status & 3) == 0 && dma_info & (1 << 7) > 0 && dma_info != 0xFF {
+		if dma_info & (1 << 7) > 0 && dma_info != 0xFF {
 			//H-Blank DMA
 			let source =  (mem.rb(0xFF52) as u16 | ((mem.rb(0xFF51) as u16) << 8)) & 0xFFF0;
 			let dest   = ((mem.rb(0xFF54) as u16 | ((mem.rb(0xFF53) as u16) << 8)) & 0x1FF0) | 0x8000;
@@ -180,7 +179,7 @@ impl Gpu {
 		let back_layout_loc = if (control & (1 << 3)) > 0 {0x9C00} else {0x9800};
 		let wind_layout_loc = if (control & (1 << 6)) > 0 {0x9C00} else {0x9800};
 		let using_window = (control & (1 << 5)) > 0 && window_y <= line;
-		let background_loc: u16 = if using_window {wind_layout_loc} else {back_layout_loc}; 
+		let background_loc: u16 = if using_window {wind_layout_loc} else {back_layout_loc};
 
 		if !using_window && control & 1 == 0 {
 			for pixel in 0..160u8 {

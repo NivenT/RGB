@@ -250,6 +250,8 @@ impl Emulator {
 		self.regs.pc += instruction.operand_length;
 
 		if opcode == 0x20 && operand == 0xFE && !self.regs.get_flag(ZERO_FLAG) {
+			// jump back 2 bytes if zero flag not set
+			// program counter will return to pointing to this instruction and then repeat
 			panic!("Error: Emulation caught in infinite loop");
 		}
 

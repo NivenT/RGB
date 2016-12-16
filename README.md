@@ -20,7 +20,7 @@ Before running the program, make sure to setup the settings.ini file. This is wh
 
 Once settings.ini has been set up, start the program by running the following command from the project's main directory
 ```
-cargo run
+cargo run --release
 ```
 
 Once the program starts, it behaves like a gameboy with the keys you specified as the buttons.
