@@ -1,4 +1,6 @@
 # RGB
+[![Build Status](https://travis-ci.org/NivenT/RGB.svg?branch=master)](https://travis-ci.org/NivenT/RGB)
+
 RGB (Rust Game Boy) is a simple emulator for the original game boy and the color game boy.
 
 <img src="https://github.com/NivenT/RGB/blob/master/screenshots/img0.png" alt="Screenshot" width="400" height="300"/>
