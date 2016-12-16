@@ -1197,7 +1197,8 @@ mod test {
 	use emulator::registers::*;
 	use emulator::cb_instructions::*;
 	use emulator::emulator::Emulator;
-	use emulator::memory::BIOS;
+    use emulator::mbc::*;
+    use emulator::cartridge::Cartridge;
 
 	#[test]
 	fn test_xor() {
@@ -1217,7 +1218,6 @@ mod test {
 		*emu.regs.a() = 18;
 		unsafe{
 			assert_eq!(*emu.regs.hl(), 65281);
-			assert_eq!(emu.mem.rb(5), BIOS[5]);
 			let ld_hld_a = INSTRUCTIONS[0x32].func.unwrap();
 			ld_hld_a(&mut emu, 0);
 			assert_eq!(*emu.regs.hl(), 65280);
@@ -1249,6 +1249,8 @@ mod test {
 	#[test]
 	fn test_rst() {
 		let mut emu = Emulator::new();
+        emu.mem.cart = Mbc::NONE(Cartridge::new());
+        
 		emu.regs.sp = 3;
 		emu.regs.pc = 0xDEAD;
 		let rst_20 = INSTRUCTIONS[0x0E7].func.unwrap();
@@ -1291,6 +1293,8 @@ mod test {
 	#[test]
 	fn test_call() {
 		let mut emu = Emulator::new();
+        emu.mem.cart = Mbc::NONE(Cartridge::new());
+
 		emu.regs.sp = 100;
 		emu.regs.pc = 0xBEEF;
 		let call_a16 = INSTRUCTIONS[0xCD].func.unwrap();
@@ -1303,6 +1307,8 @@ mod test {
 	#[test]
 	fn test_push_pop() {
 		let mut emu = Emulator::new();
+        emu.mem.cart = Mbc::NONE(Cartridge::new());
+
 		emu.regs.sp = 100;
 		*emu.regs.a() = 2;
 		let push_af = INSTRUCTIONS[0xF5].func.unwrap();
@@ -1340,6 +1346,8 @@ mod test {
 	#[test]
 	fn test_ret() {
 		let mut emu = Emulator::new();
+        emu.mem.cart = Mbc::NONE(Cartridge::new());
+
 		emu.regs.pc = 0x1000;
 		emu.regs.sp = 100;
 		let call = INSTRUCTIONS[0xCD].func.unwrap();
