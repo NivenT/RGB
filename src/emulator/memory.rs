@@ -26,7 +26,7 @@ impl Memory {
 			sp: [0; 64],
 			bios: Vec::new(), 
 			cart: Mbc::EMPTY, 
-			save_file: "".to_string(),
+			save_file: String::new(),
 			wram_bank: 1, 
 			key_state: 0xFF, 
 			running_bios: true,

@@ -259,7 +259,7 @@ impl Emulator {
 		if let Some(func) = instruction.func {
 			if state.debug {
 				println!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}\n",
-							opcode, instruction.name, instruction.operand_length, operand, address, self);
+					opcode, instruction.name, instruction.operand_length, operand, address, self);
 			}
 
 			cycles = func(self, operand);

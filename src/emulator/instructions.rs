@@ -1406,4 +1406,25 @@ mod test {
         assert_eq!(*emu.regs.a(), 0xFF);
         assert_eq!(*emu.regs.f(), NEGATIVE_FLAG | HALFCARRY_FLAG | CARRY_FLAG);
     }
+    #[test]
+    fn test_cp() {
+        let mut emu = Emulator::new();
+        *emu.regs.a() = 127;
+        unsafe {
+            *emu.regs.hl() = 0x8000;
+            emu.mem.wb(*emu.regs.hl(), 125);
+            let cp_hl = INSTRUCTIONS[0xBE].func.unwrap();
+
+            cp_hl(&mut emu, 0);
+            assert_eq!(*emu.regs.a(), 127);
+            assert_eq!(emu.mem.rb(*emu.regs.hl()), 125);
+            assert_eq!(*emu.regs.f(), NEGATIVE_FLAG);
+
+            emu.mem.wb(*emu.regs.hl(), 127);
+            cp_hl(&mut emu, 0);
+            assert_eq!(*emu.regs.a(), 127);
+            assert_eq!(emu.mem.rb(*emu.regs.hl()), 127);
+            assert_eq!(*emu.regs.f(), ZERO_FLAG | NEGATIVE_FLAG);
+        }
+    }
 }
