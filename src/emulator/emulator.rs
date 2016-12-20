@@ -19,6 +19,14 @@ fn to_save(game: String) -> String {
 	game[..dot_pos].to_string() + ".rsav" // Not sure how regular .sav files are saved so these are .rsav
 }
 
+fn to_null_terminated(bytes: &[u8]) -> String {
+	String::from_utf8_lossy(&bytes.iter()
+								  .map(|b| *b)
+	 							  .take_while(|&b| b > 0)
+	 							  .collect::<Vec<_>>())
+							.to_string()
+}
+
 pub struct Emulator {
 	clock:			u64,
 	interrupts:		InterruptManager,
@@ -153,7 +161,8 @@ impl Emulator {
 		let _ = game_file.read(&mut header).unwrap();
 		let _ = game_file.seek(SeekFrom::Start(0));
 
-		let title = String::from_utf8_lossy(&header[0x134..0x144]);
+		let title = to_null_terminated(&header[0x134..0x144]);
+
 		println!("The title of the game is {}", title);
 		
 		let cartridge_type = header[0x147];
