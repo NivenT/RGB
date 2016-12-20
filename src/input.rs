@@ -44,7 +44,15 @@ pub fn handle_input(events: &mut EventPump, state: &mut ProgramState, emu: &mut 
 fn handle_keydown(key: Keycode, state: &mut ProgramState, emu: &Emulator) {
 	match key {
         Keycode::Num1 => {state.speed = 1},
-        Keycode::Num2 => {state.speed = 10},
+        Keycode::Num2 => {state.speed = 2},
+        Keycode::Num3 => {state.speed = 3},
+        Keycode::Num4 => {state.speed = 4},
+        Keycode::Num5 => {state.speed = 5},
+        Keycode::Num6 => {state.speed = 6},
+        Keycode::Num7 => {state.speed = 7},
+        Keycode::Num8 => {state.speed = 8},
+        Keycode::Num9 => {state.speed = 9},
+        Keycode::Num0 => {state.speed = 10},
 		Keycode::D => {state.debug = !state.debug},
         Keycode::F => {state.adv_frame = true},
         Keycode::P => {state.paused = !state.paused},
