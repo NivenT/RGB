@@ -40,8 +40,7 @@ Certain keys are special, and the emulator has built in responses for when they 
 * F - Emulates a single CPU instruction if paused
 * M - Prompts for a starting and ending memory address. Emulator then prints the values stored in memory between those addresses (inclusive on starting and exclusive on ending)
 * Esc - Exits program
-* 1 - Runs emulator at normal speed
-* 2 - Speeds up emulation by only rendering every 10th frame
+* 1..0 - Runs the emulator at normal (double, triple, ..., up to 10x) speed
 
 ##Emulation Progress
 ###CPU
