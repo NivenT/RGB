@@ -39,7 +39,16 @@ impl Memory {
 	//read byte
 	pub fn rb(&self, address: u16) -> u8 {
 		let address = address as usize;
-		if address < self.bios.len() {
+		if 0x100 <= address && address < 0x200 {
+			/* This area in the GBC BIOS is all 00s
+			 * I assume that means its supposed to be ignored in favor of
+			 ** the data in the cart here. I have not found a document
+			 ** stating that is the case, but tracing through the BIOS
+			 ** code suggests that this is the right thing to do.
+			 * Also, the BIOS runs correctly with this but not without it
+			 */
+			self.cart.rb(address)
+		} else if address < self.bios.len() {
 			if self.running_bios {self.bios[address]} else {self.cart.rb(address)}
 		} else if address < 0x8000 {
 			self.cart.rb(address)
