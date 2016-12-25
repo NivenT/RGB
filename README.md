@@ -72,5 +72,4 @@ Certain keys are special, and the emulator has built in responses for when they 
 ##Known Bugs/Issues
 * Some game behave strangly for unknown reasons
   * Ex. Dr. Mario freezes on the screen after the title screen
-* CGB support is still a work in progress
-  * CGB BIOS will get stuck in an infinite loop
+* CGB games may exhibit small graphical quirks
