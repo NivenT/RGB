@@ -67,6 +67,8 @@ impl Memory {
 				0x20 => 0x20 | (self.key_state & 0xF),
 				_ => 0
 			}
+		} else if 0xFF55 == address {
+			if self.mem[0xFF55] == 0xFF {0xFF} else {self.mem[0xFF55] & 0x7F}
 		} else if 0xFF69 == address { //Background Palette Data
 			self.bgp[(self.rb(0xFF68) & 0x3F) as usize]
 		} else if 0xFF6B == address { //Sprite Palette Data

@@ -233,7 +233,7 @@ impl Emulator {
 			self.halted = false;
 		}
 
-		if self.regs.pc >= self.mem.bios.len() as u16 {
+		if self.regs.pc == 0x100 {
 			self.mem.finished_with_bios();
 		}
 		cycles

@@ -252,7 +252,7 @@ impl Gpu {
 		self.bg_priority[line][pixel] > 1
 	}
 	fn draw_sprites(&mut self, mem: &Memory, cgb_mode: bool) {
-		let control = mem.rb(0xFF40);
+        let control = mem.rb(0xFF40);
 		let large_sprites = (control & (1 << 2)) > 0;
 
 		for sprite in (0..40).rev() {
@@ -299,8 +299,10 @@ impl Gpu {
 							x_pos.wrapping_add(7-color_bit)
 						};
 
-						if pixel < 160 && !self.bg_has_priority(mem, line as usize, pixel as usize, behind_bg) {
-							self.screen_data[line as usize][pixel as usize] = color;
+                        let line = line as usize;
+                        let pixel = pixel as usize;
+						if pixel < 160 && !self.bg_has_priority(mem, line, pixel, behind_bg) {
+							self.screen_data[line][pixel] = color;
 						}
 					}
 				}
