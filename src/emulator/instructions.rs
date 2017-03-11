@@ -552,6 +552,9 @@ impl Instruction {
     pub fn is_call(&self) -> bool {
         self.name.len() > 3 && &self.name[..4] == "CALL"
     }
+    pub fn is_jump(&self) -> bool {
+        self.name.len() > 1 && &self.name[..2] == "JP"
+    }
 }
 
 pub const INSTRUCTIONS: [Instruction; 256] = [

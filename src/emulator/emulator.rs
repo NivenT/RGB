@@ -256,25 +256,27 @@ impl Emulator {
 			// Assume there is a NOP followed by a JP at address 0x100
 			let start = data[0x102] as usize | ((data[0x103] as usize) << 8);
 
-			let mut visited = HashSet::new();
-			let mut stack = vec![start];
-
-			visited.insert(start);
+			// Also add interrupt handlers
+			let mut stack = vec![start, 0x40, 0x48, 0x50, 0x58, 0x60];
+			let mut visited: HashSet<_> = stack.iter().cloned().collect();
 
 			while let Some(mut index) = stack.pop() {
 				let mut instruction = INSTRUCTIONS[0];
 				while !instruction.is_ret() {
+					visited.insert(index);
+
 					instruction = INSTRUCTIONS[data[index] as usize];
 					let step = instruction.operand_length + 1;
 
 					let bytes = [data[index], data[index+1], data[index+2]];
 					disassembly = disassembly + &Emulator::disassemble(index as u16, bytes) + "\n";
 
-					if instruction.is_call() {
+					if instruction.is_call() || instruction.is_jump() {
 						let addr = bytes[1] as usize | ((bytes[2] as usize) << 8);
 						if !visited.contains(&addr) {
 							stack.push(addr);
-							visited.insert(addr);
+							// Too many inserts in this function? Probably but meh
+							visited.insert(index);
 						}
 					}
 					index += step as usize;
