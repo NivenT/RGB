@@ -545,6 +545,15 @@ pub struct Instruction {
 	pub func:			InstructionFunc
 }
 
+impl Instruction {
+    pub fn is_ret(&self) -> bool {
+        self.name.len() > 2 && &self.name[..3] == "RET"
+    }
+    pub fn is_call(&self) -> bool {
+        self.name.len() > 3 && &self.name[..4] == "CALL"
+    }
+}
+
 pub const INSTRUCTIONS: [Instruction; 256] = [
 	//0x00
 	new_instruction!("NOP", 0, Some(&|_,_| 4)),	

@@ -10,6 +10,9 @@ mod input;
 mod rendering;
 mod programstate;
 
+use std::fs::File;
+use std::io::prelude::*;
+
 use glium_sdl2::DisplayBuild;
 use tini::Ini;
 use time::PreciseTime;
@@ -34,6 +37,11 @@ fn main() {
 
     let white = u32::from_str_radix(&white, 16).unwrap();
     let black = u32::from_str_radix(&black, 16).unwrap();
+
+    // TODO: Command line arguments?
+    if let Ok(mut file) = File::create("disassembly.txt") {
+        let _ = file.write(Emulator::disassemble_file(&game_path.clone()).as_ref());
+    }
 
 	let mut emu = Emulator::new();
 	emu.set_controls(controls);

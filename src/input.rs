@@ -54,6 +54,7 @@ fn handle_keydown(key: Keycode, state: &mut ProgramState, emu: &Emulator) {
         Keycode::Num9 => {state.speed = 9},
         Keycode::Num0 => {state.speed = 10},
 		Keycode::D => {state.debug = !state.debug},
+        Keycode::R => {state.debug_regs = !state.debug_regs},
         Keycode::F => {state.adv_frame = true},
         Keycode::P => {state.paused = !state.paused},
         Keycode::M => {

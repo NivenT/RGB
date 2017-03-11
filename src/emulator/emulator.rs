@@ -2,6 +2,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::SeekFrom;
 use std::io::prelude::*;
+use std::collections::HashSet;
 
 use emulator::Memory;
 use emulator::Gpu;
@@ -245,6 +246,46 @@ impl Emulator {
 			0
 		}
 	}
+	pub fn disassemble_file(file: &str) -> String {
+		if let Ok(mut file) = File::open(file) {
+			let mut disassembly = String::new();
+
+			let mut data = Vec::new();
+			let _ = file.read_to_end(&mut data);
+
+			// Assume there is a NOP followed by a JP at address 0x100
+			let start = data[0x102] as usize | ((data[0x103] as usize) << 8);
+
+			let mut visited = HashSet::new();
+			let mut stack = vec![start];
+
+			visited.insert(start);
+
+			while let Some(mut index) = stack.pop() {
+				let mut instruction = INSTRUCTIONS[0];
+				while !instruction.is_ret() {
+					instruction = INSTRUCTIONS[data[index] as usize];
+					let step = instruction.operand_length + 1;
+
+					let bytes = [data[index], data[index+1], data[index+2]];
+					disassembly = disassembly + &Emulator::disassemble(index as u16, bytes) + "\n";
+
+					if instruction.is_call() {
+						let addr = bytes[1] as usize | ((bytes[2] as usize) << 8);
+						if !visited.contains(&addr) {
+							stack.push(addr);
+							visited.insert(addr);
+						}
+					}
+					index += step as usize;
+				}
+				disassembly += "\n";
+			}
+			disassembly
+		} else {
+			String::new()
+		}
+	}
 
 	fn emulate_cycle(&mut self, state: &mut ProgramState) -> u64 {
 		let address = self.regs.pc;
@@ -267,9 +308,11 @@ impl Emulator {
 		let cycles: u64;
 		if let Some(func) = instruction.func {
 			if state.debug {
-				println!("Running instruction {:#X} ({} | {}) with operand {:#X} at address ({:#X})\n{:?}\n",
-					opcode, instruction.name, instruction.operand_length, operand, address, self);
-			}
+				if state.debug_regs {
+					println!("{:?}", self.regs);
+				}
+				println!("{}\n", Emulator::disassemble(address, [self.mem.rb(address), self.mem.rb(address+1), self.mem.rb(address+2)]));
+			} 
 
 			cycles = func(self, operand);
 		} else {
@@ -280,5 +323,29 @@ impl Emulator {
 		
 		self.clock += cycles;
 		cycles
+	}
+	fn disassemble(address: u16, bytes: [u8; 3]) -> String {
+		const OP_TYPES: [&'static str; 5] = ["d16", "a8", "a16", "r8", "d8"];
+
+		let opcode = bytes[0];	
+		let instruction = INSTRUCTIONS[opcode as usize];
+		let disassemble_op = |i: usize| { if i < instruction.operand_length as usize
+			{format!("{:#X}", bytes[i+1])} else {"    ".to_string()}
+		};
+
+		let operand = if instruction.operand_length == 1 {
+			bytes[1] as u16
+		} else {
+			bytes[1] as u16 | ((bytes[2] as u16) << 8)
+		};
+		let mut disassembly = instruction.name.to_string();
+
+		// First time I've ever wanted a C style for loop in Rust
+		let mut i = 0;
+		while disassembly == instruction.name && i < 5 {
+			disassembly = disassembly.replace(OP_TYPES[i], &format!("{:#X}", operand));
+			i += 1;
+		}
+		format!("{:#X}:\t{:#X} {} {}\t{}", address, opcode, disassemble_op(0), disassemble_op(1), disassembly)
 	}
 }
