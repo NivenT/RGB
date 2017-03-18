@@ -246,6 +246,7 @@ impl Emulator {
 			0
 		}
 	}
+	// Needs some cleaning up
 	pub fn disassemble_file(file: &str) -> String {
 		if let Ok(mut file) = File::open(file) {
 			let mut disassembly = String::new();
@@ -277,6 +278,10 @@ impl Emulator {
 							stack.push(addr);
 							// Too many inserts in this function? Probably but meh
 							visited.insert(index);
+
+							if instruction.is_jump() {
+								break;
+							}
 						}
 					}
 					index += step as usize;
