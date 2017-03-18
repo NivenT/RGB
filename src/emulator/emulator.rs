@@ -262,7 +262,7 @@ impl Emulator {
 
 			while let Some(mut index) = stack.pop() {
 				let mut instruction = INSTRUCTIONS[0];
-				while !instruction.is_ret() {
+				while !instruction.is_ret() && index < data.len() - 2 {
 					visited.insert(index);
 
 					instruction = INSTRUCTIONS[data[index] as usize];
