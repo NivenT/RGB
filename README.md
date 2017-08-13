@@ -40,34 +40,7 @@ Certain keys are special, and the emulator has built in responses for when they 
 * Esc - Exits program
 * 1..0 - Runs the emulator at normal (double, triple, ..., up to 10x) speed
 
-## Emulation Progress
-### CPU
-- [X] Implemented all normal instructions
-- [X] Implemented all CB instructions
-- [X] Implemented interrupts
-
-### GPU
-- [X] Can display tiles
-- [X] Can display sprites
-- [X] Flips sprites
-- [X] CGB tiles
-- [X] CGB sprites
-
-### Memory
-- [X] 32KB ROMs without banking
-- [X] MBC1 memory banking
-- [X] MBC2 memory banking
-- [X] MBC3 memory banking
-- [X] MBC5 memory banking
-- [X] Can save games
-
-### Input
-- [X] Accepts input
-
-### Sound
-- [ ] Produces sound
-
 ## Known Bugs/Issues
-* Some game behave strangly for unknown reasons
-  * Ex. Dr. Mario freezes on the screen after the title screen
-* CGB games may exhibit small graphical quirks
+* Dr. Mario freezes after pressing enter on the title screen
+
+If you find any other problems, please open an Issue.
