@@ -22,6 +22,14 @@ use input::*;
 use rendering::*;
 use programstate::*;
 
+// A real Gameboy executes this many cycles a second
+const CYCLES_PER_SECOND: u64 = 4194304;
+
+// SDL Automatically caps FPS to the refresh rate of the screen
+// This many cyles should be emulated each frame to keep the emulator
+// consistent with a real gameboy (assuming 60 FPS)
+const CYCLES_PER_FRAME: u64 = 69905;
+
 fn main() {
     let mut state = ProgramState::new();
 
@@ -65,9 +73,7 @@ fn main() {
     let renderer = Renderer::new(&display, white, black);
     while !state.done {
         if start.to(PreciseTime::now()).num_seconds() >= 1 {
-            //Gameboy should execute 4194304 cycles each second
-            //println!("{} cycles emulated in the last second", cycles_per_second);
-            let acc = 100f64*(cycles_per_second as f64/4194304f64);
+            let acc = 100f64*(cycles_per_second as f64/CYCLES_PER_SECOND as f64);
             let title = if state.paused {"Paused"} else {"Rust Gameboy"};
             let _ = display.window_mut().set_title(&format!("{} ({:.2}%)", title, acc));
 
@@ -77,16 +83,13 @@ fn main() {
             emu.save_game();
         }
         handle_input(&mut event_pump, &mut state, &mut emu);
-
-        //SDL Automatically caps FPS to the refresh rate of the screen
-        //This makes sure enough cycles are emulated to keep the emulator
-        //consistent with a real gameboy (assuming 60 FPS)
-        while (!state.paused || state.adv_frame) && cycles_this_frame < 69905 {
+        
+        while (!state.paused || state.adv_frame) && cycles_this_frame < CYCLES_PER_FRAME {
             cycles_this_frame += emu.step(&mut state);
             state.adv_frame = false;
         }
         if frames_until_render == 0 {
-            renderer.render(&display, emu.gpu.get_screen());
+            renderer.render(&display, emu.get_screen());
         }
 
         frames_until_render = (frames_until_render+1)%state.speed;

@@ -68,7 +68,7 @@ fn handle_keydown(key: Keycode, state: &mut ProgramState, emu: &Emulator) {
                 print!("{:#X}: ", row*16 + start);
                 let end = if (diff - row*16) < 16 {diff - row*16} else {16};
                 for col in 0..end {
-                    print!("{:#X} ", emu.mem.rb(row*16 + col + start));
+                    print!("{:#X} ", emu.rb(row*16 + col + start));
                 }
                 println!("");
             }

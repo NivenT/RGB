@@ -17,7 +17,8 @@ use super::super::programstate::*;
 
 fn to_save(game: String) -> String {
 	let dot_pos = game.rfind('.').unwrap();
-	game[..dot_pos].to_string() + ".rsav" // Not sure how regular .sav files are saved so these are .rsav
+	// Not sure how regular .sav files are saved so these are .rsav
+	game[..dot_pos].to_string() + ".rsav"
 }
 
 fn to_null_terminated(bytes: &[u8]) -> String {
@@ -35,11 +36,11 @@ pub struct Emulator {
 	timers:			Timers,
 	cgb_mode:		bool,
 
-	pub mem:		Memory,
-	pub gpu:		Gpu,
-	pub regs:		Registers,
-	pub halted:		bool,
-	pub stopped:	bool
+	pub(in emulator) mem: Memory,
+	pub(in emulator) gpu: Gpu,
+	pub(in emulator) regs: Registers,
+	pub(in emulator) halted: bool,
+	pub(in emulator) stopped: bool
 }
 
 impl fmt::Debug for Emulator {
@@ -207,10 +208,10 @@ impl Emulator {
 		self.mem.cgb_mode = self.cgb_mode;
 		println!("Emulator running in {}CGB mode", if self.cgb_mode {""} else {"Non-"});
 	}
-	pub fn enable_interrupts(&mut self) {
+	pub(in emulator) fn enable_interrupts(&mut self) {
 		self.interrupts.ime = true;
 	}
-	pub fn disable_interrupts(&mut self) {
+	pub(in emulator) fn disable_interrupts(&mut self) {
 		self.interrupts.ime = false;
 	}
 	pub fn update_keys(&mut self, key: u8, pressed: bool) {
@@ -293,6 +294,12 @@ impl Emulator {
 		} else {
 			String::new()
 		}
+	}
+	pub fn get_screen(&self) -> &[[super::Color; 160]; 144] {
+		self.gpu.get_screen()
+	}
+	pub fn rb(&self, addr: u16) -> u8 {
+		self.mem.rb(addr)
 	}
 
 	fn emulate_cycle(&mut self, state: &mut ProgramState) -> u64 {
