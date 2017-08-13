@@ -42,5 +42,7 @@ Certain keys are special, and the emulator has built in responses for when they 
 
 ## Known Bugs/Issues
 * Dr. Mario freezes after pressing enter on the title screen
+* Gameboy Color games may have slight graphical bugs
+* There is no sound
 
 If you find any other problems, please open an Issue.
