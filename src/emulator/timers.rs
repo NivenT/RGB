@@ -30,6 +30,7 @@ impl Timers {
 				3 => (41494304/16384) as i16,
 				_ => panic!("Invalid lower 2 bits for TAC")
 			};
+			
 			let tima = mem.rb(0xFF05);
 			if tima == 255 {
 				let tma = mem.rb(0xFF06);

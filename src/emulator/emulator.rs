@@ -247,6 +247,7 @@ impl Emulator {
 		}
 	}
 	// Needs some cleaning up
+	// Doesn't produce perfectly correct output, and is messy code
 	pub fn disassemble_file(file: &str) -> String {
 		if let Ok(mut file) = File::open(file) {
 			let mut disassembly = String::new();
