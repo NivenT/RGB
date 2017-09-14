@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate glium;
+extern crate glium_text;
 extern crate glium_sdl2;
 extern crate sdl2;
 extern crate tini;
@@ -89,7 +90,7 @@ fn main() {
             state.adv_frame = false;
         }
         if frames_until_render == 0 {
-            renderer.render(&display, emu.get_screen());
+            renderer.render(&display, emu.get_screen(), &state);
         }
 
         frames_until_render = (frames_until_render+1)%state.speed;

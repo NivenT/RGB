@@ -83,6 +83,7 @@ impl Memory {
 	}
 	//write byte
 	pub fn wb(&mut self, address: u16, val: u8) {
+		// TODO: Use match instead?
 		let address = address as usize;
 		if 0xFEA0 <= address && address < 0xFF00 {
 			return;

@@ -322,7 +322,7 @@ impl Emulator {
 
 		let cycles: u64;
 		if let Some(func) = instruction.func {
-			if state.debug {
+			if state.debug && false {
 				if state.debug_regs {
 					println!("{:?}", self.regs);
 				}
