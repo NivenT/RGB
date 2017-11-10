@@ -52,12 +52,18 @@ fn main() {
     let bios_breakpoint = config.get::<String>("debug", "bios_breakpoint").map_or(false, |s| {
     	s.to_lowercase() == "true"
     });
+    let unimpl_instr_breakpoint = config.get::<String>("debug", "unimplemented_instruction_breakpoint").map_or(false, |s| {
+    	s.to_lowercase() == "true"
+    });
+    let inf_loop_breakpoint = config.get::<String>("debug", "infinite_loop_breakpoint").map_or(false, |s| {
+    	s.to_lowercase() == "true"
+    });
 
     if let Ok(mut file) = File::create("disassembly.txt") {
         let _ = file.write(Emulator::disassemble_file(&game_path.clone()).as_ref());
     }
 
-	let mut emu = Emulator::new(bios_breakpoint);
+	let mut emu = Emulator::new(bios_breakpoint, unimpl_instr_breakpoint, inf_loop_breakpoint);
 	emu.set_controls(controls);
     emu.load_bios(bios_path);
     emu.load_game(game_path);

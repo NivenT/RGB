@@ -36,6 +36,8 @@ pub struct Emulator {
 	timers:	Timers,
 	cgb_mode: bool,
 	bios_breakpoint: bool,
+	unimpl_instr_breakpoint: bool,
+	inf_loop_breakpoint: bool,
 
 	pub(in emulator) mem: Memory,
 	pub(in emulator) gpu: Gpu,
@@ -80,12 +82,12 @@ impl fmt::Debug for Emulator {
 
 impl Default for Emulator {
 	fn default() -> Emulator {
-		Emulator::new(false)
+		Emulator::new(false, false, false)
 	}
 }
 
 impl Emulator {
-	pub fn new(bios_breakpoint: bool) -> Emulator {
+	pub fn new(bios_breakpoint: bool, unimpl_instr_breakpoint: bool, inf_loop_breakpoint: bool) -> Emulator {
 		Emulator {
 			clock: 0, 
 			mem: Memory::new(), 
@@ -98,6 +100,8 @@ impl Emulator {
 			stopped: false, 
 			cgb_mode: false,
 			bios_breakpoint: bios_breakpoint,
+			unimpl_instr_breakpoint: unimpl_instr_breakpoint,
+			inf_loop_breakpoint: inf_loop_breakpoint
 		}
 	}
 	pub fn is_stopped(&self) -> bool {
@@ -331,7 +335,10 @@ impl Emulator {
 		if opcode == 0x20 && operand == 0xFE && !self.regs.get_flag(ZERO_FLAG) {
 			// jump back 2 bytes if zero flag not set
 			// program counter will return to pointing to this instruction and then repeat
-			panic!("Error: Emulation caught in infinite loop");
+			println!("Error: Emulation caught in infinite loop");
+			if self.inf_loop_breakpoint {
+				state.paused = true;
+			}
 		}
 
 		// TODO maybe: separate debug stuff into own function
@@ -361,7 +368,11 @@ impl Emulator {
 		} else {
 			println!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
 				address, opcode, instruction.name, instruction.operand_length, operand);
-			panic!("");
+			if self.unimpl_instr_breakpoint {
+				state.paused = true;
+			}
+			// Feels weird to keep emulator running, but panicing destorys potentially useful debug info
+			cycles = 4;
 		}
 		
 		self.clock += cycles;
