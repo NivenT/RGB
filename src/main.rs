@@ -10,6 +10,7 @@ mod emulator;
 mod input;
 mod rendering;
 mod programstate;
+mod utils;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -87,7 +88,7 @@ fn main() {
 
             emu.save_game();
         }
-        handle_input(&mut event_pump, &mut state, &mut emu);
+        handle_input(&mut event_pump, &mut state, &mut dstate, &mut emu);
         
         let slowdown = if state.debug {DEBUG_SLOWDOWN} else {1};
         while (!state.paused || state.adv_frame) && cycles_this_frame < CYCLES_PER_FRAME/slowdown {

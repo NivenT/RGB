@@ -31,11 +31,10 @@ impl ProgramState {
 
 #[derive(Debug)]
 pub struct DebugState {
-    // I should probably cap the length (i.e. number of lines) of this thing
+    // TODO: Cap number of lines of buffer
     pub buffer: String,
     pub cursor: usize,
     pub num_lines: usize,
-    pub at_end: bool,
 }
 
 impl DebugState {
@@ -44,7 +43,6 @@ impl DebugState {
             buffer: String::new(),
             cursor: 0,
             num_lines: 0,
-            at_end: true,
         }
     }
 }

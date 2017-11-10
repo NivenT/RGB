@@ -333,7 +333,7 @@ impl Emulator {
 				let disassembly = Emulator::disassemble(addr, [get(addr), get(addr+1), get(addr+2)]);
 				dstate.buffer += &format!("{}\n", disassembly);
 
-				dstate.cursor += if dstate.at_end {1} else {0};
+				dstate.cursor += if dstate.cursor == dstate.num_lines {1} else {0};
 				dstate.num_lines += 1;
 			} 
 

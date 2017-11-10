@@ -1,25 +1,12 @@
-use std::io;
-use std::io::prelude::*;
-use std::str::FromStr;
-
 use sdl2::EventPump;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
+use utils::*;
 use programstate::*;
 use emulator::Emulator;
 
-fn prompt_for_val<T: FromStr>(prompt: &str) -> Result<T, T::Err> {
-    print!("{}", prompt);
-
-    let mut input = String::new();
-    let _ = io::stdout().flush();
-    let _ = io::stdin().read_line(&mut input);
-
-    input.lines().last().unwrap().trim().parse()
-}
-
-pub fn handle_input(events: &mut EventPump, state: &mut ProgramState, emu: &mut Emulator) {
+pub fn handle_input(events: &mut EventPump, state: &mut ProgramState, dstate: &mut DebugState, emu: &mut Emulator) {
 	for event in events.poll_iter() {
         match event {
             Event::Quit{..} => {
@@ -27,7 +14,7 @@ pub fn handle_input(events: &mut EventPump, state: &mut ProgramState, emu: &mut 
             },
             Event::KeyDown{keycode: key, ..} => {
             	if let Some(key) = key {
-                    handle_keydown(key, state, emu);
+                    handle_keydown(key, state, dstate, emu);
                     emu.update_keys(key as u8, true);
             	}
             },
@@ -41,7 +28,7 @@ pub fn handle_input(events: &mut EventPump, state: &mut ProgramState, emu: &mut 
     }
 }
 
-fn handle_keydown(key: Keycode, state: &mut ProgramState, emu: &Emulator) {
+fn handle_keydown(key: Keycode, state: &mut ProgramState, dstate: &mut DebugState, emu: &Emulator) {
 	match key {
         Keycode::Num1 => {state.speed = 1},
         Keycode::Num2 => {state.speed = 2},
@@ -53,7 +40,7 @@ fn handle_keydown(key: Keycode, state: &mut ProgramState, emu: &Emulator) {
         Keycode::Num8 => {state.speed = 8},
         Keycode::Num9 => {state.speed = 9},
         Keycode::Num0 => {state.speed = 10},
-		Keycode::D => {state.debug = !state.debug},
+		Keycode::D => {state.debug = !state.debug; dstate.cursor = dstate.num_lines},
         Keycode::R => {state.debug_regs = !state.debug_regs},
         Keycode::F => {state.adv_frame = true},
         Keycode::P => {state.paused = !state.paused},
@@ -73,6 +60,16 @@ fn handle_keydown(key: Keycode, state: &mut ProgramState, emu: &Emulator) {
                 println!("");
             }
             println!("");
+        },
+        Keycode::Up => {
+            if state.paused && state.debug {
+                dstate.cursor = max(dstate.cursor-1, 0);
+            }
+        },
+        Keycode::Down => {
+            if state.paused && state.debug {
+                dstate.cursor = min(dstate.cursor+1, dstate.num_lines-NUM_LINES_ON_SCREEN);
+            }
         },
 		Keycode::Escape => {state.done = true},
 		_ => ()

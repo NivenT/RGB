@@ -12,18 +12,7 @@ use glium_sdl2::SDL2Facade;
 use emulator::Color;
 
 use super::{ProgramState, DebugState};
-
-const PORTION_DEBUG: f32 = 0.35;
-const FONT_SIZE: u32 = 32;
-const NUM_LINES_ON_SCREEN: usize = 25;
-const LINE_HEIGHT: f32 = 2.0/NUM_LINES_ON_SCREEN as f32;
-const TEXT_HEIGHT: f32 = 0.618 * LINE_HEIGHT; // 1/golden ratio for aesthetic reasons
-const NUM_CHARS_PER_LINE: u32 = 40;
-const CHAR_WIDTH: f32 = 2.0*PORTION_DEBUG/NUM_CHARS_PER_LINE as f32;
-
-fn max(lhs: usize, rhs: usize) -> usize {
-	if rhs > lhs {rhs} else {lhs}
-}
+use super::utils::*;
 
 #[derive(Debug, Clone, Copy)]
 struct Vertex {
@@ -146,7 +135,8 @@ impl Renderer {
 		target.draw(buf, &self.index_buffer, &self.program, &uniform!{sample: &texture}, 
 					&Default::default()).unwrap();
 		if state.debug {
-			let cursor = if dstate.cursor - dstate.num_lines < NUM_LINES_ON_SCREEN {
+			let cursor = if dstate.num_lines - dstate.cursor < NUM_LINES_ON_SCREEN {
+				// usizes are unsigned so this subtraction is just wrong (+ in input.rs). Oh well...
 				max(0, dstate.num_lines - NUM_LINES_ON_SCREEN)
 			} else {
 				dstate.cursor
