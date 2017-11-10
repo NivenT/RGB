@@ -56,7 +56,6 @@ For helping with development, I've built some debugging features into the emulat
 * Finally, `settings.ini` contains a `bios_breakpoint` flag. When this is set to `true`, the emulator will automaticallyy pause once the BIOS has finished running. This makes it easier to step through a game from the moment it begins.
 
 ## Known Bugs/Issues
-* Dr. Mario freezes after pressing enter on the title screen
 * Gameboy Color games may have slight graphical bugs
 * There is no sound
 * Sometimes (often), the emulator stops displaying the game when debug mode is entered for some unknown reason
