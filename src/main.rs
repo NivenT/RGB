@@ -49,11 +49,15 @@ fn main() {
     let white = u32::from_str_radix(&white, 16).unwrap();
     let black = u32::from_str_radix(&black, 16).unwrap();
 
+    let bios_breakpoint = config.get::<String>("debug", "bios_breakpoint").map_or(false, |s| {
+    	s.to_lowercase() == "true"
+    });
+
     if let Ok(mut file) = File::create("disassembly.txt") {
         let _ = file.write(Emulator::disassemble_file(&game_path.clone()).as_ref());
     }
 
-	let mut emu = Emulator::new();
+	let mut emu = Emulator::new(bios_breakpoint);
 	emu.set_controls(controls);
     emu.load_bios(bios_path);
     emu.load_game(game_path);

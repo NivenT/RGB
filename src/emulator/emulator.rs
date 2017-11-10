@@ -30,11 +30,12 @@ fn to_null_terminated(bytes: &[u8]) -> String {
 }
 
 pub struct Emulator {
-	clock:			u64,
-	interrupts:		InterruptManager,
-	controls: 		[u8; 8],
-	timers:			Timers,
-	cgb_mode:		bool,
+	clock: u64,
+	interrupts: InterruptManager,
+	controls: [u8; 8],
+	timers:	Timers,
+	cgb_mode: bool,
+	bios_breakpoint: bool,
 
 	pub(in emulator) mem: Memory,
 	pub(in emulator) gpu: Gpu,
@@ -78,7 +79,7 @@ impl fmt::Debug for Emulator {
 }
 
 impl Emulator {
-	pub fn new() -> Emulator {
+	pub fn new(bios_breakpoint: bool) -> Emulator {
 		Emulator {
 			clock: 0, 
 			mem: Memory::new(), 
@@ -89,7 +90,8 @@ impl Emulator {
 			timers: Timers::new(),
 			interrupts: InterruptManager::new(), 
 			stopped: false, 
-			cgb_mode: false
+			cgb_mode: false,
+			bios_breakpoint: bios_breakpoint,
 		}
 	}
 	pub fn is_stopped(&self) -> bool {
@@ -240,6 +242,9 @@ impl Emulator {
 
 		if self.regs.pc == 0x100 {
 			self.mem.finished_with_bios();
+			if self.bios_breakpoint {
+				state.paused = true;
+			}
 		}
 		cycles
 	}

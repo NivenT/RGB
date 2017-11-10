@@ -132,8 +132,6 @@ impl Renderer {
 		let mut target = display.draw();
 		target.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
 
-		target.draw(buf, &self.index_buffer, &self.program, &uniform!{sample: &texture}, 
-					&Default::default()).unwrap();
 		if state.debug {
 			let cursor = if dstate.num_lines - dstate.cursor < NUM_LINES_ON_SCREEN {
 				// usizes are unsigned so this subtraction is just wrong (same in input.rs). Oh well...
@@ -146,6 +144,8 @@ impl Renderer {
 				self.render_line_of_text(1.0 - (i as f32)*LINE_HEIGHT, line, &mut target);
 			}
 		}
+		target.draw(buf, &self.index_buffer, &self.program, &uniform!{sample: &texture}, 
+					&Default::default()).unwrap();
 	    target.finish().unwrap();
 	}
 }
