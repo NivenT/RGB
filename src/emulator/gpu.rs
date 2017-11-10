@@ -108,6 +108,7 @@ impl Gpu {
 		}
 	}
 	fn set_lcd_status(&mut self, mem: &mut Memory, im: &InterruptManager) {
+		// TODO: Replace all these random hexadecimal numbers with named consts
 		let mut status = mem.rb(0xFF41);
 		let line = mem.rb(0xFF44);
 		let mode = status & 3;
@@ -116,7 +117,7 @@ impl Gpu {
 		if !self.is_lcd_enabled(mem) {
 			self.sl_count = SCANLINE_TOTAL_TIME;
 			mem.wl(0);
-			status = (status & 0xFC) | 1;
+			status = (status & 0xFC) | 0;
 		} else if line > 144 {
 			status = (status & 0xFC) | 1;
 			request_interrupt = (status & (1 << 4)) > 0;
