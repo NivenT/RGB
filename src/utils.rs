@@ -12,14 +12,20 @@ pub const TEXT_HEIGHT: f32 = 0.618 * LINE_HEIGHT; // 1/golden ratio for aestheti
 pub const NUM_CHARS_PER_LINE: u32 = 40;
 pub const CHAR_WIDTH: f32 = 2.0*PORTION_DEBUG/NUM_CHARS_PER_LINE as f32;
 
-pub fn prompt_for_val<T: FromStr>(prompt: &str) -> Result<T, T::Err> {
+pub fn prompt_for_val(prompt: &str) -> String {
     print!("{}", prompt);
 
     let mut input = String::new();
     let _ = io::stdout().flush();
     let _ = io::stdin().read_line(&mut input);
 
-    input.lines().last().unwrap().trim().parse()
+    input.lines().last().unwrap().trim().to_string()
+}
+
+pub fn string_to_u16(s: &str) -> Result<u16, <u16 as FromStr>::Err> {
+	if s.len() == 0 {return Ok(0);}
+	let base = if s.len() >= 2 && s[..2].to_lowercase() == "0x" {16} else {10};
+	u16::from_str_radix(if base == 10 {s} else {&s[2..]}, base)
 }
 
 pub fn max(lhs: usize, rhs: usize) -> usize {

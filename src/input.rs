@@ -54,8 +54,12 @@ fn handle_keydown(key: Keycode, state: &mut ProgramState, dstate: &mut DebugStat
         Keycode::P => {state.paused = !state.paused},
         Keycode::M => {
             //Prompt use for range of memory and then dump memory
-            let start: u16 = prompt_for_val("Enter the starting memory address: ").unwrap();
-            let stop: u16 = prompt_for_val("Enter the ending memory adress: ").unwrap();
+            let start = prompt_for_val("Enter the starting memory address: ");
+            let stop  = prompt_for_val("Enter the ending memory adress: ");
+
+            let start = string_to_u16(&start).unwrap_or(0);
+            let stop  = string_to_u16(&stop).unwrap_or(0xFFFF);
+
             let diff = stop - start;
             let num_rows = (diff as f64/16f64).ceil() as u16;
 
