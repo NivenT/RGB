@@ -11,6 +11,7 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+		- rust: beta
 
 before_install:
   - yes | sudo add-apt-repository ppa:zoogie/sdl2-snapshots
