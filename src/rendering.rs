@@ -11,14 +11,19 @@ use glium_sdl2::SDL2Facade;
 
 use emulator::Color;
 
-use super::ProgramState;
+use super::{ProgramState, DebugState};
 
 const PORTION_DEBUG: f32 = 0.35;
 const FONT_SIZE: u32 = 32;
-const NUM_LINES_ON_SCREEN: u32 = 25;
+const NUM_LINES_ON_SCREEN: usize = 25;
 const LINE_HEIGHT: f32 = 2.0/NUM_LINES_ON_SCREEN as f32;
-const NUM_CHARS_PER_LINE: u32 = 20;
+const TEXT_HEIGHT: f32 = 0.618 * LINE_HEIGHT; // 1/golden ratio for aesthetic reasons
+const NUM_CHARS_PER_LINE: u32 = 40;
 const CHAR_WIDTH: f32 = 2.0*PORTION_DEBUG/NUM_CHARS_PER_LINE as f32;
+
+fn max(lhs: usize, rhs: usize) -> usize {
+	if rhs > lhs {rhs} else {lhs}
+}
 
 #[derive(Debug, Clone, Copy)]
 struct Vertex {
@@ -118,12 +123,12 @@ impl Renderer {
 		let text = TextDisplay::new(&self.system, &self.font, text);
 
 		let start = 1.0 - 2.0 * PORTION_DEBUG;
-		// column major
+		// column major (each row is actually a column)
 		let transformation = [
 			[CHAR_WIDTH*length/text.get_width(), 0.0,           0.0, 0.0],
-			[0.0,                                LINE_HEIGHT,   0.0, 0.0],
+			[0.0,                                TEXT_HEIGHT,   0.0, 0.0],
 			[0.0,                                0.0,           1.0, 0.0],
-			[start,                              y-LINE_HEIGHT, 0.0, 1.0]
+			[start,                              y-TEXT_HEIGHT, 0.0, 1.0]
 		];
 
 		// TODO: Make text color customizable
@@ -131,7 +136,7 @@ impl Renderer {
 		glium_text::draw(&text, &self.system, target, transformation, text_color);
 	}
 
-	pub fn render(&self, display: &SDL2Facade, screen: &[[Color; 160]; 144], state: &ProgramState) {
+	pub fn render(&self, display: &SDL2Facade, screen: &[[Color; 160]; 144], state: &ProgramState, dstate: &DebugState) {
 		let texture = self.make_texture(display, screen);
 		let buf = if state.debug {&self.half_buffer} else {&self.vert_buffer};
 
@@ -141,7 +146,15 @@ impl Renderer {
 		target.draw(buf, &self.index_buffer, &self.program, &uniform!{sample: &texture}, 
 					&Default::default()).unwrap();
 		if state.debug {
-			self.render_line_of_text(1.0, "Test text", &mut target);
+			let cursor = if dstate.cursor - dstate.num_lines < NUM_LINES_ON_SCREEN {
+				max(0, dstate.num_lines - NUM_LINES_ON_SCREEN)
+			} else {
+				dstate.cursor
+			};
+
+			for (i, line) in dstate.buffer.lines().skip(cursor).take(NUM_LINES_ON_SCREEN).enumerate() {
+				self.render_line_of_text(1.0 - (i as f32)*LINE_HEIGHT, line, &mut target);
+			}
 		}
 	    target.finish().unwrap();
 	}

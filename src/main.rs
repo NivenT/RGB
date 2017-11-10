@@ -31,8 +31,12 @@ const CYCLES_PER_SECOND: u64 = 4194304;
 // consistent with a real gameboy (assuming 60 FPS)
 const CYCLES_PER_FRAME: u64 = 69905;
 
+// When in debug mode, slow down emulator so the assembly output can maybe be read
+const DEBUG_SLOWDOWN: u64 = 100;
+
 fn main() {
     let mut state = ProgramState::new();
+    let mut dstate = DebugState::new();
 
 	let config = Ini::from_file("settings.ini").unwrap();
 	let game_path: String = config.get("system", "game").unwrap();
@@ -85,12 +89,13 @@ fn main() {
         }
         handle_input(&mut event_pump, &mut state, &mut emu);
         
-        while (!state.paused || state.adv_frame) && cycles_this_frame < CYCLES_PER_FRAME {
-            cycles_this_frame += emu.step(&mut state);
+        let slowdown = if state.debug {DEBUG_SLOWDOWN} else {1};
+        while (!state.paused || state.adv_frame) && cycles_this_frame < CYCLES_PER_FRAME/slowdown {
+            cycles_this_frame += emu.step(&mut state, &mut dstate);
             state.adv_frame = false;
         }
         if frames_until_render == 0 {
-            renderer.render(&display, emu.get_screen(), &state);
+            renderer.render(&display, emu.get_screen(), &state, &mut dstate);
         }
 
         frames_until_render = (frames_until_render+1)%state.speed;

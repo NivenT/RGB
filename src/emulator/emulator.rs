@@ -226,8 +226,8 @@ impl Emulator {
 			}
 		}
 	}
-	pub fn step(&mut self, state: &mut ProgramState) -> u64 {
-		let cycles = if !self.halted && !self.stopped {self.emulate_cycle(state)} else {40};
+	pub fn step(&mut self, state: &mut ProgramState, dstate: &mut DebugState) -> u64 {
+		let cycles = if !self.halted && !self.stopped {self.emulate_cycle(state, dstate)} else {40};
 		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16, self.cgb_mode);
 		self.timers.step(&mut self.mem, &self.interrupts, cycles as i16);
 		self.mem.cart.step(cycles as i16);
@@ -302,7 +302,7 @@ impl Emulator {
 		self.mem.rb(addr)
 	}
 
-	fn emulate_cycle(&mut self, state: &mut ProgramState) -> u64 {
+	fn emulate_cycle(&mut self, state: &mut ProgramState, dstate: &mut DebugState) -> u64 {
 		let address = self.regs.pc;
 		let opcode = self.mem.rb(self.regs.pc); self.regs.pc += 1;
 		let instruction = INSTRUCTIONS[opcode as usize];
@@ -322,11 +322,19 @@ impl Emulator {
 
 		let cycles: u64;
 		if let Some(func) = instruction.func {
-			if state.debug && false {
+			// TODO maybe: separate contents of if into own function
+			if state.debug {
 				if state.debug_regs {
-					println!("{:?}", self.regs);
+					dstate.buffer += &format!("{:?}", self.regs);
 				}
-				println!("{}\n", Emulator::disassemble(address, [self.mem.rb(address), self.mem.rb(address+1), self.mem.rb(address+2)]));
+
+				// Gotta love shorter names
+				let (get, addr) = (|addr| self.mem.rb(addr), address);
+				let disassembly = Emulator::disassemble(addr, [get(addr), get(addr+1), get(addr+2)]);
+				dstate.buffer += &format!("{}\n", disassembly);
+
+				dstate.cursor += if dstate.at_end {1} else {0};
+				dstate.num_lines += 1;
 			} 
 
 			cycles = func(self, operand);
@@ -361,6 +369,6 @@ impl Emulator {
 			disassembly = disassembly.replace(OP_TYPES[i], &format!("{:#X}", operand));
 			i += 1;
 		}
-		format!("{:#X}:\t{:#X} {} {}\t{}", address, opcode, disassemble_op(0), disassemble_op(1), disassembly)
+		format!("{:#X}:\t{:#X} {} {} \t{}", address, opcode, disassemble_op(0), disassemble_op(1), disassembly)
 	}
 }
