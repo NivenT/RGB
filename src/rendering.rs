@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 
-use glium::{Surface, VertexBuffer, IndexBuffer, Program, index};
+use glium::{Surface, VertexBuffer, IndexBuffer, Program, index, Frame};
 use glium::texture::*;
 
 use glium_text;
@@ -13,11 +13,12 @@ use emulator::Color;
 
 use super::ProgramState;
 
+const PORTION_DEBUG: f32 = 0.35;
 const FONT_SIZE: u32 = 32;
 const NUM_LINES_ON_SCREEN: u32 = 25;
 const LINE_HEIGHT: f32 = 2.0/NUM_LINES_ON_SCREEN as f32;
 const NUM_CHARS_PER_LINE: u32 = 20;
-const CHAR_WIDTH: f32 = 1.0/NUM_CHARS_PER_LINE as f32;
+const CHAR_WIDTH: f32 = 2.0*PORTION_DEBUG/NUM_CHARS_PER_LINE as f32;
 
 #[derive(Debug, Clone, Copy)]
 struct Vertex {
@@ -58,10 +59,11 @@ impl Renderer {
 		let vertices = vec![v1, v2, v3, v4];
 		let vertex_buffer = VertexBuffer::new(display, &vertices).unwrap();
 
-		// in debug, only use left half of screen
+		// in debug, only use left part of screen
+		let end = 2.0 * (1.0 - PORTION_DEBUG) - 1.0;
 		let v1 = Vertex{pos: [-1.0,  1.0], uv: [0.0, 0.0]};
-		let v2 = Vertex{pos: [ 0.0,  1.0], uv: [1.0, 0.0]};
-		let v3 = Vertex{pos: [ 0.0, -1.0], uv: [1.0, 1.0]};
+		let v2 = Vertex{pos: [ end,  1.0], uv: [1.0, 0.0]};
+		let v3 = Vertex{pos: [ end, -1.0], uv: [1.0, 1.0]};
 		let v4 = Vertex{pos: [-1.0, -1.0], uv: [0.0, 1.0]};
 		let vertices = vec![v1, v2, v3, v4];
 		let half_buffer = VertexBuffer::new(display, &vertices).unwrap();
@@ -111,12 +113,22 @@ impl Renderer {
 	    let image = RawImage2d::from_raw_rgb(raw, (160, 144));
 	    Texture2d::new(display, image).unwrap()
 	}
-	fn make_matrix(x: f32, y: f32, w: f32, h: f32, text: &TextDisplay<&FontTexture>) -> [[f32; 4]; 4] {
+	fn render_line_of_text(&self, y: f32, text: &str, target: &mut Frame) {
+		let length = text.len() as f32;
+		let text = TextDisplay::new(&self.system, &self.font, text);
+
+		let start = 1.0 - 2.0 * PORTION_DEBUG;
 		// column major
-		[[10.0*CHAR_WIDTH/text.get_width(), 0.0, 0.0, 0.0],
-		 [0.0, 2.0*h*LINE_HEIGHT, 0.0, 0.0],
-		 [0.0, 0.0, 1.0, 0.0],
-		 [x, y, 0.0, 1.0]]
+		let transformation = [
+			[CHAR_WIDTH*length/text.get_width(), 0.0,           0.0, 0.0],
+			[0.0,                                LINE_HEIGHT,   0.0, 0.0],
+			[0.0,                                0.0,           1.0, 0.0],
+			[start,                              y-LINE_HEIGHT, 0.0, 1.0]
+		];
+
+		// TODO: Make text color customizable
+		let text_color = (1.0, 1.0, 1.0, 1.0);
+		glium_text::draw(&text, &self.system, target, transformation, text_color);
 	}
 
 	pub fn render(&self, display: &SDL2Facade, screen: &[[Color; 160]; 144], state: &ProgramState) {
@@ -124,12 +136,12 @@ impl Renderer {
 		let buf = if state.debug {&self.half_buffer} else {&self.vert_buffer};
 
 		let mut target = display.draw();
+		target.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
+
 		target.draw(buf, &self.index_buffer, &self.program, &uniform!{sample: &texture}, 
 					&Default::default()).unwrap();
 		if state.debug {
-			let text = TextDisplay::new(&self.system, &self.font, "Test text");
-			glium_text::draw(&text, &self.system, &mut target, 
-								Renderer::make_matrix(0.0, 0.5, 1.0, 1.0, &text), (1.0,1.0,1.0,1.0));
+			self.render_line_of_text(1.0, "Test text", &mut target);
 		}
 	    target.finish().unwrap();
 	}
