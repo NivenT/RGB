@@ -13,5 +13,6 @@ matrix:
     - rust: nightly
 
 before_install:
+  - yes | sudo add-apt-repository ppa:zoogie/sdl2-snapshots
   - sudo apt-get -qq update
   - sudo apt-get install libsdl2-dev
