@@ -78,6 +78,12 @@ impl fmt::Debug for Emulator {
 	}
 }
 
+impl Default for Emulator {
+	fn default() -> Emulator {
+		Emulator::new(false)
+	}
+}
+
 impl Emulator {
 	pub fn new(bios_breakpoint: bool) -> Emulator {
 		Emulator {

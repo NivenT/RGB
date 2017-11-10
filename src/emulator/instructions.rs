@@ -1208,15 +1208,13 @@ fn ei(emu: &mut Emulator, _: u16) -> u64 {
 #[cfg(test)]
 mod test {
 	use super::*;
-	use emulator::registers::*;
-	use emulator::cb_instructions::*;
 	use emulator::emulator::Emulator;
     use emulator::mbc::*;
     use emulator::cartridge::Cartridge;
 
 	#[test]
 	fn test_xor() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		assert_eq!(*emu.regs.a(), 0);
 		assert_eq!(emu.regs.get_flag(ZERO_FLAG), false);
 		let xor_a = INSTRUCTIONS[0xAF].func.unwrap();
@@ -1226,7 +1224,7 @@ mod test {
 	}
 	#[test]
 	fn test_ld_hld_a() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.l() = 1;
 		*emu.regs.h() = 255;
 		*emu.regs.a() = 18;
@@ -1240,7 +1238,7 @@ mod test {
 	}
 	#[test]
 	fn test_jr_nz() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		emu.regs.pc = 1000;
 		let jr_nz = INSTRUCTIONS[0x20].func.unwrap();
 		jr_nz(&mut emu, 0xEC); //-20 as a signed 8-bit integer
@@ -1250,7 +1248,7 @@ mod test {
 	}
 	#[test]
 	fn test_rrca() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.a() = 50;
 		let rrca = INSTRUCTIONS[0x0F].func.unwrap();
 		rrca(&mut emu, 0);
@@ -1262,7 +1260,7 @@ mod test {
 	}
 	#[test]
 	fn test_rst() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
         emu.mem.cart = Mbc::NONE(Cartridge::new());
         
 		emu.regs.sp = 3;
@@ -1276,7 +1274,7 @@ mod test {
 	}
 	#[test]
 	fn test_inc_dec() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.a() = 15;
 		*emu.regs.b() = 15;
 		let inc_a = INSTRUCTIONS[0x3C].func.unwrap();
@@ -1290,7 +1288,7 @@ mod test {
 	}
 	#[test]
 	fn test_ld_hl_spr8() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		emu.regs.sp = 100;
 		let ld_hl_spr8 = INSTRUCTIONS[0xF8].func.unwrap();
 		ld_hl_spr8(&mut emu, 20);
@@ -1306,7 +1304,7 @@ mod test {
 	}
 	#[test]
 	fn test_call() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
         emu.mem.cart = Mbc::NONE(Cartridge::new());
 
 		emu.regs.sp = 100;
@@ -1320,7 +1318,7 @@ mod test {
 	}
 	#[test]
 	fn test_push_pop() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
         emu.mem.cart = Mbc::NONE(Cartridge::new());
 
 		emu.regs.sp = 100;
@@ -1351,7 +1349,7 @@ mod test {
 	}
 	#[test]
 	fn test_cpl() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.a() = 0x0F;
 		let cpl = INSTRUCTIONS[0x2F].func.unwrap();
 		cpl(&mut emu, 0);
@@ -1359,7 +1357,7 @@ mod test {
 	}
 	#[test]
 	fn test_ret() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
         emu.mem.cart = Mbc::NONE(Cartridge::new());
 
 		emu.regs.pc = 0x1000;
@@ -1373,7 +1371,7 @@ mod test {
 	}
 	#[test]
 	fn test_rla() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.a() = 0x7F;
 		let rla = INSTRUCTIONS[0x17].func.unwrap();
 		rla(&mut emu, 0);
@@ -1385,7 +1383,7 @@ mod test {
 	}
 	#[test]
 	fn test_add_hl_sp() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		unsafe {
 			*emu.regs.hl() = 0x1001;
 			emu.regs.sp = 0xFF00;
@@ -1397,7 +1395,7 @@ mod test {
 	}
     #[test]
     fn test_daa() {
-        let mut emu = Emulator::new();
+        let mut emu = Emulator::default();
         *emu.regs.a() = 0x15;
         *emu.regs.b() = 0x27;
         let add_a_b = INSTRUCTIONS[0x80].func.unwrap();
@@ -1411,7 +1409,7 @@ mod test {
     }
     #[test]
     fn test_sbc() {
-        let mut emu = Emulator::new();
+        let mut emu = Emulator::default();
         *emu.regs.a() = 23;
         *emu.regs.f() = CARRY_FLAG;
         *emu.regs.c() = 23;
@@ -1422,7 +1420,7 @@ mod test {
     }
     #[test]
     fn test_cp() {
-        let mut emu = Emulator::new();
+        let mut emu = Emulator::default();
         *emu.regs.a() = 127;
         unsafe {
             *emu.regs.hl() = 0x8000;

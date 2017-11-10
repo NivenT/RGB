@@ -611,12 +611,11 @@ pub const CB_INSTRUCTIONS: [CBInstruction; 256] = [
 #[cfg(test)]
 mod test {
 	use super::*;
-	use emulator::registers::*;
 	use emulator::emulator::Emulator;
 
 	#[test]
 	fn test_bit() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.a() = 100;
 		assert_eq!(*emu.regs.a(), 100);
 		assert_eq!(*emu.regs.f(), 0);
@@ -631,7 +630,7 @@ mod test {
 	}
 	#[test]
 	fn test_set() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		unsafe{
 			*emu.regs.hl() = 0xFFB5;
 			assert_eq!(*emu.regs.hl(), 0xFFB5);
@@ -645,7 +644,7 @@ mod test {
 	}
 	#[test]
 	fn test_rl() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.a() = 23;
 		*emu.regs.f() = CARRY_FLAG;
 		let rl_a = CB_INSTRUCTIONS[0x17].func.unwrap();
@@ -659,7 +658,7 @@ mod test {
 	}
 	#[test]
 	fn test_res() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.c() = 0x18;
 		let res_4_c = CB_INSTRUCTIONS[0xA1].func.unwrap();
 		res_4_c(&mut emu);
@@ -667,7 +666,7 @@ mod test {
 	}
 	#[test]
 	fn test_swap() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.l() = 0xFA;
 		let swap_l = CB_INSTRUCTIONS[0x35].func.unwrap();
 		swap_l(&mut emu);
@@ -675,7 +674,7 @@ mod test {
 	}
 	#[test]
 	fn test_sla() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.e() = 0xC3;
 		let sla_e = CB_INSTRUCTIONS[0x23].func.unwrap();
 		sla_e(&mut emu);
@@ -684,7 +683,7 @@ mod test {
 	}
 	#[test]
 	fn test_srl() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.a() = 0x10;
 		let srl_a = CB_INSTRUCTIONS[0x3F].func.unwrap();
 		srl_a(&mut emu);
@@ -693,7 +692,7 @@ mod test {
 	}
 	#[test]
 	fn test_rlc() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		unsafe {
 			*emu.regs.hl() = 0xFF1A;
 			emu.mem.wb(0xFF1A, 0x7A);
@@ -706,7 +705,7 @@ mod test {
 	}
 	#[test]
 	fn test_rrc() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.d() = 0x8F;
 		let rrc_d = CB_INSTRUCTIONS[0x0A].func.unwrap();
 		rrc_d(&mut emu);
@@ -715,7 +714,7 @@ mod test {
 	}
 	#[test]
 	fn test_rr() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.b() = 0x01;
 		let rr_b = CB_INSTRUCTIONS[0x18].func.unwrap();
 		rr_b(&mut emu);
@@ -724,7 +723,7 @@ mod test {
 	}
 	#[test]
 	fn test_sra() {
-		let mut emu = Emulator::new();
+		let mut emu = Emulator::default();
 		*emu.regs.a() = 0x81;
 		let sra_a = CB_INSTRUCTIONS[0x2F].func.unwrap();
 		sra_a(&mut emu);
