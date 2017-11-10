@@ -1,5 +1,5 @@
 # RGB
-[![Build Status](https://travis-ci.org/NivenT/RGB.svg?branch=master)](https://travis-ci.org/NivenT/RGB) <--- Ignore this right now. It actually does build and run. Trust me
+[![Build Status](https://travis-ci.org/NivenT/RGB.svg?branch=master)](https://travis-ci.org/NivenT/RGB)
 
 RGB (Rust Game Boy) is a simple emulator for the original game boy and the color game boy.
 
@@ -17,6 +17,12 @@ cargo build --release
 
 In order for it to build, you must have SDL2 installed. On Ubuntu, run
 ````
+sudo apt-get install libsdl2-dev
+````
+If that doesn't work, try running
+````
+sudo add-apt-repository ppa:zoogie/sdl2-snapshots
+sudo apt-get update
 sudo apt-get install libsdl2-dev
 ````
 
@@ -58,7 +64,6 @@ For helping with development, I've built some debugging features into the emulat
 ## Known Bugs/Issues
 * Gameboy Color games may have slight graphical bugs
 * There is no sound
-* Sometimes (often), the emulator stops displaying the game when debug mode is entered for some unknown reason
-* The emulator seems to be unable to play certain CGB Games (Ones using an MBC5 type cartridge)
+* The emulator seems to have issues with certain CGB Games (Ones using an MBC5 type cartridge)
 
 If you find any other problems, please open an issue.
