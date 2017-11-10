@@ -124,28 +124,34 @@ impl Renderer {
 		let text_color = (1.0, 1.0, 1.0, 1.0);
 		glium_text::draw(&text, &self.system, target, transformation, text_color);
 	}
-
-	pub fn render(&self, display: &SDL2Facade, screen: &[[Color; 160]; 144], state: &ProgramState, dstate: &DebugState) {
+	fn display_gameboy(&self, display: &SDL2Facade, target: &mut Frame, screen: &[[Color; 160]; 144], state: &ProgramState) {
 		let texture = self.make_texture(display, screen);
 		let buf = if state.debug {&self.half_buffer} else {&self.vert_buffer};
+		target.draw(buf, &self.index_buffer, &self.program, &uniform!{sample: &texture}, 
+					&Default::default()).unwrap();
+	}
+	fn display_debug_info(&self, target: &mut Frame, dstate: &DebugState) {
+		let cursor = if dstate.num_lines - dstate.cursor < NUM_LINES_ON_SCREEN {
+			// usizes are unsigned so this subtraction is just wrong (same in input.rs). Oh well...
+			max(0, dstate.num_lines - NUM_LINES_ON_SCREEN)
+		} else {
+			dstate.cursor
+		};
 
+		for (i, line) in dstate.buffer.lines().skip(cursor).take(NUM_LINES_ON_SCREEN).enumerate() {
+			self.render_line_of_text(1.0 - (i as f32)*LINE_HEIGHT, line, target);
+		}
+	}
+
+	pub fn render(&self, display: &SDL2Facade, screen: &[[Color; 160]; 144], state: &ProgramState, dstate: &DebugState) {
 		let mut target = display.draw();
 		target.clear(None, Some((0.0, 0.0, 0.0, 1.0)), false, None, None);
 
 		if state.debug {
-			let cursor = if dstate.num_lines - dstate.cursor < NUM_LINES_ON_SCREEN {
-				// usizes are unsigned so this subtraction is just wrong (same in input.rs). Oh well...
-				max(0, dstate.num_lines - NUM_LINES_ON_SCREEN)
-			} else {
-				dstate.cursor
-			};
-
-			for (i, line) in dstate.buffer.lines().skip(cursor).take(NUM_LINES_ON_SCREEN).enumerate() {
-				self.render_line_of_text(1.0 - (i as f32)*LINE_HEIGHT, line, &mut target);
-			}
+			self.display_debug_info(&mut target, dstate);
 		}
-		target.draw(buf, &self.index_buffer, &self.program, &uniform!{sample: &texture}, 
-					&Default::default()).unwrap();
+		self.display_gameboy(display, &mut target, screen, state);
+
 	    target.finish().unwrap();
 	}
 }
