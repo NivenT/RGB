@@ -43,7 +43,7 @@ Certain keys are special, and the emulator has built in responses for when they 
 * 1..0 - Runs the emulator at normal (double, triple, ..., up to 10x) speed
 
 ## Debugging
-For helping with development, I've build some debugging features into the emulator.
+For helping with development, I've built some debugging features into the emulator.
 
 * The main one is what happens when you press D. The emulator displays the opcodes its executing (along with their inputs) in real time, and you can scroll through this output via up/down arrows if emulation is paused.
 
@@ -60,5 +60,6 @@ For helping with development, I've build some debugging features into the emulat
 * Gameboy Color games may have slight graphical bugs
 * There is no sound
 * Sometimes (often), the emulator stops displaying the game when debug mode is entered for some unknown reason
+* The emulator seems to be unable to play certain CGB Games (Ones using an MBC5 type cartridge)
 
 If you find any other problems, please open an issue.
