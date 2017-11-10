@@ -92,6 +92,9 @@ impl Emulator {
 			cgb_mode: false
 		}
 	}
+	pub fn is_stopped(&self) -> bool {
+		self.stopped
+	}
 	pub fn set_controls(&mut self, controls: Vec<u8>) {
 		for i in 0..8 {
 			self.controls[i] = controls[i];
@@ -259,8 +262,8 @@ impl Emulator {
 			// Assume there is a NOP followed by a JP at address 0x100
 			let start = data[0x102] as usize | ((data[0x103] as usize) << 8);
 
-			// Also add interrupt handlers
-			let mut stack = vec![start, 0x40, 0x48, 0x50, 0x58, 0x60];
+			// Also add interrupt handlers and the JP instruction
+			let mut stack = vec![start, 0x40, 0x48, 0x50, 0x58, 0x60, 0x100];
 			let mut visited: HashSet<_> = stack.iter().cloned().collect();
 
 			while let Some(mut index) = stack.pop() {
@@ -320,23 +323,29 @@ impl Emulator {
 			panic!("Error: Emulation caught in infinite loop");
 		}
 
+		// TODO maybe: separate debug stuff into own function
+		if state.debug {
+			// TODO: always store debug info but do so without slowing everything down
+			if state.debug_regs {
+				dstate.buffer += &format!("{:?}\n", self.regs);
+
+				dstate.cursor += if dstate.cursor == dstate.num_lines {2} else {0};
+				dstate.num_lines += 2;
+			}
+
+			// Gotta love shorter names
+			let disassembly = {
+				let (get, addr) = (|addr| self.mem.rb(addr), address);
+				Emulator::disassemble(addr, [get(addr), get(addr+1), get(addr+2)])
+			};
+			dstate.buffer += &format!("{}\n", disassembly);
+
+			dstate.cursor += if dstate.cursor == dstate.num_lines {1} else {0};
+			dstate.num_lines += 1;
+		}
+
 		let cycles: u64;
 		if let Some(func) = instruction.func {
-			// TODO maybe: separate contents of if into own function
-			if state.debug {
-				if state.debug_regs {
-					dstate.buffer += &format!("{:?}", self.regs);
-				}
-
-				// Gotta love shorter names
-				let (get, addr) = (|addr| self.mem.rb(addr), address);
-				let disassembly = Emulator::disassemble(addr, [get(addr), get(addr+1), get(addr+2)]);
-				dstate.buffer += &format!("{}\n", disassembly);
-
-				dstate.cursor += if dstate.cursor == dstate.num_lines {1} else {0};
-				dstate.num_lines += 1;
-			} 
-
 			cycles = func(self, operand);
 		} else {
 			println!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 

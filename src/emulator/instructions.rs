@@ -865,8 +865,10 @@ fn rrca(emu: &mut Emulator, _: u16) -> u64 {
 }
 
 //0x10
-fn stop(emu: &mut Emulator, _: u16) -> u64 {
-    emu.stopped = true;
+// TODO: reimplement
+fn stop(_: &mut Emulator, _: u16) -> u64 {
+    // Note: This command is used to switch a CGB into double speed mode
+    // emu.stopped = true;
     4
 }
 

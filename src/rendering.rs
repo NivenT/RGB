@@ -136,7 +136,7 @@ impl Renderer {
 					&Default::default()).unwrap();
 		if state.debug {
 			let cursor = if dstate.num_lines - dstate.cursor < NUM_LINES_ON_SCREEN {
-				// usizes are unsigned so this subtraction is just wrong (+ in input.rs). Oh well...
+				// usizes are unsigned so this subtraction is just wrong (same in input.rs). Oh well...
 				max(0, dstate.num_lines - NUM_LINES_ON_SCREEN)
 			} else {
 				dstate.cursor

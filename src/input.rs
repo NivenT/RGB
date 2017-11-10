@@ -40,7 +40,15 @@ fn handle_keydown(key: Keycode, state: &mut ProgramState, dstate: &mut DebugStat
         Keycode::Num8 => {state.speed = 8},
         Keycode::Num9 => {state.speed = 9},
         Keycode::Num0 => {state.speed = 10},
-		Keycode::D => {state.debug = !state.debug; dstate.cursor = dstate.num_lines},
+		Keycode::D => {
+            state.debug = !state.debug; 
+            if dstate.num_lines > 0 && !state.debug {
+                // TODO: Use NUM_CHARS_PER_LINE to make this right length
+                dstate.buffer += "========== QUIT DEBUG MODE ===========\n";
+                dstate.num_lines += 1;
+            }
+            dstate.cursor = dstate.num_lines;
+        },
         Keycode::R => {state.debug_regs = !state.debug_regs},
         Keycode::F => {state.adv_frame = true},
         Keycode::P => {state.paused = !state.paused},
@@ -62,12 +70,12 @@ fn handle_keydown(key: Keycode, state: &mut ProgramState, dstate: &mut DebugStat
             println!("");
         },
         Keycode::Up => {
-            if state.paused && state.debug {
+            if (state.paused || emu.is_stopped()) && state.debug {
                 dstate.cursor = max(dstate.cursor-1, 0);
             }
         },
         Keycode::Down => {
-            if state.paused && state.debug {
+            if (state.paused || emu.is_stopped()) && state.debug {
                 dstate.cursor = min(dstate.cursor+1, dstate.num_lines-NUM_LINES_ON_SCREEN);
             }
         },

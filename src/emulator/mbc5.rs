@@ -19,7 +19,7 @@ impl Mbc5 {
 		if address < 0x4000 {
 			self.rom[address]
 		} else if address < 0x8000 {
-			self.rom[((self.rom_bank as isize-1)*0x4000 + address as isize) as usize]
+			self.rom[self.rom_bank as usize * 0x4000 | (address & 0x3FFF)]
 		} else if 0xA000 <= address && address < 0xC000 {
 			if self.using_ram {
 				self.ram[self.ram_bank as usize*0x2000 + address%0x2000] 

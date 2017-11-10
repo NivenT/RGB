@@ -9,10 +9,19 @@ pub struct Registers {
 	pub sp: u16
 }
 
-impl fmt::Debug for Registers {
+impl fmt::Display for Registers {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		unsafe {
 			write!(f, "PC = {:#X}, SP = {:#X}, AF = {:#X}, BC = {:#X}, DE = {:#X}, HL = {:#X}",
+				self.pc, self.sp, *self.af_immut(), *self.bc_immut(), *self.de_immut(), *self.hl_immut())
+		}
+	}
+}
+
+impl fmt::Debug for Registers {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		unsafe {
+			write!(f, "PC = {:#X} SP = {:#X} AF = {:#X}\nBC = {:#X} DE = {:#X} HL = {:#X}",
 				self.pc, self.sp, *self.af_immut(), *self.bc_immut(), *self.de_immut(), *self.hl_immut())
 		}
 	}
