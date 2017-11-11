@@ -345,10 +345,7 @@ impl Emulator {
 		if state.debug {
 			// TODO: always store debug info but do so without slowing everything down
 			if state.debug_regs {
-				dstate.buffer += &format!("{:?}\n", self.regs);
-
-				dstate.cursor += if dstate.cursor == dstate.num_lines {2} else {0};
-				dstate.num_lines += 2;
+				dstate.add_text(&format!("{:?}\n", self.regs), 2);
 			}
 
 			// Gotta love shorter names
@@ -356,10 +353,7 @@ impl Emulator {
 				let (get, addr) = (|addr| self.mem.rb(addr), address);
 				Emulator::disassemble(addr, [get(addr), get(addr+1), get(addr+2)])
 			};
-			dstate.buffer += &format!("{}\n", disassembly);
-
-			dstate.cursor += if dstate.cursor == dstate.num_lines {1} else {0};
-			dstate.num_lines += 1;
+			dstate.add_text(&format!("{}\n", disassembly), 1);
 		}
 
 		let cycles: u64;

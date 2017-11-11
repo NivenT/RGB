@@ -12,6 +12,8 @@ pub const TEXT_HEIGHT: f32 = 0.618 * LINE_HEIGHT; // 1/golden ratio for aestheti
 pub const NUM_CHARS_PER_LINE: u32 = 40;
 pub const CHAR_WIDTH: f32 = 2.0*PORTION_DEBUG/NUM_CHARS_PER_LINE as f32;
 
+pub const MAX_DEBUG_BUFFER_SIZE: usize = 1000;
+
 pub fn prompt_for_val(prompt: &str) -> String {
     print!("{}", prompt);
 

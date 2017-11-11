@@ -4,6 +4,8 @@
 // Not sure where the most appropriate place for this code is, 
 // so it is separated it into its own file for now
 
+use utils::*;
+
 #[derive(Debug)]
 // Is it worth it to just use a bit array?
 pub struct ProgramState {
@@ -44,5 +46,19 @@ impl DebugState {
             cursor: 0,
             num_lines: 0,
         }
+    }
+    pub fn add_text(&mut self, text: &str, num_lines: usize) {
+        if self.num_lines + num_lines > MAX_DEBUG_BUFFER_SIZE {
+            let extra = self.num_lines + num_lines - MAX_DEBUG_BUFFER_SIZE;
+            let extra_lines = self.buffer.match_indices('\n').skip(extra).next().unwrap().0;
+
+            self.buffer = self.buffer[extra_lines..].to_string();
+            self.num_lines -= extra;
+            self.cursor = max(0, self.cursor - extra);
+        }
+
+        self.buffer += text;
+        self.cursor += if self.cursor == self.num_lines {num_lines} else {0};
+        self.num_lines += num_lines;
     }
 }
