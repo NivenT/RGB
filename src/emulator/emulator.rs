@@ -341,7 +341,6 @@ impl Emulator {
 			}
 		}
 
-		// TODO maybe: separate debug stuff into own function
 		if state.debug {
 			// TODO: always store debug info but do so without slowing everything down
 			if state.debug_regs {

@@ -33,7 +33,6 @@ impl ProgramState {
 
 #[derive(Debug)]
 pub struct DebugState {
-    // TODO: Cap number of lines of buffer
     pub buffer: String,
     pub cursor: usize,
     pub num_lines: usize,
@@ -47,12 +46,13 @@ impl DebugState {
             num_lines: 0,
         }
     }
+    // TODO: Make faster. Maybe replace buffer with array and keep track of "top" of buffer
     pub fn add_text(&mut self, text: &str, num_lines: usize) {
         if self.num_lines + num_lines > MAX_DEBUG_BUFFER_SIZE {
             let extra = self.num_lines + num_lines - MAX_DEBUG_BUFFER_SIZE;
             let extra_lines = self.buffer.match_indices('\n').skip(extra).next().unwrap().0;
 
-            self.buffer = self.buffer[extra_lines..].to_string();
+            self.buffer = self.buffer.split_off(extra_lines);
             self.num_lines -= extra;
             self.cursor = max(0, self.cursor - extra);
         }
