@@ -39,6 +39,8 @@ pub struct Emulator {
 	unimpl_instr_breakpoint: bool,
 	inf_loop_breakpoint: bool,
 
+	// TODO: Maybe make these not public and replace with (specialized) getters/setters
+	//       This might be fine as is since they're only public in the emulator module
 	pub(in emulator) mem: Memory,
 	pub(in emulator) gpu: Gpu,
 	pub(in emulator) regs: Registers,
@@ -101,8 +103,14 @@ impl Emulator {
 			cgb_mode: false,
 			bios_breakpoint: bios_breakpoint,
 			unimpl_instr_breakpoint: unimpl_instr_breakpoint,
-			inf_loop_breakpoint: inf_loop_breakpoint
+			inf_loop_breakpoint: inf_loop_breakpoint,
 		}
+	}
+	pub fn get_speed(&self) -> u64 {
+		1 << (self.mem.rb(0xFF4D) >> 7)
+	}
+	pub fn is_cgb(&self) -> bool {
+		self.cgb_mode
 	}
 	pub fn is_stopped(&self) -> bool {
 		self.stopped

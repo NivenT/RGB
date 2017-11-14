@@ -96,7 +96,7 @@ fn main() {
         }
         handle_input(&mut event_pump, &mut state, &mut dstate, &mut emu);
         
-        while (!state.paused || state.adv_frame) && cycles_this_frame < CYCLES_PER_FRAME {
+        while (!state.paused || state.adv_frame) && cycles_this_frame < CYCLES_PER_FRAME*emu.get_speed() {
             cycles_this_frame += emu.step(&mut state, &mut dstate);
             state.adv_frame = false;
         }

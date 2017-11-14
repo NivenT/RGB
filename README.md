@@ -64,6 +64,6 @@ For helping with development, I've built some debugging features into the emulat
 ## Known Bugs/Issues
 * Gameboy Color games may have slight graphical bugs
 * There is no sound
-* The emulator seems to have issues with certain CGB Games (Ones using an MBC5 type cartridge)
+* The emulator seems to have issues with certain CGB Games
 
 If you find any other problems, please open an issue.

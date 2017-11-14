@@ -91,7 +91,7 @@ impl Memory {
 			return self.cart.wb(address, val);
 		} else if 0x8000 <= address && address < 0xA000 {
 			let bank = if self.cgb_mode {self.rb(0xFF4F)} else {0};
-			self.vram[bank as usize*0x2000 + address%0x8000] = val;
+			return self.vram[bank as usize*0x2000 + address%0x8000] = val;
 		} else if 0xA000 <= address && address < 0xC000 {
 			return self.cart.wb(address, val);
 		} else if 0xC000 <= address && address < 0xD000 {
@@ -105,9 +105,9 @@ impl Memory {
 		} else if 0xE000 <= address && address < 0xFE00 {
 			self.mem[address - 0x2000] = val;
 		} else if 0xFF04 == address { //divider register (DIV)
-			self.mem[0xFF04] = 0;
+			return self.mem[0xFF04] = 0;
 		} else if 0xFF44 == address { //scanline position
-			self.mem[0xFF44] = 0;
+			return self.mem[0xFF44] = 0;
 		} else if 0xFF46 == address { //OAM DMA transfer
 			let start = (val as u16) << 8;
 			for i in 0..0xA0 {
@@ -115,6 +115,9 @@ impl Memory {
 				self.wb(0xFE00 + i, copy_val);
 			}
 			return;
+		} else if 0xFF4D == address { // Prepare speed switch
+			let curr_speed = self.mem[0xFF4D] & 0x80;
+			return self.mem[0xFF4D] = curr_speed | (val & 0x7F);
 		} else if 0xFF4F == address { //VRAM bank
 			return self.mem[0xFF4F] = val & 1;
 		} else if 0xFF55 == address && self.cgb_mode { //VRAM DMA transfer
@@ -146,6 +149,7 @@ impl Memory {
 		} else if 0xFF70 == address { //select wram bank
 			self.wram_bank = if (val & 7) == 0 || !self.cgb_mode {1} else {val & 7};
 		}
+		// TODO: Reconsider if this should be in an else statement/if this function is actually correct
 		self.mem[address] = val;
 	}
 	//write word
@@ -173,5 +177,8 @@ impl Memory {
 	}
 	pub fn read_sp(&self, n: usize) -> u8 {
 		self.sp[n]
+	}
+	pub fn switch_speed(&mut self) {
+		self.mem[0xFF4D] ^= 0x80;
 	}
 }
