@@ -110,6 +110,7 @@ impl Memory {
 			return self.mem[0xFF44] = 0;
 		} else if 0xFF46 == address { //OAM DMA transfer
 			let start = (val as u16) << 8;
+			// NOTE: I think this technically is supposed to happen over multiple cycles instead of all at once
 			for i in 0..0xA0 {
 				let copy_val = self.rb(start + i);
 				self.wb(0xFE00 + i, copy_val);

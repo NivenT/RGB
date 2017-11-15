@@ -58,6 +58,12 @@ fn main() {
     let inf_loop_breakpoint = config.get::<String>("debug", "infinite_loop_breakpoint").map_or(false, |s| {
     	s.to_lowercase() == "true"
     });
+    let dev_keys_enabled = config.get::<String>("debug", "enable_development_keys").map_or(false, |s| {
+    	s.to_lowercase() == "true"
+    });
+    let only_gb_buttons = config.get::<String>("debug", "only_gameboy_buttons").map_or(false, |s| {
+    	s.to_lowercase() == "true"
+    });
 
     if let Ok(mut file) = File::create("disassembly.txt") {
         let _ = file.write(Emulator::disassemble_file(&game_path.clone()).as_ref());
@@ -85,7 +91,7 @@ fn main() {
     let renderer = Renderer::new(&display, white, black);
     while !state.done {
         if start.to(PreciseTime::now()).num_seconds() >= 1 {
-            let acc = 100f64*(cycles_per_second as f64/CYCLES_PER_SECOND as f64);
+            let acc = 100f64*(cycles_per_second as f64/(CYCLES_PER_SECOND*emu.get_speed()) as f64);
             let title = if state.paused {"Paused"} else {"Rust Gameboy"};
             let _ = display.window_mut().set_title(&format!("{} ({:.2}%)", title, acc));
 
@@ -94,7 +100,7 @@ fn main() {
 
             emu.save_game();
         }
-        handle_input(&mut event_pump, &mut state, &mut dstate, &mut emu);
+        handle_input(&mut event_pump, &mut state, &mut dstate, &mut emu, dev_keys_enabled, only_gb_buttons);
         
         while (!state.paused || state.adv_frame) && cycles_this_frame < CYCLES_PER_FRAME*emu.get_speed() {
             cycles_this_frame += emu.step(&mut state, &mut dstate);
