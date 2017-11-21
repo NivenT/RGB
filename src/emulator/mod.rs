@@ -8,6 +8,7 @@ mod rom_info;
 mod cb_instructions;
 mod interrupts;
 mod timers;
+mod sound;
 mod mbc;
 mod cartridge;
 mod mbc1;

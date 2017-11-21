@@ -3,7 +3,6 @@ use std::io;
 use std::io::prelude::*;
 use std::str::FromStr;
 
-// Is this the best place for these?
 pub const PORTION_DEBUG: f32 = 0.35;
 pub const FONT_SIZE: u32 = 32;
 pub const NUM_LINES_ON_SCREEN: usize = 25;
