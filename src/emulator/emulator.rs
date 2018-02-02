@@ -7,6 +7,7 @@ use std::collections::HashSet;
 use emulator::Memory;
 use emulator::Gpu;
 use emulator::InterruptManager;
+use emulator::SoundManager;
 use emulator::Timers;
 use emulator::mbc::*;
 use emulator::instructions::*;
@@ -32,6 +33,7 @@ fn to_null_terminated(bytes: &[u8]) -> String {
 pub struct Emulator {
 	clock: u64,
 	interrupts: InterruptManager,
+	//audio: SoundManager,
 	controls: [u8; 8],
 	timers:	Timers,
 	cgb_mode: bool,

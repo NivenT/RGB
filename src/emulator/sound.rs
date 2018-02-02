@@ -52,4 +52,14 @@ impl AudioCallback for QuadWave {
 
 pub struct SoundManager {
 	sound1: QuadWave,
+	sound2: QuadWave,
+}
+
+impl SoundManager {
+	pub fn new(mem: Arc<Memory>) -> SoundManager {
+		SoundManager {
+			sound1: QuadWave::new(mem.clone(), true, 0xFF11),
+			sound2: QuadWave::new(mem.clone(), false, 0xFF16),
+		}
+	}
 }
