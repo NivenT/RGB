@@ -38,13 +38,13 @@ fn main() {
 
 	let config = Ini::from_file("settings.ini").unwrap();
 	let game_path: String = config.get("system", "game").unwrap();
-    let bios_path: String = config.get("system", "bios").unwrap();
+    let bios_path: String = config.get("system", "bios").unwrap_or("".to_string());
 	let buttons = ["right", "left", "up", "down", "a", "b", "select", "start"];
 	let controls: Vec<u8> = buttons.iter()
 								   .map(|a| config.get("controls", a).unwrap())
 								   .collect();
-    let white: String = config.get("screen", "white").unwrap();
-    let black: String = config.get("screen", "black").unwrap();
+    let white: String = config.get("screen", "white").unwrap_or("4D8210".to_string());
+    let black: String = config.get("screen", "black").unwrap_or("1F3C1F".to_string());
 
     let white = u32::from_str_radix(&white, 16).unwrap();
     let black = u32::from_str_radix(&black, 16).unwrap();
