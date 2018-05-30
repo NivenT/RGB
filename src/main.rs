@@ -89,6 +89,8 @@ fn main() {
     let mut frames_until_render = 0;
     let mut event_pump = sdl_context.event_pump().unwrap();
     let renderer = Renderer::new(&display, white, black);
+
+    println!("Using OpenGL Version: {}", display.get_opengl_version_string());
     while !state.done {
         if start.to(PreciseTime::now()).num_seconds() >= 1 {
             let acc = 100f64*(cycles_per_second as f64/(CYCLES_PER_SECOND*emu.get_speed()) as f64);
