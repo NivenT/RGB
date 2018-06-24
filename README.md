@@ -3,7 +3,7 @@
 
 RGB (Rust Game Boy) is a simple emulator for the original game boy and the color game boy.
 
-<b> Warning: This no longer compiles in the latest versions of rust; use version 1.20 instead. At the moment, fixing things for newer versions is not high on my priorites list</b>
+<b> Warning: This no longer compiles in the latest versions of rust; use version 1.20.0 instead. At the moment, fixing things for newer versions is not high on my priorites list</b>
 
 <img src="https://github.com/NivenT/RGB/blob/master/screenshots/img0.png" alt="Screenshot" width="400" height="300"/><img src="https://github.com/NivenT/RGB/blob/master/screenshots/img1.png" alt="Screenshot" width="400" height="300"/>
 <img src="https://github.com/NivenT/RGB/blob/master/screenshots/img2.png" alt="Screenshot" width="400" height="300"/><img src="https://github.com/NivenT/RGB/blob/master/screenshots/img3.png" alt="Screenshot" width="400" height="300"/>
