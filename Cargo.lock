@@ -165,6 +165,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "fps_clock"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "freetype-sys"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -477,6 +482,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "rgb"
 version = "0.1.0"
 dependencies = [
+ "fps_clock 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium_sdl2 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium_text 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -722,6 +728,7 @@ dependencies = [
 "checksum dlib 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "148bce4ce1c36c4509f29cb54e62c2bd265551a9b00b38070fad551a851866ec"
 "checksum dtoa 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "09c3753c3db574d215cba4ea76018483895d7bff25a31b49ba45db21c48e50ab"
 "checksum dwmapi-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "07c4c7cc7b396419bc0a4d90371d0cee16cb5053b53647d287c0b728000c41fe"
+"checksum fps_clock 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d62f07644333c61ff6ab8738366228ea076d6d7e0a6d974385153912a25f22f0"
 "checksum freetype-sys 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "eccfb6d96cac99921f0c2142a91765f6c219868a2c45bdfe7d65a08775f18127"
 "checksum fs2 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "bcd414e5a1a979b931bb92f41b7a54106d3f6d2e6c253e9ce943b7cd468251ef"
 "checksum gcc 0.3.54 (registry+https://github.com/rust-lang/crates.io-index)" = "5e33ec290da0d127825013597dbdfc28bee4964690c7ce1166cbc2a7bd08b1bb"

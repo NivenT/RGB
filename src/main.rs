@@ -5,6 +5,7 @@ extern crate glium_sdl2;
 extern crate sdl2;
 extern crate tini;
 extern crate time;
+extern crate fps_clock;
 
 mod emulator;
 mod input;
@@ -24,13 +25,10 @@ use input::*;
 use rendering::*;
 use programstate::*;
 
+const FPS: u32 = 60;
 // A real Gameboy executes this many cycles a second
 const CYCLES_PER_SECOND: u64 = 4194304;
-
-// SDL Automatically caps FPS to the refresh rate of the screen
-// This many cyles should be emulated each frame to keep the emulator
-// consistent with a real gameboy (assuming 60 FPS)
-const CYCLES_PER_FRAME: u64 = 69905;
+const CYCLES_PER_FRAME: u64 = CYCLES_PER_SECOND/FPS as u64;
 
 fn main() {
     let mut state = ProgramState::new();
@@ -91,6 +89,7 @@ fn main() {
     let renderer = Renderer::new(&display, white, black);
 
     println!("Using OpenGL Version: {}", display.get_opengl_version_string());
+    let mut fps = fps_clock::FpsClock::new(FPS);
     while !state.done {
         if start.to(PreciseTime::now()).num_seconds() >= 1 {
             let acc = 100f64*(cycles_per_second as f64/(CYCLES_PER_SECOND*emu.get_speed()) as f64);
@@ -110,6 +109,7 @@ fn main() {
         }
         if frames_until_render == 0 {
             renderer.render(&display, emu.get_screen(), &state, &mut dstate);
+            fps.tick();
         }
 
         frames_until_render = (frames_until_render+1)%state.speed;
