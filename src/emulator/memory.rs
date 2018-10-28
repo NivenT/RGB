@@ -170,6 +170,10 @@ impl Memory {
 			self.key_state |= 1 << key;
 		}
 	}
+	pub fn incr_div(&mut self) {
+		let div = self.mem[0xFF04];
+		self.mem[0xFF04] = div.wrapping_add(1);
+	}
 	pub fn read_vram(&self, address: u16, bank: bool) -> u8 {
 		self.vram[bank as usize*0x2000 + address as usize%0x8000]
 	}

@@ -14,8 +14,7 @@ impl Timers {
 		self.div_counter -= cycles;
 		if self.div_counter <= 0 {
 			self.div_counter = 256;
-			let div_reg = mem.rb(0xFF04);
-			mem.wb(0xFF04, div_reg.wrapping_add(1));
+			mem.incr_div();
 		}
 
 		let tac = mem.rb(0xFF07);
