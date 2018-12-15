@@ -7,7 +7,6 @@ use std::collections::HashSet;
 use emulator::Memory;
 use emulator::Gpu;
 use emulator::InterruptManager;
-use emulator::SoundManager;
 use emulator::Timers;
 use emulator::mbc::*;
 use emulator::instructions::*;
@@ -33,7 +32,6 @@ fn to_null_terminated(bytes: &[u8]) -> String {
 pub struct Emulator {
 	clock: u64,
 	interrupts: InterruptManager,
-	//audio: SoundManager,
 	controls: [u8; 8],
 	timers:	Timers,
 	cgb_mode: bool,
@@ -107,6 +105,9 @@ impl Emulator {
 			unimpl_instr_breakpoint: unimpl_instr_breakpoint,
 			inf_loop_breakpoint: inf_loop_breakpoint,
 		}
+	}
+	pub unsafe fn get_mem_ptr(&self) -> *const Memory {
+		&self.mem
 	}
 	pub fn get_speed(&self) -> u64 {
 		1 << (self.mem.rb(0xFF4D) >> 7)

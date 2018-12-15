@@ -18,10 +18,10 @@ mod mbc5;
 
 pub(in emulator) use self::gpu::Gpu;
 pub(in emulator) use self::interrupts::InterruptManager;
-pub(in emulator) use self::sound::SoundManager;
 pub(in emulator) use self::memory::Memory;
 pub(in emulator) use self::timers::Timers;
 pub(in emulator) use self::mbc::Mbc;
 
 pub use self::emulator::Emulator;
+pub use self::sound::SoundManager;
 pub use self::gpu::Color;

@@ -15,12 +15,14 @@ mod utils;
 
 use std::fs::File;
 use std::io::prelude::*;
+use std::sync::Arc;
 
 use glium_sdl2::DisplayBuild;
+use sdl2::audio::{AudioCallback, AudioSpecDesired};
 use tini::Ini;
 use time::PreciseTime;
 
-use emulator::Emulator;
+use emulator::{Emulator, SoundManager};
 use input::*;
 use rendering::*;
 use programstate::*;
@@ -74,6 +76,18 @@ fn main() {
 
 	let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
+    let audio_subsystem = sdl_context.audio().unwrap();
+
+    let desired_spec = AudioSpecDesired {
+        freq: Some(44100),
+        channels: Some(1),
+        samples: None
+    };
+    let device = audio_subsystem.open_playback(None, &desired_spec, |spec| {
+        unsafe {
+            SoundManager::new(Arc::from_raw(emu.get_mem_ptr()))
+        }
+    }).unwrap();
 
     let mut display = video_subsystem.window("Rust Gameboy", 800, 600)
                                      .resizable()
@@ -88,6 +102,7 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
     let renderer = Renderer::new(&display, white, black);
 
+    device.resume();
     println!("Using OpenGL Version: {}", display.get_opengl_version_string());
     let mut fps = fps_clock::FpsClock::new(FPS);
     while !state.done {
