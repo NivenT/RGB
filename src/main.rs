@@ -85,7 +85,7 @@ fn main() {
     };
     let device = audio_subsystem.open_playback(None, &desired_spec, |spec| {
         unsafe {
-            SoundManager::new(Arc::from_raw(emu.get_mem_ptr()))
+            SoundManager::new(Arc::from_raw(emu.get_mem_ptr()), spec.freq)
         }
     }).unwrap();
 
