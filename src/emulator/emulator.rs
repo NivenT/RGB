@@ -112,6 +112,9 @@ impl Emulator {
 	pub fn get_speed(&self) -> u64 {
 		1 << (self.mem.rb(0xFF4D) >> 7)
 	}
+	pub fn get_clock(&self) -> u64 {
+		self.clock
+	}
 	pub fn is_cgb(&self) -> bool {
 		self.cgb_mode
 	}

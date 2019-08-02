@@ -1,3 +1,16 @@
+[root]
+name = "rgb"
+version = "0.1.0"
+dependencies = [
+ "fps_clock 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glium 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glium_sdl2 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glium_text 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sdl2 0.27.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tini 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
 [[package]]
 name = "android_glue"
 version = "0.2.3"
@@ -477,19 +490,6 @@ dependencies = [
 name = "redox_syscall"
 version = "0.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "rgb"
-version = "0.1.0"
-dependencies = [
- "fps_clock 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "glium 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "glium_sdl2 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "glium_text 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "sdl2 0.27.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "time 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
- "tini 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "rustc-demangle"
