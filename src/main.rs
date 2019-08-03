@@ -15,7 +15,7 @@ mod utils;
 
 use std::fs::File;
 use std::io::prelude::*;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use glium_sdl2::DisplayBuild;
 use sdl2::audio::{AudioCallback, AudioSpecDesired};
@@ -73,6 +73,7 @@ fn main() {
 	emu.set_controls(controls);
     emu.load_bios(bios_path);
     emu.load_game(game_path);
+    let emu = Arc::new(Mutex::new(emu));
 
 	let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -83,10 +84,8 @@ fn main() {
         channels: Some(1),
         samples: None
     };
-    let device = audio_subsystem.open_playback(None, &desired_spec, |spec| {
-        unsafe {
-            SoundManager::new(Arc::from_raw(&emu))
-        }
+    let device = audio_subsystem.open_playback(None, &desired_spec, |_spec| {
+            SoundManager::new(Arc::clone(&emu))
     }).unwrap();
 
     let mut display = video_subsystem.window("Rust Gameboy", 800, 600)
@@ -106,6 +105,8 @@ fn main() {
     println!("Using OpenGL Version: {}", display.get_opengl_version_string());
     let mut fps = fps_clock::FpsClock::new(FPS);
     while !state.done {
+        let mut emu = emu.lock().unwrap();
+
         if start.to(PreciseTime::now()).num_seconds() >= 1 {
             let acc = 100f64*(cycles_per_second as f64/(CYCLES_PER_SECOND*emu.get_speed()) as f64);
             let title = if state.paused {"Paused"} else {"Rust Gameboy"};

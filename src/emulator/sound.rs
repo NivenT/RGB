@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use sdl2::audio::AudioCallback;
 
@@ -80,15 +80,14 @@ impl QuadWave {
 }
 
 pub struct SoundManager {
-	emu: Arc<Emulator>,
+	emu: Arc<Mutex<Emulator>>,
 	sound1: QuadWave,
 	_sound2: QuadWave,
 	last_tick: u64,
 }
 
 impl SoundManager {
-	pub fn new(emu: Arc<Emulator>) -> SoundManager {
-		println!("Count: {}", Arc::strong_count(&emu));
+	pub fn new(emu: Arc<Mutex<Emulator>>) -> SoundManager {
 		SoundManager {
 			emu: emu,
 			sound1: QuadWave::new(true, 0xFF11),
@@ -102,11 +101,11 @@ impl AudioCallback for SoundManager {
 	type Channel = f32;
 
 	fn callback(&mut self, out: &mut [Self::Channel]) {
-		let tick = self.emu.get_clock();
+        let mut emu = self.emu.lock().unwrap();
+		let tick = emu.get_clock();
 		let ds = (tick - self.last_tick) as f32/CYCLES_PER_SECOND as f32;
 		for x in out.iter_mut() {
-			println!("Count: {}", Arc::strong_count(&self.emu));
-			*x = self.sound1.sample(Arc::get_mut(&mut self.emu).unwrap(), ds);
+            *x = self.sound1.sample(&mut emu, ds);
 		}
 		self.last_tick = tick;
 	}
