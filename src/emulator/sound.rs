@@ -82,7 +82,7 @@ impl QuadWave {
 pub struct SoundManager {
 	emu: Arc<Mutex<Emulator>>,
 	sound1: QuadWave,
-	_sound2: QuadWave,
+	sound2: QuadWave,
 	last_tick: u64,
 }
 
@@ -91,7 +91,7 @@ impl SoundManager {
 		SoundManager {
 			emu: emu,
 			sound1: QuadWave::new(true, 0xFF11),
-			_sound2: QuadWave::new(false, 0xFF16),
+			sound2: QuadWave::new(false, 0xFF16),
 			last_tick: 0,
 		}
 	}
@@ -106,7 +106,9 @@ impl AudioCallback for SoundManager {
 		let ds = (tick - self.last_tick) as f32/CYCLES_PER_SECOND as f32;
 		for x in out.iter_mut() {
             *x = self.sound1.sample(&mut emu, ds);
+            *x += self.sound2.sample(&mut emu, ds);
 		}
+        println!("here");
 		self.last_tick = tick;
 	}
 }

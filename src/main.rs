@@ -18,7 +18,7 @@ use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
 
 use glium_sdl2::DisplayBuild;
-use sdl2::audio::{AudioCallback, AudioSpecDesired};
+use sdl2::audio::AudioSpecDesired;
 use tini::Ini;
 use time::PreciseTime;
 
