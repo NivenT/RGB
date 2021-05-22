@@ -1,412 +1,454 @@
+use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
-use std::io::SeekFrom;
 use std::io::prelude::*;
-use std::collections::HashSet;
+use std::io::SeekFrom;
 
-use emulator::Memory;
-use emulator::Gpu;
-use emulator::InterruptManager;
-use emulator::Timers;
-use emulator::mbc::*;
 use emulator::instructions::*;
+use emulator::mbc::*;
 use emulator::registers::*;
 use emulator::rom_info::*;
+use emulator::Gpu;
+use emulator::InterruptManager;
+use emulator::Memory;
+use emulator::Timers;
 
 use super::super::programstate::*;
 
 fn to_save(game: String) -> String {
-	let dot_pos = game.rfind('.').unwrap();
-	// Not sure how regular .sav files are saved so these are .rsav
-	game[..dot_pos].to_string() + ".rsav"
+    let dot_pos = game.rfind('.').unwrap();
+    // Not sure how regular .sav files are saved so these are .rsav
+    game[..dot_pos].to_string() + ".rsav"
 }
 
 fn to_null_terminated(bytes: &[u8]) -> String {
-	String::from_utf8_lossy(&bytes.iter()
-								  .map(|b| *b)
-	 							  .take_while(|&b| b > 0)
-	 							  .collect::<Vec<_>>())
-							.to_string()
+    String::from_utf8_lossy(
+        &bytes
+            .iter()
+            .copied()
+            .take_while(|&b| b > 0)
+            .collect::<Vec<_>>(),
+    )
+    .to_string()
 }
 
 pub struct Emulator {
-	clock: u64,
-	interrupts: InterruptManager,
-	controls: [u8; 8],
-	timers:	Timers,
-	cgb_mode: bool,
-	bios_breakpoint: bool,
-	unimpl_instr_breakpoint: bool,
-	inf_loop_breakpoint: bool,
+    clock: u64,
+    interrupts: InterruptManager,
+    controls: [u8; 8],
+    timers: Timers,
+    cgb_mode: bool,
+    bios_breakpoint: bool,
+    unimpl_instr_breakpoint: bool,
+    inf_loop_breakpoint: bool,
 
-	// TODO: Maybe make these not public and replace with (specialized) getters/setters
-	//       This might be fine as is since they're only public in the emulator module
-	pub(in emulator) mem: Memory,
-	pub(in emulator) gpu: Gpu,
-	pub(in emulator) regs: Registers,
-	pub(in emulator) halted: bool,
-	pub(in emulator) stopped: bool
+    // TODO: Maybe make these not public and replace with (specialized) getters/setters
+    //       This might be fine as is since they're only public in the emulator module
+    pub(in emulator) mem: Memory,
+    pub(in emulator) gpu: Gpu,
+    pub(in emulator) regs: Registers,
+    pub(in emulator) halted: bool,
+    pub(in emulator) stopped: bool,
 }
 
 impl fmt::Debug for Emulator {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		let _ = write!(f, "*****EMULATOR DEBUG INFO*****\n");
-		unsafe {
-			let _ = write!(f, "AF:           {:#X}\n", *self.regs.af_immut());
-			let _ = write!(f, "BC:           {:#X}\n", *self.regs.bc_immut());
-			let _ = write!(f, "DE:           {:#X}\n", *self.regs.de_immut());
-			let _ = write!(f, "HL:           {:#X}\n", *self.regs.hl_immut());
-			let _ = write!(f, "SP:           {:#X}\n",  self.regs.sp);
-			let _ = write!(f, "PC:           {:#X}\n",  self.regs.pc);
-			let _ = write!(f, "\n");
-			let _ = write!(f, "ZERO:         {}\n", self.regs.get_flag(ZERO_FLAG));
-			let _ = write!(f, "NEGATIVE:     {}\n", self.regs.get_flag(NEGATIVE_FLAG));
-			let _ = write!(f, "HALFCARRY:    {}\n", self.regs.get_flag(HALFCARRY_FLAG));
-			let _ = write!(f, "CARRY:        {}\n", self.regs.get_flag(CARRY_FLAG));
-			let _ = write!(f, "\n");
-			let _ = write!(f, "IF:           {:#X}\n", self.mem.rb(0xFF0F));
-			let _ = write!(f, "IE:           {:#X}\n", self.mem.rb(0xFFFF));
-			let _ = write!(f, "IME:          {}\n", self.interrupts.ime);
-			let _ = write!(f, "\n");
-			let _ = write!(f, "SL_COUNT:     {}\n", self.gpu.get_scanline_count());
-			let _ = write!(f, "SCANLINE:     {}\n", self.mem.rb(0xFF44));
-			let _ = write!(f, "LCD STATUS:   {:#b}\n", self.mem.rb(0xFF41));
-			let _ = write!(f, "LCD CONTROL:  {:#b}\n", self.mem.rb(0xFF40));
-			let _ = write!(f, "\n");
-			let _ = write!(f, "DIV:          {:#X}\n", self.mem.rb(0xFF04));
-			let _ = write!(f, "TIMA:         {:#X}\n", self.mem.rb(0xFF05));
-			let _ = write!(f, "TMA:          {:#X}\n", self.mem.rb(0xFF06));
-			let _ = write!(f, "TAC:          {:#X}\n", self.mem.rb(0xFF07));
-		}
-		write!(f, "*****************************")
-	}
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let _ = writeln!(f, "*****EMULATOR DEBUG INFO*****");
+        unsafe {
+            let _ = writeln!(f, "AF:           {:#X}", *self.regs.af_immut());
+            let _ = writeln!(f, "BC:           {:#X}", *self.regs.bc_immut());
+            let _ = writeln!(f, "DE:           {:#X}", *self.regs.de_immut());
+            let _ = writeln!(f, "HL:           {:#X}", *self.regs.hl_immut());
+            let _ = writeln!(f, "SP:           {:#X}", self.regs.sp);
+            let _ = writeln!(f, "PC:           {:#X}", self.regs.pc);
+            let _ = writeln!(f);
+            let _ = writeln!(f, "ZERO:         {}", self.regs.get_flag(ZERO_FLAG));
+            let _ = writeln!(f, "NEGATIVE:     {}", self.regs.get_flag(NEGATIVE_FLAG));
+            let _ = writeln!(f, "HALFCARRY:    {}", self.regs.get_flag(HALFCARRY_FLAG));
+            let _ = writeln!(f, "CARRY:        {}", self.regs.get_flag(CARRY_FLAG));
+            let _ = writeln!(f);
+            let _ = writeln!(f, "IF:           {:#X}", self.mem.rb(0xFF0F));
+            let _ = writeln!(f, "IE:           {:#X}", self.mem.rb(0xFFFF));
+            let _ = writeln!(f, "IME:          {}", self.interrupts.ime);
+            let _ = writeln!(f);
+            let _ = writeln!(f, "SL_COUNT:     {}", self.gpu.get_scanline_count());
+            let _ = writeln!(f, "SCANLINE:     {}", self.mem.rb(0xFF44));
+            let _ = writeln!(f, "LCD STATUS:   {:#b}", self.mem.rb(0xFF41));
+            let _ = writeln!(f, "LCD CONTROL:  {:#b}", self.mem.rb(0xFF40));
+            let _ = writeln!(f);
+            let _ = writeln!(f, "DIV:          {:#X}", self.mem.rb(0xFF04));
+            let _ = writeln!(f, "TIMA:         {:#X}", self.mem.rb(0xFF05));
+            let _ = writeln!(f, "TMA:          {:#X}", self.mem.rb(0xFF06));
+            let _ = writeln!(f, "TAC:          {:#X}", self.mem.rb(0xFF07));
+        }
+        write!(f, "*****************************")
+    }
 }
 
 impl Default for Emulator {
-	fn default() -> Emulator {
-		Emulator::new(false, false, false)
-	}
+    fn default() -> Emulator {
+        Emulator::new(false, false, false)
+    }
 }
 
 impl Emulator {
-	pub fn new(bios_breakpoint: bool, unimpl_instr_breakpoint: bool, inf_loop_breakpoint: bool) -> Emulator {
-		Emulator {
-			clock: 0, 
-			mem: Memory::new(), 
-			gpu: Gpu::new(), 
-			controls: [0; 8], 
-			regs: Registers::new(), 
-			halted: false, 
-			timers: Timers::new(),
-			interrupts: InterruptManager::new(), 
-			stopped: false, 
-			cgb_mode: false,
-			bios_breakpoint: bios_breakpoint,
-			unimpl_instr_breakpoint: unimpl_instr_breakpoint,
-			inf_loop_breakpoint: inf_loop_breakpoint,
-		}
-	}
-	pub unsafe fn get_mem_ptr(&self) -> *const Memory {
-		&self.mem
-	}
-	pub fn get_speed(&self) -> u64 {
-		1 << (self.mem.rb(0xFF4D) >> 7)
-	}
-	pub fn get_clock(&self) -> u64 {
-		self.clock
-	}
-	pub fn is_cgb(&self) -> bool {
-		self.cgb_mode
-	}
-	pub fn is_stopped(&self) -> bool {
-		self.stopped
-	}
-	pub fn set_controls(&mut self, controls: Vec<u8>) {
-		for i in 0..8 {
-			self.controls[i] = controls[i];
-		}
-	}
-	pub fn load_bios(&mut self, path: String) {
-		println!("Loading BIOS from \"{}\"...", path);
-		match File::open(path) {
-			Ok(mut bios_file) => {
-				println!("Found BIOS");
-				let _ = bios_file.read_to_end(&mut self.mem.bios);
-				println!("Successfully loaded bios\n");
-			},
-			Err(_) => {
-				println!("Could not find BIOS");
-				println!("Manually initializing emulator...");
+    pub fn new(
+        bios_breakpoint: bool,
+        unimpl_instr_breakpoint: bool,
+        inf_loop_breakpoint: bool,
+    ) -> Emulator {
+        Emulator {
+            clock: 0,
+            mem: Memory::new(),
+            gpu: Gpu::new(),
+            controls: [0; 8],
+            regs: Registers::new(),
+            halted: false,
+            timers: Timers::new(),
+            interrupts: InterruptManager::new(),
+            stopped: false,
+            cgb_mode: false,
+            bios_breakpoint: bios_breakpoint,
+            unimpl_instr_breakpoint: unimpl_instr_breakpoint,
+            inf_loop_breakpoint: inf_loop_breakpoint,
+        }
+    }
+    pub unsafe fn get_mem_ptr(&self) -> *const Memory {
+        &self.mem
+    }
+    pub fn get_speed(&self) -> u64 {
+        1 << (self.mem.rb(0xFF4D) >> 7)
+    }
+    pub fn get_clock(&self) -> u64 {
+        self.clock
+    }
+    pub fn is_cgb(&self) -> bool {
+        self.cgb_mode
+    }
+    pub fn is_stopped(&self) -> bool {
+        self.stopped
+    }
+    pub fn set_controls(&mut self, controls: Vec<u8>) {
+        use std::convert::TryInto;
+        self.controls = controls.try_into().unwrap();
+    }
+    pub fn load_bios(&mut self, path: String) {
+        println!("Loading BIOS from \"{}\"...", path);
+        match File::open(path) {
+            Ok(mut bios_file) => {
+                println!("Found BIOS");
+                let _ = bios_file.read_to_end(&mut self.mem.bios);
+                println!("Successfully loaded bios\n");
+            }
+            Err(_) => {
+                println!("Could not find BIOS");
+                println!("Manually initializing emulator...");
 
-				unsafe {
-					*self.regs.af() = 0x11B0;
-					*self.regs.bc() = 0x0013;
-					*self.regs.de() = 0x00D8;
-					*self.regs.hl() = 0x014D;
-				}
-				self.regs.sp = 0xFFFE;
-				self.regs.pc = 0x0100;
+                unsafe {
+                    *self.regs.af() = 0x11B0;
+                    *self.regs.bc() = 0x0013;
+                    *self.regs.de() = 0x00D8;
+                    *self.regs.hl() = 0x014D;
+                }
+                self.regs.sp = 0xFFFE;
+                self.regs.pc = 0x0100;
 
- 				self.mem.wb(0xFF05, 0x00);
-				self.mem.wb(0xFF06, 0x00);
-				self.mem.wb(0xFF07, 0x00);
-				self.mem.wb(0xFF10, 0x80);
-				self.mem.wb(0xFF11, 0xBF);
-				self.mem.wb(0xFF12, 0xF3);
-				self.mem.wb(0xFF14, 0xBF);
-				self.mem.wb(0xFF16, 0x3F);
-				self.mem.wb(0xFF17, 0x00);
-				self.mem.wb(0xFF19, 0xBF);
-				self.mem.wb(0xFF1A, 0x7F);
-				self.mem.wb(0xFF1B, 0xFF);
-				self.mem.wb(0xFF1C, 0x9F);
-				self.mem.wb(0xFF1E, 0xBF);
-				self.mem.wb(0xFF20, 0xFF);
-				self.mem.wb(0xFF21, 0x00);
-				self.mem.wb(0xFF22, 0x00);
-				self.mem.wb(0xFF23, 0xBF);
-				self.mem.wb(0xFF24, 0x77);
-				self.mem.wb(0xFF25, 0xF3);
-				self.mem.wb(0xFF26, 0xF1);
-				self.mem.wb(0xFF40, 0x91);
-				self.mem.wb(0xFF42, 0x00);
-				self.mem.wb(0xFF43, 0x00);
-				self.mem.wb(0xFF45, 0x00);
-				self.mem.wb(0xFF47, 0xFC);
-				self.mem.wb(0xFF48, 0xFF);
-				self.mem.wb(0xFF49, 0xFF);
-				self.mem.wb(0xFF4A, 0x00);
-				self.mem.wb(0xFF4B, 0x00);
-				self.mem.wb(0xFFFF, 0x00);
+                self.mem.wb(0xFF05, 0x00);
+                self.mem.wb(0xFF06, 0x00);
+                self.mem.wb(0xFF07, 0x00);
+                self.mem.wb(0xFF10, 0x80);
+                self.mem.wb(0xFF11, 0xBF);
+                self.mem.wb(0xFF12, 0xF3);
+                self.mem.wb(0xFF14, 0xBF);
+                self.mem.wb(0xFF16, 0x3F);
+                self.mem.wb(0xFF17, 0x00);
+                self.mem.wb(0xFF19, 0xBF);
+                self.mem.wb(0xFF1A, 0x7F);
+                self.mem.wb(0xFF1B, 0xFF);
+                self.mem.wb(0xFF1C, 0x9F);
+                self.mem.wb(0xFF1E, 0xBF);
+                self.mem.wb(0xFF20, 0xFF);
+                self.mem.wb(0xFF21, 0x00);
+                self.mem.wb(0xFF22, 0x00);
+                self.mem.wb(0xFF23, 0xBF);
+                self.mem.wb(0xFF24, 0x77);
+                self.mem.wb(0xFF25, 0xF3);
+                self.mem.wb(0xFF26, 0xF1);
+                self.mem.wb(0xFF40, 0x91);
+                self.mem.wb(0xFF42, 0x00);
+                self.mem.wb(0xFF43, 0x00);
+                self.mem.wb(0xFF45, 0x00);
+                self.mem.wb(0xFF47, 0xFC);
+                self.mem.wb(0xFF48, 0xFF);
+                self.mem.wb(0xFF49, 0xFF);
+                self.mem.wb(0xFF4A, 0x00);
+                self.mem.wb(0xFF4B, 0x00);
+                self.mem.wb(0xFFFF, 0x00);
 
-				self.mem.finished_with_bios();
-				println!("Emulator initialized\n");
-			}
-		}
-	}
-	pub fn load_game(&mut self, path: String) {
-		println!("Loading game from \"{}\"...", path);
-		let mut game_file = File::open(path.clone()).unwrap();
-		
-		let mut header = [0; 0x150];
-		let _ = game_file.read(&mut header).unwrap();
-		let _ = game_file.seek(SeekFrom::Start(0));
+                self.mem.finished_with_bios();
+                println!("Emulator initialized\n");
+            }
+        }
+    }
+    pub fn load_game(&mut self, path: String) {
+        println!("Loading game from \"{}\"...", path);
+        let mut game_file = File::open(path.clone()).unwrap();
 
-		let title = to_null_terminated(&header[0x134..0x144]);
+        let mut header = [0; 0x150];
+        let _ = game_file.read(&mut header).unwrap();
+        let _ = game_file.seek(SeekFrom::Start(0));
 
-		println!("The title of the game is {}", title);
-		
-		let cartridge_type = header[0x147];
-		let cartridge_type = match CartridgeType::from_code(cartridge_type) {
-			Some(t) => t,
-			None  	=> panic!("Unknown cartridge type: {:#X}", cartridge_type)
-		};
-		println!("The cartridge type is {:?}", cartridge_type);
+        let title = to_null_terminated(&header[0x134..0x144]);
 
-		self.mem.cart = Mbc::new(cartridge_type);
-		self.mem.cart.load_game(&mut game_file);
-		self.mem.save_file = to_save(path);
+        println!("The title of the game is {}", title);
 
-		if let Ok(mut file) = File::open(self.mem.save_file.clone()) {
-			println!("Loading .rsav save file from {}", self.mem.save_file);
-			self.mem.cart.load_sav(&mut file);
-		}
+        let cartridge_type = header[0x147];
+        let cartridge_type = match CartridgeType::from_code(cartridge_type) {
+            Some(t) => t,
+            None => panic!("Unknown cartridge type: {:#X}", cartridge_type),
+        };
+        println!("The cartridge type is {:?}", cartridge_type);
 
-		let rom_size = header[0x148];
-		let rom_size = match get_rom_size(rom_size) {
-			Some(size) 	=> size * 1024,
-			None 		=> panic!("Unkown ROM size type: {}", rom_size)
-		};
-		println!("{} has {} bytes ({} KB) of ROM", title, rom_size, rom_size/1024);
+        self.mem.cart = Mbc::new(cartridge_type);
+        self.mem.cart.load_game(&mut game_file);
+        self.mem.save_file = to_save(path);
 
-		let ram_size = header[0x149];
-		let ram_size = match get_ram_size(ram_size) {
-			Some(size)	=> size * 1024,
-			None		=> panic!("Unknown RAM size type: {}", ram_size)
-		};
-		println!("{} has {} bytes ({} KB) of external RAM", title, ram_size, ram_size/1024);
+        if let Ok(mut file) = File::open(self.mem.save_file.clone()) {
+            println!("Loading .rsav save file from {}", self.mem.save_file);
+            self.mem.cart.load_sav(&mut file);
+        }
 
-		println!("Successfully loaded {}\n", title);
+        let rom_size = header[0x148];
+        let rom_size = match get_rom_size(rom_size) {
+            Some(size) => size * 1024,
+            None => panic!("Unkown ROM size type: {}", rom_size),
+        };
+        println!(
+            "{} has {} bytes ({} KB) of ROM",
+            title,
+            rom_size,
+            rom_size / 1024
+        );
 
-		self.cgb_mode = if self.mem.bios.len() == 0 && header[0x143] & 0x80 == 0 {
-			*self.regs.a() = 0x01;
-			false
-		} else {
-			self.mem.bios.len() != 0x100
-		};
-		self.mem.cgb_mode = self.cgb_mode;
-		println!("Emulator running in {}CGB mode", if self.cgb_mode {""} else {"Non-"});
-	}
-	pub(in emulator) fn enable_interrupts(&mut self) {
-		self.interrupts.ime = true;
-	}
-	pub(in emulator) fn disable_interrupts(&mut self) {
-		self.interrupts.ime = false;
-	}
-	pub fn update_keys(&mut self, key: u8, pressed: bool) {
-		let old_state = self.mem.rb(0xFF00);
-		for i in 0..8 {
-			if self.controls[i] == key {
-				self.mem.wk(i as u8, pressed);
-				let new_state = self.mem.rb(0xFF00);
-				if (!new_state & old_state & (1 << i%4)) > 0 {
-					self.interrupts.request_interrupt(&mut self.mem, 4);
-				}
-			}
-		}
-	}
-	pub fn step(&mut self, state: &mut ProgramState, dstate: &mut DebugState) -> u64 {
-		let cycles = if !self.halted && !self.stopped {self.emulate_cycle(state, dstate)} else {40};
-		self.gpu.step(&mut self.mem, &self.interrupts, cycles as i16, self.cgb_mode);
-		self.timers.step(&mut self.mem, &self.interrupts, cycles as i16);
-		self.mem.cart.step(cycles as i16);
-		if self.interrupts.step(&mut self.mem, &mut self.regs) {
-			self.halted = false;
-		}
+        let ram_size = header[0x149];
+        let ram_size = match get_ram_size(ram_size) {
+            Some(size) => size * 1024,
+            None => panic!("Unknown RAM size type: {}", ram_size),
+        };
+        println!(
+            "{} has {} bytes ({} KB) of external RAM",
+            title,
+            ram_size,
+            ram_size / 1024
+        );
 
-		if self.regs.pc == 0x100 {
-			self.mem.finished_with_bios();
-			if self.bios_breakpoint {
-				state.paused = true;
-			}
-		}
-		cycles
-	}
-	pub fn save_game(&mut self) -> usize {
-		if let Ok(mut file) = File::create(self.mem.save_file.clone()) {
-			self.mem.cart.save_game(&mut file)
-		} else {
-			0
-		}
-	}
-	// Needs some cleaning up
-	// Doesn't produce perfectly correct output, and is messy code
-	pub fn disassemble_file(file: &str) -> String {
-		if let Ok(mut file) = File::open(file) {
-			let mut disassembly = String::new();
+        println!("Successfully loaded {}\n", title);
 
-			let mut data = Vec::new();
-			let _ = file.read_to_end(&mut data);
+        self.cgb_mode = if self.mem.bios.is_empty() && header[0x143] & 0x80 == 0 {
+            *self.regs.a() = 0x01;
+            false
+        } else {
+            self.mem.bios.len() != 0x100
+        };
+        self.mem.cgb_mode = self.cgb_mode;
+        println!(
+            "Emulator running in {}CGB mode",
+            if self.cgb_mode { "" } else { "Non-" }
+        );
+    }
+    pub(in emulator) fn enable_interrupts(&mut self) {
+        self.interrupts.ime = true;
+    }
+    pub(in emulator) fn disable_interrupts(&mut self) {
+        self.interrupts.ime = false;
+    }
+    pub fn update_keys(&mut self, key: u8, pressed: bool) {
+        let old_state = self.mem.rb(0xFF00);
+        for i in 0..8 {
+            if self.controls[i] == key {
+                self.mem.wk(i as u8, pressed);
+                let new_state = self.mem.rb(0xFF00);
+                // I don't remember hoow this is supposed to be parenthesized
+                if (!new_state & old_state & (1 << i % 4)) > 0 {
+                    self.interrupts.request_interrupt(&mut self.mem, 4);
+                }
+            }
+        }
+    }
+    pub fn step(&mut self, state: &mut ProgramState, dstate: &mut DebugState) -> u64 {
+        let cycles = if !self.halted && !self.stopped {
+            self.emulate_cycle(state, dstate)
+        } else {
+            40 // Why 40?
+        };
+        self.gpu.step(
+            &mut self.mem,
+            &self.interrupts,
+            cycles as i16,
+            self.cgb_mode,
+        );
+        self.timers
+            .step(&mut self.mem, &self.interrupts, cycles as i16);
+        self.mem.cart.step(cycles as i16);
+        if self.interrupts.step(&mut self.mem, &mut self.regs) {
+            self.halted = false;
+        }
 
-			// Assume there is a NOP followed by a JP at address 0x100
-			let start = data[0x102] as usize | ((data[0x103] as usize) << 8);
+        if self.regs.pc == 0x100 {
+            self.mem.finished_with_bios();
+            if self.bios_breakpoint {
+                state.paused = true;
+            }
+        }
+        cycles
+    }
+    pub fn save_game(&mut self) -> usize {
+        if let Ok(mut file) = File::create(self.mem.save_file.clone()) {
+            self.mem.cart.save_game(&mut file)
+        } else {
+            0
+        }
+    }
+    // Needs some cleaning up
+    // Doesn't produce perfectly correct output, and is messy code
+    pub fn disassemble_file(file: &str) -> String {
+        if let Ok(mut file) = File::open(file) {
+            let mut disassembly = String::new();
 
-			// Also add interrupt handlers and the JP instruction
-			let mut stack = vec![start, 0x40, 0x48, 0x50, 0x58, 0x60, 0x100];
-			let mut visited: HashSet<_> = stack.iter().cloned().collect();
+            let mut data = Vec::new();
+            let _ = file.read_to_end(&mut data);
 
-			while let Some(mut index) = stack.pop() {
-				let mut instruction = INSTRUCTIONS[0];
-				while !instruction.is_ret() && index < data.len() - 2 {
-					visited.insert(index);
+            // Assume there is a NOP followed by a JP at address 0x100
+            let start = data[0x102] as usize | ((data[0x103] as usize) << 8);
 
-					instruction = INSTRUCTIONS[data[index] as usize];
-					let step = instruction.operand_length + 1;
+            // Also add interrupt handlers and the JP instruction
+            let mut stack = vec![start, 0x40, 0x48, 0x50, 0x58, 0x60, 0x100];
+            let mut visited: HashSet<_> = stack.iter().cloned().collect();
 
-					let bytes = [data[index], data[index+1], data[index+2]];
-					disassembly = disassembly + &Emulator::disassemble(index as u16, bytes) + "\n";
+            while let Some(mut index) = stack.pop() {
+                let mut instruction = INSTRUCTIONS[0];
+                while !instruction.is_ret() && index < data.len() - 2 {
+                    visited.insert(index);
 
-					if instruction.is_call() || instruction.is_jump() {
-						let addr = bytes[1] as usize | ((bytes[2] as usize) << 8);
-						if !visited.contains(&addr) {
-							stack.push(addr);
-							// Too many inserts in this function? Probably but meh
-							visited.insert(index);
+                    instruction = INSTRUCTIONS[data[index] as usize];
+                    let step = instruction.operand_length + 1;
 
-							if instruction.is_jump() {
-								break;
-							}
-						}
-					}
-					index += step as usize;
-				}
-				disassembly += "\n";
-			}
-			disassembly
-		} else {
-			String::new()
-		}
-	}
-	pub fn get_screen(&self) -> &[[super::Color; 160]; 144] {
-		self.gpu.get_screen()
-	}
-	pub fn rb(&self, addr: u16) -> u8 {
-		self.mem.rb(addr)
-	}
+                    let bytes = [data[index], data[index + 1], data[index + 2]];
+                    disassembly = disassembly + &Emulator::disassemble(index as u16, bytes) + "\n";
 
-	fn emulate_cycle(&mut self, state: &mut ProgramState, dstate: &mut DebugState) -> u64 {
-		let address = self.regs.pc;
-		let opcode = self.mem.rb(self.regs.pc); self.regs.pc += 1;
-		let instruction = INSTRUCTIONS[opcode as usize];
+                    if instruction.is_call() || instruction.is_jump() {
+                        let addr = bytes[1] as usize | ((bytes[2] as usize) << 8);
+                        if !visited.contains(&addr) {
+                            stack.push(addr);
+                            // Too many inserts in this function? Probably but meh
+                            visited.insert(index);
 
-		let operand = if instruction.operand_length == 1 {
-			self.mem.rb(self.regs.pc) as u16
-		} else {
-			self.mem.rw(self.regs.pc)
-		};
-		self.regs.pc += instruction.operand_length;
+                            if instruction.is_jump() {
+                                break;
+                            }
+                        }
+                    }
+                    index += step as usize;
+                }
+                disassembly += "\n";
+            }
+            disassembly
+        } else {
+            String::new()
+        }
+    }
+    pub fn get_screen(&self) -> &[[super::Color; 160]; 144] {
+        self.gpu.get_screen()
+    }
+    pub fn rb(&self, addr: u16) -> u8 {
+        self.mem.rb(addr)
+    }
 
-		if opcode == 0x20 && operand == 0xFE && !self.regs.get_flag(ZERO_FLAG) {
-			// jump back 2 bytes if zero flag not set
-			// program counter will return to pointing to this instruction and then repeat
-			println!("Error: Emulation caught in infinite loop");
-			if self.inf_loop_breakpoint {
-				state.paused = true;
-			}
-		}
+    fn emulate_cycle(&mut self, state: &mut ProgramState, dstate: &mut DebugState) -> u64 {
+        let address = self.regs.pc;
+        let opcode = self.mem.rb(self.regs.pc);
+        self.regs.pc += 1;
+        let instruction = INSTRUCTIONS[opcode as usize];
 
-		if state.debug {
-			// TODO: always store debug info but do so without slowing everything down
-			if state.debug_regs {
-				dstate.add_text(&format!("{:?}\n", self.regs), 2);
-			}
+        let operand = if instruction.operand_length == 1 {
+            self.mem.rb(self.regs.pc) as u16
+        } else {
+            self.mem.rw(self.regs.pc)
+        };
+        self.regs.pc += instruction.operand_length;
 
-			// Gotta love shorter names
-			let disassembly = {
-				let (get, addr) = (|addr| self.mem.rb(addr), address);
-				Emulator::disassemble(addr, [get(addr), get(addr+1), get(addr+2)])
-			};
-			dstate.add_text(&format!("{}\n", disassembly), 1);
-		}
+        if opcode == 0x20 && operand == 0xFE && !self.regs.get_flag(ZERO_FLAG) {
+            // jump back 2 bytes if zero flag not set
+            // program counter will return to pointing to this instruction and then repeat
+            println!("Error: Emulation caught in infinite loop");
+            if self.inf_loop_breakpoint {
+                state.paused = true;
+            }
+        }
 
-		let cycles: u64;
-		if let Some(func) = instruction.func {
-			cycles = func(self, operand);
-		} else {
-			println!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
+        if state.debug {
+            // TODO: always store debug info but do so without slowing everything down
+            if state.debug_regs {
+                dstate.add_text(&format!("{:?}\n", self.regs), 2);
+            }
+
+            // Gotta love shorter names
+            let disassembly = {
+                let (get, addr) = (|addr| self.mem.rb(addr), address);
+                Emulator::disassemble(addr, [get(addr), get(addr + 1), get(addr + 2)])
+            };
+            dstate.add_text(&format!("{}\n", disassembly), 1);
+        }
+
+        let cycles: u64;
+        if let Some(func) = instruction.func {
+            cycles = func(self, operand);
+        } else {
+            println!("\nUnimplemented instruction at memory address ({:#X}) [{:#X} ({} | {})] called with operand {:#X}\n", 
 				address, opcode, instruction.name, instruction.operand_length, operand);
-			if self.unimpl_instr_breakpoint {
-				state.paused = true;
-			}
-			// Feels weird to keep emulator running, but panicing destorys potentially useful debug info
-			cycles = 4;
-		}
-		
-		self.clock += cycles;
-		cycles
-	}
-	fn disassemble(address: u16, bytes: [u8; 3]) -> String {
-		const OP_TYPES: [&'static str; 5] = ["d16", "a8", "a16", "r8", "d8"];
+            if self.unimpl_instr_breakpoint {
+                state.paused = true;
+            }
+            // Feels weird to keep emulator running, but panicing destorys potentially useful debug info
+            cycles = 4;
+        }
 
-		let opcode = bytes[0];	
-		let instruction = INSTRUCTIONS[opcode as usize];
-		let disassemble_op = |i: usize| { if i < instruction.operand_length as usize
-			{format!("{:#X}", bytes[i+1])} else {"    ".to_string()}
-		};
+        self.clock += cycles;
+        cycles
+    }
+    fn disassemble(address: u16, bytes: [u8; 3]) -> String {
+        const OP_TYPES: [&str; 5] = ["d16", "a8", "a16", "r8", "d8"];
 
-		let operand = if instruction.operand_length == 1 {
-			bytes[1] as u16
-		} else {
-			bytes[1] as u16 | ((bytes[2] as u16) << 8)
-		};
-		let mut disassembly = instruction.name.to_string();
+        let opcode = bytes[0];
+        let instruction = INSTRUCTIONS[opcode as usize];
+        let disassemble_op = |i: usize| {
+            if i < instruction.operand_length as usize {
+                format!("{:#X}", bytes[i + 1])
+            } else {
+                "    ".to_string()
+            }
+        };
 
-		// First time I've ever wanted a C style for loop in Rust
-		let mut i = 0;
-		while disassembly == instruction.name && i < 5 {
-			disassembly = disassembly.replace(OP_TYPES[i], &format!("{:#X}", operand));
-			i += 1;
-		}
-		format!("{:#X}:\t{:#X} {} {} \t{}", address, opcode, disassemble_op(0), disassemble_op(1), disassembly)
-	}
+        let operand = if instruction.operand_length == 1 {
+            bytes[1] as u16
+        } else {
+            bytes[1] as u16 | ((bytes[2] as u16) << 8)
+        };
+        let mut disassembly = instruction.name.to_string();
+
+        // First time I've ever wanted a C style for loop in Rust
+        let mut i = 0;
+        while disassembly == instruction.name && i < 5 {
+            disassembly = disassembly.replace(OP_TYPES[i], &format!("{:#X}", operand));
+            i += 1;
+        }
+        format!(
+            "{:#X}:\t{:#X} {} {} \t{}",
+            address,
+            opcode,
+            disassemble_op(0),
+            disassemble_op(1),
+            disassembly
+        )
+    }
 }
