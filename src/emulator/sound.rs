@@ -1,13 +1,11 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-//use sdl2::audio::AudioCallback;
 use rodio::source::Source;
 
 use emulator::{Emulator, Memory};
 
 const WAVE_PATTERNS: [u8; 4] = [0x80, 0xC0, 0xF0, 0xFC];
-const VOLUME: f32 = 0.25;
 
 // Why do all my projects end up being poorly organized?
 const CYCLES_PER_SECOND: u64 = 4194304; // where did this magic number come from?
@@ -24,8 +22,8 @@ struct QuadWave {
 impl QuadWave {
     fn new(has_sweep: bool, base_addr: u16) -> QuadWave {
         QuadWave {
-            has_sweep: has_sweep,
-            base_addr: base_addr,
+            has_sweep,
+            base_addr,
             phase: 0.0,
             time_since_sweep: 0.0,
         }
@@ -46,9 +44,10 @@ impl QuadWave {
         ((data & 0xF0) >> 4, data & 0x08 > 0, data & 0x07)
     }
     // returns (frequency, counter/consecutive selection, initial)
-    fn read_frequency(&self, mem: &Memory) -> (u16, bool, bool) {
-        let data = mem.rw(self.base_addr + 2);
-        (data & 0x07FF, data & 0x4000 > 0, data & 0x8000 > 0)
+    fn read_frequency(&self, mem: &Memory) -> (u32, bool, bool) {
+        let data = mem.rw(self.base_addr + 2) as u32;
+        let x = data & 0x07FF;
+        (131072 / (2048 - x), data & 0x4000 > 0, data & 0x8000 > 0)
     }
     fn write_frequency(&self, mem: &mut Memory, freq: u16) {
         let mut data = mem.rw(self.base_addr + 2);
@@ -64,8 +63,7 @@ impl QuadWave {
             _ => 0.75,
         };
         let (freq, _, _) = self.read_frequency(&emu.mem);
-        let freq_hz = 131072.0 / (2048 - freq) as f32;
-        let cycle_length = 1.0 / freq_hz;
+        let cycle_length = 1.0 / (freq as f32);
 
         self.time_since_sweep += ds;
         let (sweep_time, sweep_pm, sweep_num) = self.read_sweep_reg(&emu.mem);
@@ -83,7 +81,7 @@ impl QuadWave {
         if self.phase < down_time {
             0.0
         } else {
-            VOLUME
+            1.0
         }
     }
 }
@@ -114,7 +112,9 @@ impl Iterator for SoundManager {
         let mut emu = self.emu.lock().unwrap();
         let tick = emu.get_clock();
         let ds = (tick - self.last_tick) as f32 / CYCLES_PER_SECOND as f32;
-        Some(self.sound1.sample(&mut emu, ds))
+        let sample = self.sound1.sample(&mut emu, ds);
+        println!("sample: {}", sample);
+        Some(sample)
     }
 }
 
@@ -123,10 +123,11 @@ impl Source for SoundManager {
         None
     }
     fn channels(&self) -> u16 {
-        2 // should be 4
+        1 // should be 4
     }
     fn sample_rate(&self) -> u32 {
-        441000 // should actually be something else. Fix things later
+        let emu = self.emu.lock().unwrap();
+        self.sound1.read_frequency(&emu.mem).0
     }
     fn total_duration(&self) -> Option<Duration> {
         None

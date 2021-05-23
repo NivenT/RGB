@@ -34,16 +34,6 @@ const FPS: u32 = 60;
 const CYCLES_PER_SECOND: u64 = 4194304;
 const CYCLES_PER_FRAME: u64 = CYCLES_PER_SECOND / FPS as u64;
 
-fn test_rodio() {
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let file =
-        std::fs::File::open("/media/Storage/Coding/from_github/rodio/examples/beep.wav").unwrap();
-    let source = rodio::source::SineWave::new(440);
-    let beep = stream_handle.play_raw(source).unwrap();
-    //beep.set_volume(0.2);
-    std::thread::sleep(std::time::Duration::from_millis(1500));
-}
-
 fn main() {
     let mut state = ProgramState::new();
     let mut dstate = DebugState::new();
