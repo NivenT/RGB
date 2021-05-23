@@ -111,11 +111,9 @@ impl Iterator for SoundManager {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        panic!("here1");
         let mut emu = self.emu.lock().unwrap();
         let tick = emu.get_clock();
         let ds = (tick - self.last_tick) as f32 / CYCLES_PER_SECOND as f32;
-        panic!("here");
         Some(self.sound1.sample(&mut emu, ds))
     }
 }
