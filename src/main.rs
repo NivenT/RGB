@@ -110,8 +110,6 @@ fn main() -> Result<(), rodio::PlayError> {
     let mut fps = fps_clock::FpsClock::new(FPS);
     sound_manager.play();
     while !state.done {
-        sound_manager.debug();
-
         if start.to(PreciseTime::now()).num_seconds() >= 1 {
             let speed = emu.lock().unwrap().get_speed();
             let acc = 100f64 * (cycles_per_second as f64 / (CYCLES_PER_SECOND * speed) as f64);

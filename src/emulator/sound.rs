@@ -97,12 +97,10 @@ impl Iterator for QuadWave {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        println!("next called");
         let tick = self.emu.lock().unwrap().get_clock();
         let ds = (tick - self.last_tick) as f32 / CYCLES_PER_SECOND as f32;
         let sample = self.sample(ds);
         self.last_tick = tick;
-        println!("sample: {}", sample);
         Some(sample)
     }
 }
@@ -117,6 +115,106 @@ impl Source for QuadWave {
     fn sample_rate(&self) -> u32 {
         let emu = self.emu.lock().unwrap();
         self.read_frequency(&emu.mem).0
+    }
+    fn total_duration(&self) -> Option<Duration> {
+        None
+    }
+}
+
+struct RAMWave {
+    millis_so_far: f64,
+    curr_sample: u16,
+
+    emu: Arc<Mutex<Emulator>>,
+    last_tick: u64,
+}
+
+impl RAMWave {
+    fn new(emu: Arc<Mutex<Emulator>>) -> RAMWave {
+        RAMWave {
+            millis_so_far: 0.0,
+            curr_sample: 0,
+            emu,
+            last_tick: 0,
+        }
+    }
+    fn is_sound_on(&self, mem: &Memory) -> bool {
+        let data = mem.rb(0xFF1A);
+        (data & 0x80) > 0
+    }
+    fn use_sound_length(&self, mem: &Memory) -> bool {
+        let data = mem.rb(0xFF1E);
+        (data & 0x40) > 0
+    }
+    fn should_restart(&self, mem: &Memory) -> bool {
+        let data = mem.rb(0xFF1E);
+        (data & 0x80) > 0
+    }
+    // Total number of milliseconds to play sound for before stopping
+    // (Only takes affect bit 6 of 0xFF1E (see freq stuff) is set)
+    fn read_sound_length(&self, mem: &Memory) -> Option<f64> {
+        self.use_sound_length(mem).then(|| {
+            let data = mem.rb(0xFF1B) as u16;
+            (256 - data) as f64 / 256f64
+        })
+    }
+    fn volume(&self, mem: &Memory) -> f32 {
+        let data = mem.rb(0xFF1C);
+        match (data & 0x60) >> 5 {
+            0 => 0.0,
+            1 => 1.0,
+            2 => 0.5,
+            3 => 0.25,
+            _ => unreachable!("Bit arithmetic won't allow it"),
+        }
+    }
+    fn read_freq(&self, mem: &Memory) -> u32 {
+        let data = mem.rw(0xFF1D) as u32;
+        let x = data & 0x07FF;
+        65536 / (2048 - x)
+    }
+    fn sample(&mut self) -> f32 {
+        let emu = self.emu.lock().unwrap();
+        if !self.is_sound_on(&emu.mem) {
+            return 0.0;
+        } else if self.should_restart(&emu.mem) {
+            self.millis_so_far = 0f64;
+            self.curr_sample = 0;
+        }
+
+        let offset = (self.curr_sample / 2) % 16;
+        let data = emu.mem.rb(0xFF30 + offset);
+        let data = if self.curr_sample % 2 == 0 {
+            data >> 4 //(data & 0xF0) >> 4
+        } else {
+            data & 0x0F
+        };
+        self.curr_sample = self.curr_sample.wrapping_add(1);
+
+        self.volume(&emu.mem) * (data as f32) / 15f32
+    }
+}
+
+impl Iterator for RAMWave {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let sample = self.sample();
+        println!("sample {}", sample);
+        Some(sample)
+    }
+}
+
+impl Source for RAMWave {
+    fn current_frame_len(&self) -> Option<usize> {
+        None
+    }
+    fn channels(&self) -> u16 {
+        1
+    }
+    fn sample_rate(&self) -> u32 {
+        let emu = self.emu.lock().unwrap();
+        self.read_freq(&emu.mem)
     }
     fn total_duration(&self) -> Option<Duration> {
         None
@@ -145,6 +243,7 @@ impl SoundManager {
         }
         sinks[0].append(QuadWave::new(emu.clone(), true, 0xFF11));
         sinks[1].append(QuadWave::new(emu.clone(), false, 0xFF16));
+        sinks[2].append(RAMWave::new(emu.clone()));
 
         Ok(SoundManager {
             stream,
