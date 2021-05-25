@@ -18,9 +18,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::sync::{Arc, Mutex};
 
-use cpal::traits::HostTrait;
 use glium_sdl2::DisplayBuild;
-use rodio::{cpal, DeviceTrait, OutputStream, Sink};
 use time::PreciseTime;
 use tini::Ini;
 
@@ -34,7 +32,7 @@ const FPS: u32 = 60;
 const CYCLES_PER_SECOND: u64 = 4194304;
 const CYCLES_PER_FRAME: u64 = CYCLES_PER_SECOND / FPS as u64;
 
-fn main() {
+fn main() -> Result<(), rodio::PlayError> {
     let mut state = ProgramState::new();
     let mut dstate = DebugState::new();
 
@@ -86,6 +84,8 @@ fn main() {
     emu.load_game(game_path);
     let emu = Arc::new(Mutex::new(emu));
 
+    let mut sound_manager = SoundManager::new(emu.clone())?;
+
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -103,16 +103,15 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
     let renderer = Renderer::new(&display, white, black);
 
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let source = SoundManager::new(emu.clone());
-    stream_handle.play_raw(source).unwrap();
-
     println!(
         "Using OpenGL Version: {}",
         display.get_opengl_version_string()
     );
     let mut fps = fps_clock::FpsClock::new(FPS);
+    sound_manager.play();
     while !state.done {
+        sound_manager.debug();
+
         if start.to(PreciseTime::now()).num_seconds() >= 1 {
             let speed = emu.lock().unwrap().get_speed();
             let acc = 100f64 * (cycles_per_second as f64 / (CYCLES_PER_SECOND * speed) as f64);
@@ -131,6 +130,7 @@ fn main() {
             emu.lock().unwrap().save_game();
         }
 
+        let was_paused = state.paused;
         let mut emu_lock = emu.lock().unwrap();
         handle_input(
             &mut event_pump,
@@ -142,6 +142,9 @@ fn main() {
         );
         let speed = emu_lock.get_speed();
         drop(emu_lock); // release the lock
+        if state.paused != was_paused {
+            sound_manager.toggle_paused();
+        }
 
         while (!state.paused || state.adv_frame) && cycles_this_frame < CYCLES_PER_FRAME * speed {
             let mut emu = emu.lock().unwrap();
@@ -158,4 +161,6 @@ fn main() {
         cycles_per_second += cycles_this_frame;
         cycles_this_frame = 0;
     }
+
+    Ok(())
 }
